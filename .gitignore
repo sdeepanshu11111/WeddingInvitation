@@ -1,0 +1,10 @@
+node_modules
+.next
+snapshots
+*.mp4
+next-env.d.ts
+*.tsbuildinfo
+exports
+.next-build
+.env*
+.vercel

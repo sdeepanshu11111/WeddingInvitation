@@ -1,0 +1,27 @@
+{
+  "name": "wedding-invite-studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev -p 4321",
+    "build": "next build",
+    "start": "next start -p 4321",
+    "render": "node scripts/render.mjs",
+    "snapshot": "node scripts/snapshot.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "^14.2.35",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "20.14.10",
+    "@types/react": "18.3.3",
+    "@types/react-dom": "18.3.0",
+    "ffmpeg-static": "5.2.0",
+    "puppeteer": "23.6.0",
+    "typescript": "5.5.4"
+  }
+}
