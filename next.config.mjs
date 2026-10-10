@@ -11,6 +11,10 @@ const nextConfig = {
     NEXT_PUBLIC_VIDEO_EXPORT: videoExport ? "1" : "0",
     NEXT_PUBLIC_SHARE_STORE: process.env.BLOB_READ_WRITE_TOKEN ? "blob" : "disk",
   },
+  // Font file names are content-addressed (scripts/fetch-fonts.mjs), so they can be cached forever.
+  async headers() {
+    return [{ source: "/fonts/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] }];
+  },
   experimental: {
     serverComponentsExternalPackages: ["puppeteer", "ffmpeg-static"],
     // Without export, keep Chrome and the ffmpeg binary out of the serverless functions.

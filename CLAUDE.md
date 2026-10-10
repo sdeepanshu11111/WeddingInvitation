@@ -97,9 +97,13 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 2. Inside `build`, use `const S = function <T>(v: T, h: T): T { return vertical ? v : h; }` for every orientation-specific
    size/layout. **16:9 needs larger type than 9:16** (it is 1920 wide); stack in 9:16, put side by side in 16:9.
 3. Register it in `lib/templates/index.ts`, then run `npm run snapshot -- <dir> --only=<id>` and **look at both sheets**.
-4. Fonts are CSS variables from `app/layout.tsx`: --f-cinzel, --f-cormorant, --f-vibes (script), --f-playfair, --f-marcellus,
+4. Fonts are CSS variables from `app/fonts.css`: --f-cinzel, --f-cormorant, --f-vibes (script), --f-playfair, --f-marcellus,
    --f-inter, --f-devanagari, --f-caveat, --f-bodoni, --f-arabic (Amiri), --f-gurmukhi, --f-tamil, --f-telugu, --f-malayalam,
    --f-kannada, --f-rozha (bold Hindi display), --f-kalam (handwritten Hindi), --f-yatra.
+   They are self-hosted in `public/fonts/` (unicode-range subsets, as Google serves them). To add or change one, edit the
+   list in `scripts/fetch-fonts.mjs` and run `node scripts/fetch-fonts.mjs`; commit the generated files. **Don't go back to
+   `next/font/google`**: it downloads during the build, and Google sometimes answers Vercel's build machines with font URLs
+   it cannot parse (`TypeError: Cannot read properties of null (reading '1')` in nextFontGoogleFontLoader → build fails).
 
 ## Gotchas already solved (don't reintroduce)
 - Embedded browsers (e.g. the Claude desktop browser pane) **silently block downloads**, which is why exports are auto-copied to `exports/`.
