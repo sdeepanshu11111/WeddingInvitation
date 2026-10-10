@@ -397,6 +397,7 @@ export const royalMandala: TemplateDef = {
                   fontSize: S(32, 27),
                   letterSpacing: "0.26em",
                   textTransform: "uppercase",
+                  whiteSpace: "nowrap",
                   ...rise(t, { start: 1200, dur: 1000, dist: 24 }),
                 }}
               >
