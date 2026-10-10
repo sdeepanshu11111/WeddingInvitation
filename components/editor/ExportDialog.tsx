@@ -1,9 +1,11 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import type { Orientation, Project } from "@/lib/types";
-import { buildTimeline } from "@/lib/project";
+import { buildTimeline, coupleTitle } from "@/lib/project";
+import { SharePanel, type ShareResult } from "./ShareDialog";
 
-type JobView = { id: string; label: string; status: string; progress: number; error?: string; fileName: string; savedAs?: string | null; savedName?: string | null; queuePosition?: number; dlError?: string };
+type JobView = { id: string; label: string; status: string; progress: number; error?: string; fileName: string; savedAs?: string | null; savedName?: string | null; queuePosition?: number; dlError?: string;
+  share?: ShareResult | "loading" };
 
 /** URL of the finished file: the ./exports copy (survives restarts) when there is one, else the job's temp file. */
 const fileUrl = (j: JobView, inline = false) =>
@@ -113,6 +115,20 @@ export function ExportDialog({ project, onClose }: { project: Project; onClose: 
     }
   };
 
+  const shareTitle = coupleTitle(project.data);
+
+  const share = async (j: JobView) => {
+    const set = (share: JobView["share"]) => setJobs((js) => js.map((x) => (x.id === j.id ? { ...x, share } : x)));
+    set("loading");
+    try {
+      const res = await fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ file: j.savedName, title: shareTitle }) });
+      const r = await res.json();
+      set(res.ok ? { url: r.url, lanUrl: r.lanUrl } : { error: r.error || "Could not create a link" });
+    } catch (e: any) {
+      set({ error: "Could not create a link: " + (e?.message || e) });
+    }
+  };
+
   const [projectSaved, setProjectSaved] = useState<string | null>(null);
   const downloadJSON = () => {
     // Server copy first: some embedded browsers silently block downloads.
@@ -200,7 +216,13 @@ export function ExportDialog({ project, onClose }: { project: Project; onClose: 
                   <button className="btn sm" onClick={() => fetch("/api/render/" + j.id + "/reveal", { method: "POST" })}>
                     Show in folder
                   </button>
+                  {j.savedName ? (
+                    <button className="btn sm" onClick={() => share(j)} disabled={j.share === "loading"}>
+                      {j.share === "loading" ? "Creating link..." : "Share link"}
+                    </button>
+                  ) : null}
                 </div>
+                {j.share && j.share !== "loading" ? <SharePanel share={j.share} title={shareTitle} /> : null}
               </>
             ) : null}
             {j.dlError ? <div className="err" style={{ fontSize: 12, marginTop: 6, wordBreak: "break-word" }}>{j.dlError}</div> : null}
@@ -235,3 +257,4 @@ export function ExportDialog({ project, onClose }: { project: Project; onClose: 
     </div>
   );
 }
+

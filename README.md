@@ -81,6 +81,25 @@ Inside `render`, use `S(verticalValue, horizontalValue)` for anything orientatio
 
 Preview any template without the editor: `/render?template=aurora-modern&orientation=horizontal&palette=sunset&demo=1`.
 
+## Deploy to Vercel
+
+On Vercel you get the editor, **Share** links (the invitation plays in the guest's browser) and WhatsApp preview cards.
+**Export MP4 shows "Soon"**: it needs Chrome + ffmpeg on a long-running server, which serverless functions are not. Locally, everything works.
+
+1. Push the repo to GitHub and import it in Vercel (**Add New → Project**). Next.js is detected; no build settings needed.
+2. **Storage → Create → Blob**: choose a **public** store in the region nearest India, then **Connect** it to the project (all environments). This adds `BLOB_READ_WRITE_TOKEN`.
+3. Optional: **Settings → Environment Variables** → `SITE_URL` = your domain, e.g. `https://invitestudio.in` (defaults to the Vercel production domain).
+4. **Redeploy** after connecting Blob or changing variables: the share mode is fixed at build time.
+5. Check: open the editor → **Share** → **Create link** → open it on a phone, then paste it into WhatsApp to see the preview card.
+
+| Variable | Set by | Purpose |
+|---|---|---|
+| `BLOB_READ_WRITE_TOKEN` | Vercel, when Blob is connected | Share media + data go to Vercel Blob instead of `exports/` |
+| `SITE_URL` | you (optional) | Absolute URLs in link previews |
+| `VIDEO_EXPORT` | you (optional) | `1`/`0` forces MP4 export on/off (default: off on Vercel, on elsewhere) |
+
+`vercel.json` pins functions to Mumbai (`bom1`); `.puppeteerrc.cjs` skips the Chrome download on Vercel builds.
+
 ## Notes / limits
 
 - Rendering runs at roughly 5 frames/sec on a laptop (a 25s 1080p video takes about 2–3 min). Jobs are queued one at a time, on purpose.

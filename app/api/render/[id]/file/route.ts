@@ -1,12 +1,14 @@
 import { createReadStream, promises as fs } from "node:fs";
 import { Readable } from "node:stream";
 import { getJob } from "@/lib/server/render";
+import { VIDEO_EXPORT, exportOff } from "@/lib/features";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** ?inline=1 plays the video in the tab instead of downloading it. */
 export async function GET(req: Request, { params }: { params: { id: string } }) {
+  if (!VIDEO_EXPORT) return exportOff();
   const job = getJob(params.id);
   const file = job?.outPath ?? job?.savedPath;
   if (!job || job.status !== "done" || !file) return new Response("Not ready", { status: 404 });

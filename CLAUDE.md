@@ -55,6 +55,24 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   piped as JPEG into ffmpeg (H.264 + AAC music with fade), and **auto-copy of every MP4 to `exports/`**.
 - API: `POST /api/render`, `GET /api/render/[id]`, `GET /api/render/[id]/file[?inline=1]`, `POST /api/render/[id]/reveal`
   (opens Explorer, localhost only), `GET /api/job/[id]`, `POST /api/project` (saves the project JSON to `exports/`).
+- Share links (`lib/server/share.ts`), page `/v/[token]`: server-rendered, so link previews work. The page and
+  `opengraph-image.tsx` (next/og preview card: names, date, photo, palette) are on-demand ISR (`generateStaticParams` → `[]`,
+  `revalidate = false`): drawn on first visit, then cached. Don't read headers/cookies there or they turn dynamic; absolute
+  URLs come from `SITE_URL` (`lib/site.ts`). Caching only shows in a production build, not `next dev`.
+  - **Live** (topbar "Share", `components/editor/ShareDialog.tsx`): `POST /api/share {project,title,card}` stores a snapshot.
+    `card` (palette colours + date) is computed in the editor so server code never imports the templates.
+    `app/v/[token]/LiveInvite.tsx` plays it with `<Frame>` + rAF clock: tap-to-open cover (audio unlock on iOS), 9:16 on
+    portrait screens and 16:9 on landscape, pause/mute/replay. Its `<Warmup>` lays out every scene hidden once, so only the
+    fonts the invite uses download (~260 KB instead of 2.4 MB for all 174 faces).
+  - **Video** ("Share link" on a finished export, only with `VIDEO_EXPORT`): `POST /api/share {file,title}` links an MP4.
+  - Storage (`SHARE_STORE`): `disk` = `exports/shares/<token>/`, media served by `/api/share/[token]/media/[name]` via
+    `lib/server/stream.ts` (Range support; iOS needs it). `blob` (when `BLOB_READ_WRITE_TOKEN` is set) = Vercel Blob
+    `shares/<token>/`; the editor first uploads media straight to Blob through `/api/share/upload` (Vercel caps request
+    bodies at 4.5 MB). Media types are whitelisted in `lib/media.ts` (no SVG: it could run script on our origin).
+  - On localhost the dialog shows the Wi-Fi IP URL so phones on the same network can open it.
+- Feature flags (`lib/features.ts`, set in `next.config.mjs` at build time): `VIDEO_EXPORT` (off on Vercel: Export MP4 shows
+  "Soon" and every export API returns 501) and `SHARE_STORE`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`
+  holds `EXPORT_DIR` so share code does not import render.ts (that would pull Chrome/ffmpeg into its function bundle).
 
 ## Templates (14), in `lib/templates/`, registered in `index.ts`
 
@@ -90,6 +108,9 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 - `E.outBack(0)` must return exactly 0 (a tiny negative SVG radius throws errors).
 - Mehrab clips with CSS `clip-path: path()`, not `foreignObject`.
 - Gallery grid needs `grid-auto-rows: max-content`, or the cards get squashed.
+- Never run two `next dev` servers on the same `.next` folder (e.g. a second one on another port): they corrupt each other's
+  manifests (`Unexpected end of JSON input`, then `reading 'run'` 500s) and `EPERM .next\trace`. Stopping a backgrounded
+  `npx next dev` wrapper can leave the server alive; check `node.exe` processes. Fix: kill both, start one.
 - Seeded `rnd()` only. Particles, confetti and sparkles must be deterministic.
 - Sanity-check religious/cultural text: Bismillah and the dua (Abu Dawud 2130) are in `nikah-mubarak.tsx`, ਵਾਹਿਗੁਰੂ ਜੀ ਕਾ ਖ਼ਾਲਸਾ in `anand-karaj.tsx`.
   No hand-drawn Khanda or Ganesha (too easy to get wrong); text glyphs like ੴ are used instead.

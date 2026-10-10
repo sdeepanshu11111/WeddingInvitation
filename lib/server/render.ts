@@ -26,7 +26,8 @@ const STALL_MS = 90_000;
 /** Upper bound for any single browser step (seek, screenshot, close). */
 const STEP_MS = 30_000;
 
-export const EXPORT_DIR = path.join(process.cwd(), "exports");
+import { EXPORT_DIR } from "./paths";
+export { EXPORT_DIR };
 
 export type JobStatus = "queued" | "rendering" | "encoding" | "done" | "error";
 export type Job = {

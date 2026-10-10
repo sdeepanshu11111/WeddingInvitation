@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { spawn } from "node:child_process";
 import { EXPORT_DIR, getJob } from "@/lib/server/render";
+import { VIDEO_EXPORT, exportOff } from "@/lib/features";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Local convenience: open the exports folder with the file selected. */
 export async function POST(req: Request, { params }: { params: { id: string } }) {
+  if (!VIDEO_EXPORT) return exportOff();
   // Only for the person sitting at this machine.
   const host = new URL(req.url).hostname;
   if (!["localhost", "127.0.0.1", "[::1]"].includes(host)) return NextResponse.json({ error: "Local only" }, { status: 403 });

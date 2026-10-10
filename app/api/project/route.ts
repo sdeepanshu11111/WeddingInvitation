@@ -3,12 +3,14 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { EXPORT_DIR } from "@/lib/server/render";
 import type { Project } from "@/lib/types";
+import { VIDEO_EXPORT, exportOff } from "@/lib/features";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /** Saves the project JSON into ./exports (works even where browser downloads are blocked). */
 export async function POST(req: Request) {
+  if (!VIDEO_EXPORT) return exportOff();
   const project = (await req.json().catch(() => null)) as Project | null;
   if (!project?.templateId) return NextResponse.json({ error: "Missing project" }, { status: 400 });
   const d = project.data || {};

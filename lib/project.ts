@@ -61,6 +61,19 @@ export function buildTimeline(project: Project) {
   return { template, theme, scenes, slots, total, realTotal: total / project.speed };
 }
 
+/** "Aarav & Ananya": the title of share pages and link previews. */
+export function coupleTitle(d: Record<string, any>): string {
+  return [d.nameA ?? d.groomName, d.nameB ?? d.brideName].filter(Boolean).join(" & ") || "Wedding invitation";
+}
+
+/** The invite's main date, e.g. "Tuesday, 8 December 2026", for link previews. Undefined if none is set. */
+export function inviteDate(d: Record<string, any>): string | undefined {
+  const raw = d.weddingDate ?? (Array.isArray(d.events) ? d.events.find((e: any) => e?.date)?.date : undefined) ?? d.receptionDate ?? d.walimaDate;
+  const m = typeof raw === "string" ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw) : null;
+  if (!m) return undefined;
+  return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+
 /* ---------------- media helpers (browser only) ---------------- */
 
 export function readAsDataURL(file: Blob): Promise<string> {

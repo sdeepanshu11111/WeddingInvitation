@@ -2,12 +2,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { ExportDialog } from "@/components/editor/ExportDialog";
+import { ShareDialog } from "@/components/editor/ShareDialog";
 import { FieldGroups, MusicPanel } from "@/components/editor/Fields";
 import { TemplateGallery } from "@/components/editor/TemplateGallery";
 import { CATEGORIES, countIn } from "@/lib/catalog";
 import { fmt } from "@/lib/anim";
 import { SIZES, buildTimeline, defaultProject, idbGet, idbSet } from "@/lib/project";
 import { TEMPLATES } from "@/lib/templates";
+import { VIDEO_EXPORT } from "@/lib/features";
 import type { CategoryId, Orientation, Project } from "@/lib/types";
 
 type View = Orientation | "both";
@@ -18,6 +20,7 @@ export default function Editor() {
   const [T, setT] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [exporting, setExporting] = useState(false);
+  const [sharing, setSharing] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [gallery, setGallery] = useState(false);
   const [cat, setCat] = useState<CategoryId | "all">("all");
@@ -202,9 +205,25 @@ export default function Editor() {
           <input type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && importJSON(e.target.files[0])} />
           Open
         </label>
-        <button className="btn primary" onClick={() => { setPlaying(false); setExporting(true); }}>
-          Export MP4
-        </button>
+        {VIDEO_EXPORT ? (
+          <>
+            <button className="btn" onClick={() => { setPlaying(false); setSharing(true); }} title="Send guests a link that plays the invitation in their browser">
+              Share
+            </button>
+            <button className="btn primary" onClick={() => { setPlaying(false); setExporting(true); }}>
+              Export MP4
+            </button>
+          </>
+        ) : (
+          <>
+            <button className="btn ghost" onClick={() => say("MP4 export is coming soon. Use Share to send guests a link for now.")} title="Coming soon">
+              Export MP4 <span className="soon">Soon</span>
+            </button>
+            <button className="btn primary" onClick={() => { setPlaying(false); setSharing(true); }} title="Send guests a link that plays the invitation in their browser">
+              Share
+            </button>
+          </>
+        )}
       </header>
 
       {/* ---------------- left: templates + palette ---------------- */}
@@ -352,6 +371,7 @@ export default function Editor() {
 
       {music ? <audio ref={audio} src={music.src} preload="auto" /> : null}
       {exporting ? <ExportDialog project={project} onClose={() => setExporting(false)} /> : null}
+      {sharing ? <ShareDialog project={project} onClose={() => setSharing(false)} /> : null}
       {gallery ? (
         <TemplateGallery
           current={project.templateId}

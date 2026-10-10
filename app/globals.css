@@ -93,6 +93,7 @@ button { cursor: pointer; }
   align-items: center;
   gap: 8px;
   font-size: 13px;
+  color: var(--text); /* also for <a className="btn">, which would otherwise be link-blue */
   text-decoration: none;
 }
 .btn:hover { border-color: #4a4652; }
@@ -100,6 +101,7 @@ button { cursor: pointer; }
 .btn.primary:hover { filter: brightness(1.05); }
 .btn.ghost { background: transparent; }
 .btn.sm { padding: 5px 10px; font-size: 12px; }
+.soon { font-size: 9.5px; letter-spacing: 0.08em; text-transform: uppercase; padding: 1px 6px; border-radius: 99px; background: var(--line-2); color: var(--gold-2); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
 /* ---------- template cards ---------- */
