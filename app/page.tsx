@@ -24,7 +24,19 @@ export default function Editor() {
   const [toast, setToast] = useState<string | null>(null);
   const [gallery, setGallery] = useState(false);
   const [cat, setCat] = useState<CategoryId | "all">("all");
+  // Phones: one section at a time under the preview (bottom tabs), and a ⋯ menu for the rest of the top bar.
+  const [tab, setTab] = useState<"design" | "details" | "preview">("design");
+  const [menu, setMenu] = useState(false);
+  const [narrow, setNarrow] = useState(false);
   const audio = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 860px)");
+    const on = () => setNarrow(mq.matches);
+    on();
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
 
   /* ---------- load / autosave ---------- */
   useEffect(() => {
@@ -33,6 +45,7 @@ export default function Editor() {
         const proj = p && TEMPLATES.some((t) => t.id === p.templateId) ? p : defaultProject(TEMPLATES[0].id);
         setProject(proj);
         setView(proj.orientation);
+        setPlaying(true); // start on a moving invite, not a blank first frame
       })
       .catch(() => setProject(defaultProject(TEMPLATES[0].id)));
   }, []);
@@ -139,6 +152,18 @@ export default function Editor() {
     setPlaying(true);
   };
 
+  const openShare = () => {
+    setMenu(false);
+    setPlaying(false);
+    setSharing(true);
+  };
+
+  /** Phone tabs. Preview fills the screen and starts playing. */
+  const goTab = (t: "design" | "details" | "preview") => {
+    setTab(t);
+    if (t === "preview" && !playing) togglePlay();
+  };
+
   const importJSON = async (f: File) => {
     try {
       const p = JSON.parse(await f.text()) as Project;
@@ -157,13 +182,14 @@ export default function Editor() {
   }
 
   const tpl = main.template;
+  const showBoth = view === "both" && !narrow; // side by side needs a wide screen
   const activeScene = [...main.slots].reverse().find((s) => T >= s.start) ?? main.slots[0];
 
   const renderStage = (o: Orientation) => {
     const tl = o === "vertical" ? tlV : tlH;
     const { W, H } = SIZES[o];
     return (
-      <Stage W={W} H={H} pad={view === "both" ? 18 : 28}>
+      <Stage W={W} H={H} pad={narrow ? 10 : view === "both" ? 18 : 28}>
         <Frame
           project={{ ...project, orientation: o }}
           template={tl.template}
@@ -179,7 +205,7 @@ export default function Editor() {
   };
 
   return (
-    <div className="app">
+    <div className="app" data-tab={tab}>
       {/* ---------------- top bar ---------------- */}
       <header className="topbar">
         <div className="brand">
@@ -196,34 +222,65 @@ export default function Editor() {
           <button className={view === "horizontal" ? "on" : ""} onClick={() => chooseView("horizontal")} title={SIZES.horizontal.hint}>
             <span className="shape" style={{ width: 16, height: 9 }} /> 16:9
           </button>
-          <button className={view === "both" ? "on" : ""} onClick={() => chooseView("both")} title="Preview both side by side">
+          <button className={"both-btn" + (view === "both" ? " on" : "")} onClick={() => chooseView("both")} title="Preview both side by side">
             Both
           </button>
         </div>
 
-        <label className="btn ghost" style={{ cursor: "pointer" }} title="Open a saved project file">
+        <label className="btn ghost desk-only" style={{ cursor: "pointer" }} title="Open a saved project file">
           <input type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && importJSON(e.target.files[0])} />
           Open
         </label>
         {VIDEO_EXPORT ? (
           <>
-            <button className="btn" onClick={() => { setPlaying(false); setSharing(true); }} title="Send guests a link that plays the invitation in their browser">
+            <button className="btn desk-only" onClick={openShare} title="Send guests a link that plays the invitation in their browser">
               Share
             </button>
-            <button className="btn primary" onClick={() => { setPlaying(false); setExporting(true); }}>
+            <button className="btn primary desk-only" onClick={() => { setPlaying(false); setExporting(true); }}>
               Export MP4
             </button>
           </>
         ) : (
           <>
-            <button className="btn ghost" onClick={() => say("MP4 export is coming soon. Use Share to send guests a link for now.")} title="Coming soon">
+            <button className="btn ghost desk-only" onClick={() => say("MP4 export is coming soon. Use Share to send guests a link for now.")} title="Coming soon">
               Export MP4 <span className="soon">Soon</span>
             </button>
-            <button className="btn primary" onClick={() => { setPlaying(false); setSharing(true); }} title="Send guests a link that plays the invitation in their browser">
+            <button className="btn primary desk-only" onClick={openShare} title="Send guests a link that plays the invitation in their browser">
               Share
             </button>
           </>
         )}
+        <div className="more mob-only">
+          <button className="btn ghost more-btn" onClick={() => setMenu((m) => !m)} aria-label="More" aria-expanded={menu}>
+            ⋯
+          </button>
+          {menu ? (
+            <>
+              <div className="menu-scrim" onClick={() => setMenu(false)} />
+              <div className="menu" role="menu">
+                <button role="menuitem" onClick={() => { setMenu(false); setPlaying(false); setGallery(true); }}>
+                  ▦ Browse all templates
+                </button>
+                <label role="menuitem">
+                  <input type="file" accept="application/json" hidden onChange={(e) => { setMenu(false); if (e.target.files?.[0]) importJSON(e.target.files[0]); }} />
+                  ⇪ Open a saved project
+                </label>
+                <button
+                  role="menuitem"
+                  onClick={() => {
+                    setMenu(false);
+                    if (VIDEO_EXPORT) {
+                      setPlaying(false);
+                      setExporting(true);
+                    } else say("MP4 export is coming soon. Use Share to send guests a link for now.");
+                  }}
+                >
+                  ⬇ Export MP4 {VIDEO_EXPORT ? null : <span className="soon">Soon</span>}
+                </button>
+              </div>
+            </>
+          ) : null}
+        </div>
       </header>
 
       {/* ---------------- left: templates + palette ---------------- */}
@@ -278,12 +335,17 @@ export default function Editor() {
             </button>
           ))}
         </div>
+        <div className="next-cta mob-only">
+          <button className="btn primary" onClick={() => goTab("details")}>
+            Next: add your details →
+          </button>
+        </div>
       </aside>
 
       {/* ---------------- centre: canvas + transport ---------------- */}
       <main className="center">
-        <div className={"canvas" + (view === "both" ? " compare" : "")}>
-          {view === "both" ? (
+        <div className={"canvas" + (showBoth ? " compare" : "")}>
+          {showBoth ? (
             <>
               <div>
                 <span className="canvas-label">9:16 · 1080×1920</span>
@@ -367,7 +429,36 @@ export default function Editor() {
             </button>
           </div>
         </details>
+        <div className="next-cta mob-only">
+          <button className="btn primary" onClick={openShare}>
+            Next: share your invite →
+          </button>
+        </div>
       </aside>
+
+      {/* ---------------- phones: bottom tabs ---------------- */}
+      <nav className="mtabs" aria-label="Sections">
+        {(
+          [
+            ["design", "Design", <path key="d" d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" />],
+            ["details", "Details", <path key="t" d="M4 6h16M4 12h16M4 18h10" />],
+            ["preview", "Preview", <path key="p" d="M8 5v14l11-7z" />],
+          ] as const
+        ).map(([id, label, icon]) => (
+          <button key={id} className={"mtab" + (tab === id ? " on" : "")} onClick={() => goTab(id)} aria-current={tab === id}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+              {icon}
+            </svg>
+            {label}
+          </button>
+        ))}
+        <button className="mtab share" onClick={openShare}>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M12 3v12M7 8l5-5 5 5M5 14v5h14v-5" />
+          </svg>
+          Share
+        </button>
+      </nav>
 
       {music ? <audio ref={audio} src={music.src} preload="auto" /> : null}
       {exporting ? <ExportDialog project={project} onClose={() => setExporting(false)} /> : null}

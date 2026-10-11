@@ -49,7 +49,11 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   EventCard, EventsOverview, `lines()`.
 - `components/editor/`: `Fields.tsx` (schema-driven form incl. EventsField + MusicPanel), `ExportDialog.tsx`, `TemplateGallery.tsx`
   (category tabs, community filter, search, live previews that play on hover).
-- `app/page.tsx`: the editor (sidebar categories, canvas, transport, form). `app/render/page.tsx`: headless target exposing
+- `app/page.tsx`: the editor (sidebar categories, canvas, transport, form). **Phones (≤ 860px)**: an app layout, not a stack:
+  preview on top, one panel below chosen by bottom tabs (`.app[data-tab]` = design → `.left`, details → `.right`, preview =
+  full-height canvas) plus Share; sticky "Next" steps guide Design → Details → Share; the ⋯ menu holds Browse/Open/Export.
+  Use `desk-only` / `mob-only` classes for parts that differ; inputs are 16px on phones (iOS zooms below that); dialogs
+  become bottom sheets. The editor autoplays on load. `app/render/page.tsx`: headless target exposing
   `window.__ready / __info / __seek(t) / __project`. Preview mode: `/render?template=<id>&orientation=horizontal&palette=<id>&demo=1`.
 - `lib/server/render.ts`: export queue (one job at a time, **90s stall watchdog**, per-step timeouts), puppeteer screenshots
   piped as JPEG into ffmpeg (H.264 + AAC music with fade), and **auto-copy of every MP4 to `exports/`**.

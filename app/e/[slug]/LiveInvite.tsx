@@ -1,7 +1,7 @@
 "use client";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
-import { SIZES, buildTimeline } from "@/lib/project";
+import { SIZES, buildTimeline, inviteDate } from "@/lib/project";
 import type { Orientation, Project } from "@/lib/types";
 import { LINK_PRICE_INR } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
@@ -158,6 +158,7 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
   const { theme, total } = tl;
   const speed = project.speed || 1;
   const music = project.music;
+  const date = useMemo(() => inviteDate(project.data), [project]);
   const playing = phase === "playing";
 
   // Both layouts are hand-tuned, so phones get 9:16 and laptops/TVs 16:9.
@@ -379,16 +380,35 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
             background: "radial-gradient(ellipse at 50% 35%, " + theme.bg + " 0%, " + theme.bg2 + " 85%)",
           }}
         >
-          <div style={{ position: "relative", fontFamily: "var(--f-cinzel)", fontSize: 12, letterSpacing: "0.38em", color: theme.accent }}>YOU&apos;RE INVITED</div>
-          <h1 style={{ position: "relative", margin: 0, fontFamily: "var(--f-vibes)", fontWeight: 400, fontSize: "clamp(44px, 13vw, 92px)", lineHeight: 1.1, color: ink }}>{title}</h1>
+          <div className="cover-in" style={{ position: "relative", fontFamily: "var(--f-cinzel)", fontSize: 12, letterSpacing: "0.38em", color: theme.accent }}>
+            YOU&apos;RE INVITED
+          </div>
+          <h1 className="cover-in d1" style={{ position: "relative", margin: 0, fontFamily: "var(--f-vibes)", fontWeight: 400, fontSize: "clamp(44px, 13vw, 92px)", lineHeight: 1.1, color: ink }}>
+            {title}
+          </h1>
+          {/* ornament + date, so the cover already says when */}
+          <div className="cover-in d2" style={{ position: "relative", display: "flex", alignItems: "center", gap: 10, color: theme.accent, opacity: 0.85 }}>
+            <span style={{ width: 54, height: 1, background: "currentColor" }} />
+            <span style={{ width: 7, height: 7, transform: "rotate(45deg)", background: "currentColor" }} />
+            <span style={{ width: 54, height: 1, background: "currentColor" }} />
+          </div>
+          {date ? (
+            <div className="cover-in d2" style={{ position: "relative", fontFamily: "var(--f-cinzel)", fontSize: 13, letterSpacing: "0.16em", color: theme.soft }}>
+              {date}
+            </div>
+          ) : null}
           <button
-            className="btn primary"
-            style={{ position: "relative", marginTop: 18, padding: "13px 30px", fontSize: 15, borderRadius: 99, background: theme.accent, color: theme.bg2 }}
+            className="btn primary open-btn"
+            style={{ position: "relative", marginTop: 16, padding: "14px 34px", fontSize: 15, borderRadius: 99, background: theme.accent, color: theme.bg2 }}
             disabled={phase === "opening"}
           >
-            {phase === "opening" ? "Opening..." : "Open invitation"}
+            {phase === "opening" ? "Opening..." : "✉  Open invitation"}
           </button>
-          {music ? <div style={{ position: "relative", fontSize: 12, opacity: 0.7 }}>Turn your sound on 🔊</div> : null}
+          {music ? (
+            <div className="cover-in d3" style={{ position: "relative", fontSize: 12, opacity: 0.7 }}>
+              Turn your sound on 🔊
+            </div>
+          ) : null}
         </div>
       ) : null}
     </main>
