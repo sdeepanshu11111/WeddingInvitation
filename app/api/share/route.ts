@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   try {
     if (body?.project?.templateId) {
       const name = typeof body.name === "string" && body.name ? body.name : await suggestName(slugify(title));
-      share = await createLiveShare(body.project, title, body.card ?? {}, name);
+      share = await createLiveShare(body.project, title, body.card ?? {}, name, origin);
     } else if (typeof body?.file === "string") {
       if (!VIDEO_EXPORT) return exportOff();
       share = await createVideoShare(body.file, title);

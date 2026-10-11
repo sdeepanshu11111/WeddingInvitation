@@ -22,12 +22,15 @@ export function generateStaticParams() {
 }
 
 const DESCRIPTION = "You're invited! Tap to open the invitation.";
-const abs = (p: string) => SITE_URL + p; // preview cards need absolute URLs
+/** Preview cards need absolute URLs: SITE_URL when set, else the site the share was made on (the host in the
+    link the couple sent; a production domain that is not live yet would break the card), else the default. */
+const absFor = (s: { origin?: string }) => (p: string) => (process.env.SITE_URL ? SITE_URL : s.origin ?? SITE_URL) + p;
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const s = await getShare(params.slug);
   if (!s) return { title: "Invitation not found" };
   const base = { title: s.title, description: DESCRIPTION, robots: { index: false, follow: false } };
+  const abs = absFor(s.kind === "live" ? s : {});
   if (s.kind === "live") {
     // Versioned, so the card can never be a copy cached before this share existed (see ./card/route.tsx).
     const images = [{ url: abs("/e/" + s.token + "/card?v=" + s.createdAt), width: 1200, height: 630, alt: s.title }];

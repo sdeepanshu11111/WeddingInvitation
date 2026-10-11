@@ -30,7 +30,8 @@ import { EXPORT_DIR } from "./paths";
 export type Card = { bg: string; bg2: string; ink: string; soft: string; accent: string; line: string; date?: string; photo?: string };
 
 export type Share =
-  | { token: string; kind: "live"; title: string; createdAt: number; card: Card }
+  /** origin: the site the share was created on (e.g. https://x.vercel.app), for the absolute preview-card URL. */
+  | { token: string; kind: "live"; title: string; createdAt: number; card: Card; origin?: string }
   | { token: string; kind: "video"; title: string; createdAt: number; file: string; vertical: boolean };
 
 export const SHARE_DIR = path.join(EXPORT_DIR, "shares");
@@ -148,7 +149,7 @@ const COLOR = /^#[0-9a-f]{3,8}$/i;
  * become stored files, so the watch page stays a few KB and media streams
  * separately. Media may only point at this app's own storage.
  */
-export async function createLiveShare(project: Project, title: string, card: Partial<Card>, name: string): Promise<Share> {
+export async function createLiveShare(project: Project, title: string, card: Partial<Card>, name: string, origin?: string): Promise<Share> {
   assertWritable();
   if (!SLUG_RE.test(name)) throw new ShareError(400, "Use 3–50 lowercase letters, numbers and hyphens for the link name");
   const year = /\b(20\d\d)\b/.exec(typeof card.date === "string" ? card.date : "")?.[1];
@@ -195,6 +196,7 @@ export async function createLiveShare(project: Project, title: string, card: Par
     kind: "live",
     title: title.slice(0, 120),
     createdAt: Date.now(),
+    origin: origin && /^https?:\/\/[\w.-]+(:\d+)?$/.test(origin) ? origin : undefined,
     card: {
       bg: pick("bg", "#4a0d1c"), bg2: pick("bg2", "#22050d"), ink: pick("ink", "#fff4e6"),
       soft: pick("soft", "#e8cfc0"), accent: pick("accent", "#e9c46a"), line: pick("line", "#c9a24a"),
