@@ -1,5 +1,7 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { Frame, Stage } from "@/components/Frame";
+import { Watermark } from "@/app/e/[slug]/LiveInvite";
 import type { Project } from "@/lib/types";
 import { buildTimeline, coupleTitle, inviteDate, makeTheme } from "@/lib/project";
 import { getTemplate } from "@/lib/templates";
@@ -64,6 +66,7 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   // Paid links: the Premium plan removes the watermark. "none" = free preview link, "paid" = watermark removed.
   const [plan, setPlan] = useState<"free" | "premium">("premium");
   const [pay, setPay] = useState<Pay>("none");
+  const [showClean, setShowClean] = useState(true); // phone preview: the clean invite they get after paying
   const [created, setCreated] = useState<string | null>(null); // the name of the link once it exists
 
   // Is a typed name free? Asked as the user types (debounced); stale answers are ignored.
@@ -197,6 +200,25 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
         <div className="share-body">
           {done ? (
             <div className={"share-done" + ("card" in state && state.card ? " split" : "")}>
+              {"card" in state && state.card ? (
+                <div className="share-phone">
+                  <div className="share-label">Your invite</div>
+                  {PAYMENTS && !live ? (
+                    <div className="seg phone-toggle" role="tablist">
+                      <button className={showClean ? "" : "on"} onClick={() => setShowClean(false)}>
+                        Preview link
+                      </button>
+                      <button className={showClean ? "on" : ""} onClick={() => setShowClean(true)}>
+                        After payment
+                      </button>
+                    </div>
+                  ) : null}
+                  <InvitePhone project={project} watermarked={PAYMENTS && !live && !showClean} />
+                  <div className="phone-cap">
+                    {!PAYMENTS || live ? "What every guest sees" : showClean ? "✓ Clean invite, no watermark" : "With the " + BRAND + " watermark"}
+                  </div>
+                </div>
+              ) : null}
               <div className="share-main">
               <div className="done-head">
                 <div className="done-badge">✓</div>
@@ -319,6 +341,38 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
         <div className="share-foot">
           Anyone with the link can open the invite. The link is a snapshot of the invite as it is now: if you edit it later, create a new link.
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** The invite itself, playing on a phone, with or without the free-link watermark (same overlay as the guest page). */
+function InvitePhone({ project, watermarked }: { project: Project; watermarked: boolean }) {
+  const tl = useMemo(() => buildTimeline({ ...project, orientation: "vertical" }), [project]);
+  const [T, setT] = useState(0);
+  useEffect(() => {
+    let raf = 0;
+    let last = performance.now();
+    const loop = (now: number) => {
+      const dt = Math.min(100, now - last);
+      last = now;
+      setT((t) => (t + dt * (project.speed || 1)) % tl.total); // loops
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [tl, project.speed]);
+  return (
+    <div className="phone-frame">
+      <div className="phone-screen">
+        <Stage W={1080} H={1920}>
+          <Frame project={{ ...project, orientation: "vertical" }} template={tl.template} theme={tl.theme} scenes={tl.scenes} slots={tl.slots} total={tl.total} T={T} playing />
+        </Stage>
+        {watermarked ? (
+          <div className="phone-wm">
+            <Watermark />
+          </div>
+        ) : null}
       </div>
     </div>
   );

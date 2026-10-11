@@ -71,7 +71,7 @@ function Warmup({ tl, project, o, onReady }: { tl: ReturnType<typeof buildTimeli
  * invite, a stripe across the middle and a corner badge, all always on. The soft
  * shadow keeps it visible on dark and cream templates alike; the invite stays readable.
  */
-function Watermark() {
+export function Watermark() {
   const mark = BRAND.toUpperCase() + " · PREVIEW";
   const shadow = "0 1px 3px rgba(0,0,0,.45)";
   return (
