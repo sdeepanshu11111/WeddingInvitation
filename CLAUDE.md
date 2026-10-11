@@ -63,6 +63,9 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   308-redirect there via next.config). Server-rendered, so link previews work; on-demand ISR (`generateStaticParams` → `[]`,
   `revalidate = false`): rendered on first visit, then cached. Don't read headers/cookies there or it turns dynamic; absolute
   URLs come from `SITE_URL` (`lib/site.ts`). Caching only shows in a production build, not `next dev`.
+  - Names default to couple names + a base-36 seconds timestamp (`autoName` in ShareDialog, e.g. aarav-ananya-t3k2x9) so nobody
+    has to pick again; "Edit" lets them type one, and an auto name that collides retries with the server suggestion.
+    Payment logos (`components/PayIcons.tsx`) are Simple Icons 16.32.0 paths (CC0); UPI is a text badge.
   - Names (`lib/slug.ts`: 3–50 of a-z 0-9 single hyphens) are claimed by writing `project.json` with no-overwrite (Blob
     default, `wx` on disk). The dialog checks `GET /api/share/check?name=&year=`; taken → 409 + suggestion (name-year, -2..-9).
   - **Names are guessable, so a 404 may be cached before a name exists.** `POST /api/share` calls `revalidatePath("/e/"+name)`
@@ -97,6 +100,9 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 - Feature flags (`lib/features.ts`, set in `next.config.mjs` at build time): `VIDEO_EXPORT` (off on Vercel: Export MP4 shows
   "Soon" and every export API returns 501), `SHARE_STORE`, `PAYMENTS` and `LINK_PRICE_INR`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`
   holds `EXPORT_DIR` so share code does not import render.ts (that would pull Chrome/ffmpeg into its function bundle).
+- **Analytics** (Mixpanel, `lib/analytics.ts`; tracking plan and rules in `AGENTS.md`): typed `track()`, started only by the
+  editor and the guest page (never `/render`), production deploy only (`MIXPANEL=1` to test locally), India residency
+  (`api-in.mixpanel.com`), anonymous (no identify), no names: guest pages strip the URL/title and use a hashed `invite_id`.
 
 ## Templates (14), in `lib/templates/`, registered in `index.ts`
 

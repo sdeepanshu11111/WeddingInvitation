@@ -5,6 +5,7 @@ import { SIZES, buildTimeline, inviteDate } from "@/lib/project";
 import type { Orientation, Project } from "@/lib/types";
 import { LINK_PRICE_INR } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
+import { inviteId, startAnalytics, track } from "@/lib/analytics";
 import { BRAND } from "@/lib/brand";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 
@@ -159,6 +160,14 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
   const music = project.music;
   const date = useMemo(() => inviteDate(project.data), [project]);
   const playing = phase === "playing";
+  const watched = useRef(false);
+
+  useEffect(() => startAnalytics("guest_page", { invite_id: name && inviteId(name), template_id: project.templateId, is_watermarked: watermark }), [name, project, watermark]);
+  useEffect(() => {
+    if (phase !== "ended" || watched.current) return;
+    watched.current = true; // "Watch again" doesn't count twice
+    track("invite_watched");
+  }, [phase]);
 
   // Both layouts are hand-tuned, so phones get 9:16 and laptops/TVs 16:9.
   useEffect(() => {
@@ -231,6 +240,7 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
 
   const open = async () => {
     unlockAudio();
+    track("invite_opened", { orientation: o });
     setPhase("opening");
     await Promise.race([Promise.all([fonts.current!.promise, images.current]), new Promise((r) => setTimeout(r, 6000))]);
     setT(0);
@@ -393,6 +403,7 @@ function GuestBar({ title, name, watermark }: { title: string; name?: string; wa
   const busy = msg === "Opening payment...";
   const whatsapp = () => {
     const url = window.location.href.split("#")[0];
+    track("invite_shared", { channel: "whatsapp" });
     window.open("https://wa.me/?text=" + encodeURIComponent(title + " - you're invited!\n" + url), "_blank", "noopener");
   };
   const pay = async () => {
@@ -410,13 +421,16 @@ function GuestBar({ title, name, watermark }: { title: string; name?: string; wa
     <div className="guest-bar">
       {watermark && name ? (
         <div className="gb-pay">
+          <span className="gb-ico" aria-hidden>
+            ✦
+          </span>
           <div className="gb-text">
-            <b>Preview link</b>
-            <span>{msg && !busy ? msg : "Guests see a watermark"}</span>
+            <b>Remove watermark</b>
+            <span>{msg && !busy ? msg : "One-time · secure payment"}</span>
           </div>
           <button className="btn primary sm" onClick={pay} disabled={busy}>
             {busy ? <span className="spin" aria-hidden /> : null}
-            Remove · ₹{LINK_PRICE_INR}
+            Pay ₹{LINK_PRICE_INR}
           </button>
         </div>
       ) : (

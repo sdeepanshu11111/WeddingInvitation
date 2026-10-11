@@ -1,14 +1,16 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import type { Project } from "@/lib/types";
-import { coupleTitle, inviteDate, makeTheme } from "@/lib/project";
+import { buildTimeline, coupleTitle, inviteDate, makeTheme } from "@/lib/project";
 import { getTemplate } from "@/lib/templates";
 import { BRAND } from "@/lib/brand";
 import { LINK_PRICE_INR, PAYMENTS, SHARE_STORE } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
+import { inviteId, track } from "@/lib/analytics";
 import { MEDIA_TYPES, allSrcs, mapDataUrls } from "@/lib/media";
 import { SLUG_RE, slugify } from "@/lib/slug";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
+import { PayIcons } from "@/components/PayIcons";
 
 export type ShareResult = { url: string; lanUrl: string | null; card?: string | null } | { error: string };
 type Check = { name: string; valid: boolean; available: boolean; suggestion: string | null };
@@ -18,21 +20,33 @@ type Pay = "none" | "paying" | "paid" | { error: string };
 const typing = (v: string) =>
   v.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/-{2,}/g, "-").replace(/^-/, "").slice(0, 50);
 
+/**
+ * A link name nobody has to think about: the couple's names plus a short
+ * timestamp (seconds, base 36), e.g. aarav-ananya-t3k2x9. Unique in practice,
+ * so the couple never has to pick again because a name is taken.
+ */
+const autoName = (title: string) => {
+  const stamp = Math.floor(Date.now() / 1000).toString(36);
+  return (slugify(title).slice(0, 40).replace(/-+$/, "") || "invite") + "-" + stamp;
+};
+
 const Spinner = () => <span className="spin" aria-hidden />;
 const inviteText = (title: string) => title + " - you're invited!";
+const LockIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect x="4" y="11" width="16" height="10" rx="2" />
+    <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+  </svg>
+);
 
-/** Payment trust line: who processes it and the ways to pay that Indian buyers look for. */
+/** Who processes the payment and the ways to pay that Indian buyers look for. */
 function TrustRow() {
   return (
     <div className="trust-row">
-      <span className="lock">🔒 Secured by Razorpay</span>
-      <span className="pay-chips">
-        <i>UPI</i>
-        <i>GPay</i>
-        <i>PhonePe</i>
-        <i>Paytm</i>
-        <i>Cards</i>
+      <span className="lock">
+        <LockIcon /> Secured by Razorpay
       </span>
+      <PayIcons />
     </div>
   );
 }
@@ -43,7 +57,8 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   const [step, setStep] = useState("Creating link...");
   const title = coupleTitle(project.data);
   const year = /\b(20\d\d)\b/.exec(inviteDate(project.data) ?? "")?.[1];
-  const [name, setName] = useState(() => slugify(title));
+  const [name, setName] = useState(() => autoName(title));
+  const [editing, setEditing] = useState(false); // the couple chose to type their own link name
   const [check, setCheck] = useState<Check | null>(null);
   const uploaded = useRef<Project | null>(null); // reused if the name has to change after media went up
   // Paid links: the Premium plan removes the watermark. "none" = free preview link, "paid" = watermark removed.
@@ -51,10 +66,10 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   const [pay, setPay] = useState<Pay>("none");
   const [created, setCreated] = useState<string | null>(null); // the name of the link once it exists
 
-  // Is the name free? Asked as the user types (debounced); stale answers are ignored.
+  // Is a typed name free? Asked as the user types (debounced); stale answers are ignored.
   useEffect(() => {
     setCheck(null);
-    if (!SLUG_RE.test(name)) return;
+    if (!editing || !SLUG_RE.test(name)) return;
     let live = true;
     const id = setTimeout(() => {
       fetch("/api/share/check?name=" + encodeURIComponent(name) + (year ? "&year=" + year : ""))
@@ -66,7 +81,7 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
       live = false;
       clearTimeout(id);
     };
-  }, [name, year]);
+  }, [name, year, editing]);
 
   const removeWatermark = async (link: string) => {
     setPay("paying");
@@ -105,17 +120,41 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
       // Colours and date for the link-preview card, so the server never loads the templates.
       const t = makeTheme(getTemplate(project.templateId), project.paletteId);
       const card = { bg: t.bg, bg2: t.bg2, ink: t.ink, soft: t.soft, accent: t.accent, line: t.line, date: inviteDate(project.data) };
-      const res = await fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: shared, title, card, name }) });
-      const r = await res.json();
+      const post = (n: string) =>
+        fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: shared, title, card, name: n }) });
+      let finalName = name;
+      let res = await post(finalName);
+      let r = await res.json();
+      if (res.status === 409 && !editing && r.suggestion) {
+        // An automatic name collided (very unlikely): take the server's free one, no questions asked.
+        finalName = r.suggestion;
+        res = await post(finalName);
+        r = await res.json();
+      }
       if (res.status === 409) {
-        // Taken a moment ago: show the suggestion and let them try again.
-        setCheck({ name, valid: true, available: false, suggestion: r.suggestion ?? null });
+        // A name they typed was taken a moment ago: show the suggestion and let them try again.
+        setEditing(true);
+        setName(finalName);
+        setCheck({ name: finalName, valid: true, available: false, suggestion: r.suggestion ?? null });
         setState("idle");
         return;
       }
       if (!res.ok) return setState({ error: r.error || "Could not create the link" });
       setState({ url: r.url, lanUrl: r.lanUrl, card: r.card });
       setCreated(r.token);
+      const media = Object.values(project.data).flat().filter((v) => v && typeof v === "object" && v.src);
+      track("invite_link_created", {
+        invite_id: inviteId(r.token),
+        template_id: project.templateId,
+        palette_id: project.paletteId,
+        orientation: project.orientation,
+        plan: PAYMENTS ? (withoutWatermark ? "premium" : "free") : undefined,
+        is_custom_name: editing,
+        has_music: !!project.music,
+        photo_count: media.filter((m) => m.kind === "image").length,
+        has_video: media.some((m) => m.kind === "video"),
+        duration_seconds: Math.round(buildTimeline(project).total / (project.speed || 1) / 100) / 10,
+      });
       if (withoutWatermark) await removeWatermark(r.token);
     } catch (e: any) {
       setState({ error: "Could not create the link: " + (e?.message || e) });
@@ -123,17 +162,19 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   };
 
   const valid = SLUG_RE.test(name);
-  const checked = valid && check?.name === name;
-  const ready = checked && check!.available;
-  const hint = !name
-    ? "Pick a name for your link, e.g. aarav-ananya"
-    : !valid
-      ? "3–50 lowercase letters, numbers and hyphens"
-      : !checked
-        ? "Checking availability..."
-        : check!.available
-          ? "Nice, this link is available"
-          : "This link is taken";
+  const checked = editing && valid && check?.name === name;
+  const ready = valid && (!editing || (checked && check!.available));
+  const hint = !editing
+    ? null
+    : !name
+      ? "Pick a name for your link, e.g. aarav-ananya"
+      : !valid
+        ? "3–50 lowercase letters, numbers and hyphens"
+        : !checked
+          ? "Checking availability..."
+          : check!.available
+            ? "Nice, this link is available"
+            : "This link is taken";
   const host = window.location.host.replace(/^www\./, "");
   const premium = PAYMENTS && plan === "premium";
   const busy = state === "busy";
@@ -146,7 +187,7 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
         <div className="share-head">
           <div>
             <h3>{done ? "Your invitation link" : "Share your invitation"}</h3>
-            {done ? null : <p>Guests open the link and the invite plays in their browser, with music. Phones get 9:16, laptops and TVs get 16:9.</p>}
+            {done ? null : <p>Guests open the link and the invite plays in their browser, with music, on any phone or TV.</p>}
           </div>
           <button className="share-x" onClick={onClose} aria-label="Close">
             ✕
@@ -160,11 +201,7 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                 <div className="done-badge">✓</div>
                 <div>
                   <h4>{live ? "Your invite is live" : "Your preview link is ready"}</h4>
-                  <p>
-                    {live
-                      ? "Every guest sees the clean invite. Send it on WhatsApp or copy the link."
-                      : "Check it with family first. When you're happy, remove the watermark: the link stays the same."}
-                  </p>
+                  <p>{live ? "Every guest sees the clean invite." : "Share it with family to check. Remove the watermark whenever you're ready."}</p>
                 </div>
               </div>
               <SharePanel share={state} title={title} />
@@ -174,33 +211,46 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
           ) : (
             <>
               <div className="share-label">Your link</div>
-              <div className="url-field">
-                <span className="host">{host}/e/</span>
-                <input
-                  value={name}
-                  onChange={(e) => setName(typing(e.target.value))}
-                  onBlur={() => setName((n) => slugify(n))}
-                  disabled={busy}
-                  spellCheck={false}
-                  autoFocus
-                  aria-label="Link name"
-                />
-                <span className={"url-state" + (checked ? (check!.available ? " ok" : " bad") : "")} aria-hidden>
-                  {!valid ? "" : !checked ? <Spinner /> : check!.available ? "✓" : "✕"}
-                </span>
-              </div>
-              <div className="url-hint" style={checked ? { color: check!.available ? "var(--ok)" : "var(--danger)" } : undefined}>
-                {hint}
-                {checked && !check!.available && check!.suggestion ? (
-                  <button className="chip-btn" onClick={() => setName(check!.suggestion!)}>
-                    Use {check!.suggestion}
+              {editing ? (
+                <>
+                  <div className="url-field">
+                    <span className="host">{host}/e/</span>
+                    <input
+                      value={name}
+                      onChange={(e) => setName(typing(e.target.value))}
+                      onBlur={() => setName((n) => slugify(n))}
+                      disabled={busy}
+                      spellCheck={false}
+                      autoFocus
+                      aria-label="Link name"
+                    />
+                    <span className={"url-state" + (checked ? (check!.available ? " ok" : " bad") : "")} aria-hidden>
+                      {!valid ? "" : !checked ? <Spinner /> : check!.available ? "✓" : "✕"}
+                    </span>
+                  </div>
+                  <div className="url-hint" style={checked ? { color: check!.available ? "var(--ok)" : "var(--danger)" } : undefined}>
+                    {hint}
+                    {checked && !check!.available && check!.suggestion ? (
+                      <button className="chip-btn" onClick={() => setName(check!.suggestion!)}>
+                        Use {check!.suggestion}
+                      </button>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <div className="auto-link">
+                  <span className="url">
+                    {host}/e/<b>{name}</b>
+                  </span>
+                  <button className="chip-btn" onClick={() => setEditing(true)} disabled={busy}>
+                    ✎ Edit
                   </button>
-                ) : null}
-              </div>
+                </div>
+              )}
 
               {PAYMENTS ? (
                 <>
-                  <div className="share-label" style={{ marginTop: 16 }}>
+                  <div className="share-label" style={{ marginTop: 18 }}>
                     Choose a plan
                   </div>
                   <div className="plans" role="radiogroup">
@@ -211,8 +261,8 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                       <div className="price">Free</div>
                       <ul>
                         <li className="no">{BRAND} watermark</li>
-                        <li>Check it with family first</li>
-                        <li>Remove it later, same link</li>
+                        <li>Check it with family</li>
+                        <li>Remove it later</li>
                       </ul>
                     </button>
                     <button className={"plan" + (plan === "premium" ? " on" : "")} onClick={() => setPlan("premium")} disabled={busy} role="radio" aria-checked={plan === "premium"}>
@@ -226,7 +276,7 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                       </div>
                       <ul>
                         <li>No watermark</li>
-                        <li>Share with all your guests</li>
+                        <li>For all your guests</li>
                         <li>Active instantly</li>
                       </ul>
                     </button>
@@ -240,7 +290,9 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                     <Spinner /> {step}
                   </>
                 ) : premium ? (
-                  "Pay ₹" + LINK_PRICE_INR + " & create link"
+                  <>
+                    <LockIcon /> Pay ₹{LINK_PRICE_INR} & create link
+                  </>
                 ) : PAYMENTS ? (
                   "Create free preview link"
                 ) : (
@@ -265,12 +317,14 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   );
 }
 
-/** How the link will look when it is sent in a WhatsApp chat: the real preview card, title and domain. */
+/** How the link will look in a WhatsApp chat (the real preview card), folded away until asked for. */
 function WhatsAppPreview({ card, title, link, host }: { card: string; title: string; link: string; host: string }) {
   const time = new Date().toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
   return (
-    <>
-      <div className="wa-label">How it looks on WhatsApp</div>
+    <details className="wa-details">
+      <summary>
+        <WhatsAppIcon size={15} /> See how it looks on WhatsApp
+      </summary>
       <div className="wa-chat">
         <div className="wa-bubble">
           <div className="wa-card">
@@ -288,7 +342,7 @@ function WhatsAppPreview({ card, title, link, host }: { card: string; title: str
           <div className="wa-time">{time} ✓✓</div>
         </div>
       </div>
-    </>
+    </details>
   );
 }
 
@@ -306,12 +360,19 @@ function PlanStatus({ pay, onPay }: { pay: Pay; onPay: () => void }) {
     );
   return (
     <div className="upsell">
-      <div className="upsell-top">
-        <div className="upsell-ico">✦</div>
+      <div className="upsell-head">
         <div>
-          <b>Ready to send to all your guests?</b>
-          <span>Remove the {BRAND} watermark from this link. Same link, so there is nothing to resend.</span>
+          <b>Remove watermark</b>
+          <span>A clean invite for every guest</span>
         </div>
+        <div className="price-tag">
+          ₹{LINK_PRICE_INR}
+          <small>one-time</small>
+        </div>
+      </div>
+      <div className="ticks">
+        <span>Same link, nothing to resend</span>
+        <span>Active instantly</span>
       </div>
       <button className="btn primary upsell-cta" onClick={onPay} disabled={pay === "paying"}>
         {pay === "paying" ? (
@@ -320,7 +381,7 @@ function PlanStatus({ pay, onPay }: { pay: Pay; onPay: () => void }) {
           </>
         ) : (
           <>
-            Remove watermark · ₹{LINK_PRICE_INR} <small>one-time</small>
+            <LockIcon /> Pay ₹{LINK_PRICE_INR} securely
           </>
         )}
       </button>
@@ -334,7 +395,7 @@ function PlanStatus({ pay, onPay }: { pay: Pay; onPay: () => void }) {
   );
 }
 
-/** The link a guest can open, with Copy / WhatsApp / phone share sheet. On localhost the Wi-Fi address is shown, because only that one works on a phone. */
+/** The link a guest can open: Copy / Open icons, WhatsApp, and the phone's share sheet. On localhost the Wi-Fi address is shown, because only that one works on a phone. */
 export function SharePanel({ share, title }: { share: ShareResult; title: string }) {
   const [copied, setCopied] = useState(false);
   const [canShare, setCanShare] = useState(false);
@@ -342,7 +403,11 @@ export function SharePanel({ share, title }: { share: ShareResult; title: string
   if ("error" in share) return <div className="err" style={{ fontSize: 12, marginTop: 8 }}>{share.error}</div>;
   const link = share.lanUrl ?? share.url;
   const local = /\/\/(localhost|127\.0\.0\.1|\[::1\]|\d+\.\d+\.\d+\.\d+)[:/]/.test(link);
+  const [, hostPart = link, path = ""] = /^https?:\/\/([^/]+)(\/.*)?$/.exec(link) ?? [];
+  const slug = /\/e\/([^/?#]+)/.exec(share.url)?.[1];
+  const shared = (channel: "whatsapp" | "native_share" | "copy") => track("invite_shared", { channel, invite_id: slug && inviteId(slug) });
   const copy = async () => {
+    shared("copy");
     try {
       await navigator.clipboard.writeText(link);
       setCopied(true);
@@ -353,33 +418,39 @@ export function SharePanel({ share, title }: { share: ShareResult; title: string
   };
   return (
     <div style={{ textAlign: "left" }}>
-      <div className="link-box">
-        <input readOnly value={link} onFocus={(e) => e.currentTarget.select()} aria-label="Invite link" />
-        <button className="btn sm primary" onClick={copy}>
-          {copied ? "✓ Copied" : "Copy"}
+      <div className="link-card">
+        <span className="url" title={link}>
+          {hostPart.replace(/^www\./, "")}
+          <b>{path}</b>
+        </span>
+        <button className={"icon-btn" + (copied ? " copied" : "")} onClick={copy} aria-label="Copy link" title="Copy link">
+          {copied ? "✓" : (
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+              <rect x="9" y="9" width="12" height="12" rx="2" />
+              <path d="M5 15V5a2 2 0 0 1 2-2h10" />
+            </svg>
+          )}
         </button>
+        <a className="icon-btn" href={share.url} target="_blank" rel="noreferrer" aria-label="Open the invite" title="Open the invite">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+            <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
+          </svg>
+        </a>
       </div>
       <div className="share-actions">
-        <a className="btn wa" href={"https://wa.me/?text=" + encodeURIComponent(inviteText(title) + "\n" + link)} target="_blank" rel="noreferrer">
+        <a className="btn wa" href={"https://wa.me/?text=" + encodeURIComponent(inviteText(title) + "\n" + link)} target="_blank" rel="noreferrer" onClick={() => shared("whatsapp")}>
           <WhatsAppIcon size={18} /> Send on WhatsApp
         </a>
         {canShare ? (
-          <button className="btn" onClick={() => navigator.share({ title, text: inviteText(title), url: link }).catch(() => {})}>
+          <button className="btn" onClick={() => navigator.share({ title, text: inviteText(title), url: link }).then(() => shared("native_share"), () => {})}>
             ↗ More apps
           </button>
         ) : (
-          <a className="btn" href={share.url} target="_blank" rel="noreferrer">
-            Open invite ↗
-          </a>
+          <button className="btn" onClick={copy}>
+            {copied ? "✓ Copied" : "Copy link"}
+          </button>
         )}
       </div>
-      {canShare ? (
-        <div style={{ textAlign: "center" }}>
-          <a className="open-link" href={share.url} target="_blank" rel="noreferrer">
-            Open the invite ↗
-          </a>
-        </div>
-      ) : null}
       {local ? (
         <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 8, lineHeight: 1.45 }}>
           {share.lanUrl ? "Works on phones and PCs on the same Wi-Fi while this app is running." : "This link only works on this computer."} To share

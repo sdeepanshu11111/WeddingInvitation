@@ -10,6 +10,7 @@ import { fmt } from "@/lib/anim";
 import { SIZES, buildTimeline, defaultProject, idbGet, idbSet } from "@/lib/project";
 import { TEMPLATES } from "@/lib/templates";
 import { VIDEO_EXPORT } from "@/lib/features";
+import { startAnalytics, track } from "@/lib/analytics";
 import type { CategoryId, Orientation, Project } from "@/lib/types";
 
 type View = Orientation | "both";
@@ -29,6 +30,8 @@ export default function Editor() {
   const [menu, setMenu] = useState(false);
   const [narrow, setNarrow] = useState(false);
   const audio = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => startAnalytics("editor"), []);
 
   useEffect(() => {
     const mq = window.matchMedia("(max-width: 860px)");
@@ -145,17 +148,29 @@ export default function Editor() {
     if (v !== "both") update({ orientation: v });
   };
 
-  const chooseTemplate = (id: string) => {
+  const chooseTemplate = (id: string, source: "sidebar" | "gallery") => {
     if (!project || id === project.templateId) return;
+    track("template_selected", { template_id: id, source });
     setProject(defaultProject(id, project));
     setT(0);
     setPlaying(true);
   };
 
   const openShare = () => {
+    if (project) track("share_dialog_opened", { template_id: project.templateId });
     setMenu(false);
     setPlaying(false);
     setSharing(true);
+  };
+
+  /** "Export MP4": the dialog where video export runs, else the "coming soon" note. */
+  const openExport = () => {
+    track("video_export_clicked", { is_available: VIDEO_EXPORT });
+    setMenu(false);
+    if (VIDEO_EXPORT) {
+      setPlaying(false);
+      setExporting(true);
+    } else say("MP4 export is coming soon. Use Share to send guests a link for now.");
   };
 
   /** Phone tabs. Preview fills the screen and starts playing. */
@@ -236,13 +251,13 @@ export default function Editor() {
             <button className="btn desk-only" onClick={openShare} title="Send guests a link that plays the invitation in their browser">
               Share
             </button>
-            <button className="btn primary desk-only" onClick={() => { setPlaying(false); setExporting(true); }}>
+            <button className="btn primary desk-only" onClick={openExport}>
               Export MP4
             </button>
           </>
         ) : (
           <>
-            <button className="btn ghost desk-only" onClick={() => say("MP4 export is coming soon. Use Share to send guests a link for now.")} title="Coming soon">
+            <button className="btn ghost desk-only" onClick={openExport} title="Coming soon">
               Export MP4 <span className="soon">Soon</span>
             </button>
             <button className="btn primary desk-only" onClick={openShare} title="Send guests a link that plays the invitation in their browser">
@@ -265,16 +280,7 @@ export default function Editor() {
                   <input type="file" accept="application/json" hidden onChange={(e) => { setMenu(false); if (e.target.files?.[0]) importJSON(e.target.files[0]); }} />
                   ⇪ Open a saved project
                 </label>
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    setMenu(false);
-                    if (VIDEO_EXPORT) {
-                      setPlaying(false);
-                      setExporting(true);
-                    } else say("MP4 export is coming soon. Use Share to send guests a link for now.");
-                  }}
-                >
+                <button role="menuitem" onClick={openExport}>
                   ⬇ Export MP4 {VIDEO_EXPORT ? null : <span className="soon">Soon</span>}
                 </button>
               </div>
@@ -299,7 +305,7 @@ export default function Editor() {
         </div>
         <div className="tpl">
           {TEMPLATES.filter((t) => cat === "all" || t.categories.includes(cat)).map((t) => (
-            <button key={t.id} className={"tpl-card" + (t.id === project.templateId ? " on" : "")} onClick={() => chooseTemplate(t.id)}>
+            <button key={t.id} className={"tpl-card" + (t.id === project.templateId ? " on" : "")} onClick={() => chooseTemplate(t.id, "sidebar")}>
               <div className="tpl-thumb">{t.thumb(t.palettes[0])}</div>
               <div>
                 <div className="tpl-name">
@@ -471,7 +477,7 @@ export default function Editor() {
           onClose={() => setGallery(false)}
           onPick={(id) => {
             setGallery(false);
-            chooseTemplate(id);
+            chooseTemplate(id, "gallery");
           }}
         />
       ) : null}

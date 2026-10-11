@@ -441,19 +441,14 @@ input[type="date"].input, input[type="time"].input { color-scheme: dark; }
 .wa-msg span { color: #53bdeb; }
 .wa-time { text-align: right; font-size: 10.5px; color: rgba(233, 237, 239, 0.6); padding: 0 6px 2px; }
 .btn.wa svg { flex: none; }
-.open-link { display: inline-block; margin-top: 10px; font-size: 12.5px; color: var(--muted); text-decoration: none; }
-.open-link:hover { color: var(--text); }
 
 .trust-row { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 6px 10px; margin-top: 10px; font-size: 11.5px; color: var(--muted); }
 .trust-row .lock { display: inline-flex; align-items: center; gap: 5px; color: #c9c3cf; }
-.pay-chips { display: inline-flex; flex-wrap: wrap; gap: 4px; }
-.pay-chips i { font-style: normal; font-size: 10.5px; font-weight: 600; letter-spacing: 0.02em; padding: 2px 7px; border-radius: 6px; background: #f4f1ec; color: #2a2730; }
 
 .upsell { margin-top: 16px; border-radius: 14px; padding: 14px; text-align: left; background: linear-gradient(180deg, rgba(217, 183, 124, 0.12), rgba(217, 183, 124, 0.03)); border: 1px solid rgba(217, 183, 124, 0.4); }
-.upsell-top { display: flex; gap: 12px; align-items: flex-start; }
 .upsell-ico { width: 34px; height: 34px; flex: none; border-radius: 10px; display: grid; place-items: center; background: rgba(217, 183, 124, 0.18); color: var(--gold-2); font-size: 16px; }
-.upsell b { display: block; font-size: 14px; font-weight: 600; }
-.upsell span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
+.upsell-head b { display: block; font-size: 14px; font-weight: 600; }
+.upsell-head span { display: block; font-size: 12.5px; color: var(--muted); margin-top: 2px; line-height: 1.45; }
 .upsell-cta { width: 100%; justify-content: center; height: 46px; margin-top: 12px; border-radius: 12px; font-size: 14.5px; }
 .upsell-cta small { font-weight: 500; opacity: 0.7; font-size: 12px; }
 .paid-card { margin-top: 16px; border-radius: 14px; padding: 14px; display: flex; gap: 12px; align-items: center; text-align: left; background: rgba(127, 200, 160, 0.08); border: 1px solid rgba(127, 200, 160, 0.35); }
@@ -472,6 +467,40 @@ input[type="date"].input, input[type="time"].input { color-scheme: dark; }
 .gb-wa { width: 54px; height: 54px; flex: none; border-radius: 50%; border: 0; display: grid; place-items: center; background: #25d366; color: #fff; box-shadow: 0 10px 26px -6px rgba(37, 211, 102, 0.65); transition: transform 0.12s ease; }
 .gb-wa:active { transform: scale(0.94); }
 .end-shade { position: absolute; left: 0; right: 0; bottom: 0; display: flex; justify-content: center; padding: 60px 16px calc(96px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.6) 55%); }
+
+/* share dialog: automatic link, link card, payment card, logos */
+.auto-link { display: flex; align-items: center; gap: 10px; height: 46px; padding: 0 8px 0 14px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg); }
+.auto-link .url, .link-card .url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; color: var(--muted); }
+.auto-link .url b, .link-card .url b { color: var(--text); font-weight: 600; }
+.link-card { display: flex; align-items: center; gap: 6px; height: 50px; margin-top: 16px; padding: 0 6px 0 14px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg); }
+.icon-btn { width: 38px; height: 38px; flex: none; display: grid; place-items: center; border-radius: 10px; border: 1px solid var(--line-2); background: var(--panel-2); color: var(--text); text-decoration: none; transition: border-color 0.15s, color 0.15s, transform 0.12s; }
+.icon-btn:hover { border-color: var(--gold); }
+.icon-btn:active { transform: scale(0.94); }
+.icon-btn.copied { color: var(--ok); border-color: rgba(127, 200, 160, 0.55); }
+
+.upsell { padding: 16px; }
+.upsell-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.upsell-head b { font-size: 15px; }
+.price-tag { flex: none; text-align: right; font-family: var(--f-playfair); font-size: 28px; line-height: 1; color: var(--gold-2); }
+.price-tag small { display: block; margin-top: 4px; font-family: var(--ui); font-size: 11px; color: var(--muted); }
+.ticks { display: flex; flex-wrap: wrap; gap: 6px 16px; margin-top: 12px; font-size: 12.5px; color: #c9c3cf; }
+.ticks span::before { content: "✓"; color: var(--ok); margin-right: 6px; }
+.upsell-cta, .cta { gap: 8px; }
+
+.trust-row { margin-top: 12px; gap: 8px 12px; }
+.trust-row .lock { gap: 6px; font-size: 12px; }
+.pay-icons { display: inline-flex; align-items: center; gap: 10px; height: 28px; padding: 0 11px; border-radius: 8px; background: #fff; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2); }
+.pay-icons svg { display: block; }
+.pay-icons .upi { font: italic 800 11.5px/1 var(--ui); letter-spacing: 0.02em; color: #1b7a3f; }
+
+.wa-details { margin-top: 14px; }
+.wa-details > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 8px; border-radius: 10px; color: var(--muted); font-size: 12.5px; }
+.wa-details > summary::-webkit-details-marker { display: none; }
+.wa-details > summary:hover { color: var(--text); background: var(--panel-2); }
+.wa-details[open] > summary { margin-bottom: 8px; }
+
+/* guest page payment pill */
+.gb-ico { width: 30px; height: 30px; flex: none; border-radius: 9px; display: grid; place-items: center; background: rgba(217, 183, 124, 0.2); color: var(--gold-2); font-size: 14px; }
 
 /* ---------- phones: app layout with bottom tabs ---------- */
 @media (max-width: 860px) {

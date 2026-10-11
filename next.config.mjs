@@ -1,5 +1,8 @@
 // MP4 export needs Chrome + ffmpeg on a long-running server, so it is off on Vercel ("coming soon").
 const videoExport = (process.env.VIDEO_EXPORT ?? (process.env.VERCEL ? "0" : "1")) === "1";
+// Mixpanel analytics: on for the production deployment only, so local dev and preview deploys keep test
+// clicks out of the real numbers. Force with MIXPANEL=1/0; MIXPANEL_TOKEN points it at another project.
+const mixpanel = (process.env.MIXPANEL ?? (process.env.VERCEL_ENV === "production" ? "1" : "0")) === "1";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -14,6 +17,8 @@ const nextConfig = {
     // Paid links (Razorpay). Only the on/off flag and the price reach the browser, never the keys.
     NEXT_PUBLIC_PAYMENTS: process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET ? "1" : "0",
     NEXT_PUBLIC_LINK_PRICE_INR: process.env.LINK_PRICE_INR || "99",
+    // A Mixpanel project token is public by design (every visitor's browser sends it). Empty = analytics off.
+    NEXT_PUBLIC_MIXPANEL_TOKEN: mixpanel ? process.env.MIXPANEL_TOKEN || "13677b55358039a8d5f3140dd6ae82c6" : "",
   },
   // Share links moved from /v/<token> to /e/<name>; links already sent keep working.
   async redirects() {
