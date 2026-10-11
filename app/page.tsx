@@ -10,6 +10,7 @@ import { fmt } from "@/lib/anim";
 import { SIZES, buildTimeline, defaultProject, idbGet, idbSet } from "@/lib/project";
 import { TEMPLATES } from "@/lib/templates";
 import { VIDEO_EXPORT } from "@/lib/features";
+import { LegalLinks } from "@/components/LegalLinks";
 import { startAnalytics, track } from "@/lib/analytics";
 import type { CategoryId, Orientation, Project } from "@/lib/types";
 
@@ -283,6 +284,7 @@ export default function Editor() {
                 <button role="menuitem" onClick={openExport}>
                   ⬇ Export MP4 {VIDEO_EXPORT ? null : <span className="soon">Soon</span>}
                 </button>
+                <LegalLinks className="menu-legal" />
               </div>
             </>
           ) : null}
@@ -341,6 +343,7 @@ export default function Editor() {
             </button>
           ))}
         </div>
+        <LegalLinks />
         <div className="next-cta mob-only">
           <button className="btn primary" onClick={() => goTab("details")}>
             Next: add your details →

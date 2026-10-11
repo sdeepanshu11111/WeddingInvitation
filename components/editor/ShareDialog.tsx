@@ -53,6 +53,21 @@ function TrustRow() {
   );
 }
 
+/** Consent line under the create/pay buttons (DPDP Act; Meta and Razorpay reviewers look for it). New tab, so the editor stays put. */
+function AgreeNote({ paying }: { paying?: boolean }) {
+  const a = (href: string, label: string) => (
+    <a href={href} target="_blank" rel="noopener">
+      {label}
+    </a>
+  );
+  return (
+    <p className="agree-note">
+      By {paying ? "paying" : "creating a link"} you agree to our {a("/terms", "Terms")}, {a("/privacy", "Privacy Policy")}
+      {paying ? <> and {a("/refunds", "Refund Policy")}</> : null}.
+    </p>
+  );
+}
+
 /** "Share" in the top bar: publishes the project as a live web invitation at /e/<name> (no MP4 render). */
 export function ShareDialog({ project, onClose }: { project: Project; onClose: () => void }) {
   const [state, setState] = useState<"idle" | "busy" | ShareResult>("idle");
@@ -364,6 +379,7 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                 )}
               </button>
               {premium ? <TrustRow /> : null}
+              <AgreeNote paying={premium} />
               {state !== "idle" && state !== "busy" && "error" in state ? (
                 <div className="err" style={{ fontSize: 12.5, marginTop: 10 }}>
                   {state.error}
@@ -550,6 +566,7 @@ function PlanStatus({ pay, onPay }: { pay: Pay; onPay: () => void }) {
         )}
       </button>
       <TrustRow />
+      <AgreeNote paying />
       {typeof pay === "object" ? (
         <div className="err" style={{ fontSize: 12, marginTop: 8 }}>
           {pay.error}

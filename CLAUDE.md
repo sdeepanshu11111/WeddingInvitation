@@ -97,6 +97,10 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   `<GuestBar>` (WhatsApp share; on free links also "Remove · ₹") from the cover on; the success screen shows the real
   WhatsApp card (`card` URL returned by POST /api/share). The page computes
   `watermark = PAYMENTS && !getPaid(name)`. `shareFile()` refuses `.json`, so order/paid records are not served as media.
+- **Policy pages** (for Meta ads and Razorpay review): `/privacy` (has `#delete`), `/terms`, `/refunds` (incl. delivery), `/contact`
+  in `app/(legal)/`, business details in `lib/legal.ts` (empty values are left off the pages). Linked from the editor sidebar
+  bottom, the phone ⋯ menu, and an "By paying you agree…" line under every create/pay button in ShareDialog. They describe
+  what the app really does: **adding a tracker (Meta Pixel), processor or stored field means updating `/privacy`**.
 - Feature flags (`lib/features.ts`, set in `next.config.mjs` at build time): `VIDEO_EXPORT` (off on Vercel: Export MP4 shows
   "Soon" and every export API returns 501), `SHARE_STORE`, `PAYMENTS` and `LINK_PRICE_INR`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`
   holds `EXPORT_DIR` so share code does not import render.ts (that would pull Chrome/ffmpeg into its function bundle).
@@ -151,7 +155,19 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 
 ## Status & next ideas
 Done: 14 templates, categories + gallery, events field, both orientations, music, pacing, autosave, MP4 export (720p/1080p/4K, 24/30/60fps),
-exports folder, CLI render, snapshot QA script, production build passes.
+exports folder, CLI render, snapshot QA script, production build passes. Hosted on Vercel with live share links (`/e/<name>`),
+Razorpay paid links (watermark removal), Mixpanel analytics, share success screen (iPhone mockups of the guest journey,
+WhatsApp chat preview, Preview link / After payment toggle).
+
+**In progress (as of 11 Oct 2026, committed on `main`, not pushed yet):** policy pages for Meta ads + Razorpay review: `app/(legal)/`
+(privacy, terms, refunds, contact + layout), `lib/legal.ts`, `components/LegalLinks.tsx` (sidebar + phone ⋯ menu),
+`AgreeNote` consent line in ShareDialog, styles in `app/globals.css`. Typecheck passes. Still to do:
+1. Fill the empty `LEGAL` fields in `lib/legal.ts` (`entity`, `phone`, `address`, `city`, optionally `grievanceName`) with the
+   owner's real details, identical to the Razorpay KYC / Meta Business account. Ask the owner; don't invent them.
+2. Check the pages on desktop and phone width (`npm run dev` → /privacy, /terms, /refunds, /contact), then push
+   to `main` (that deploys to Vercel).
+3. Give the live URLs to Razorpay (website details) and Meta (privacy policy URL). If a Meta Pixel is added later, update `/privacy` first.
+
 Ideas (from README roadmap): Bengali / Marathi / Gujarati / Kerala-Christian / Parsi templates; optional functions list on every template;
 personalised per-guest videos from a CSV; RSVP page + QR on the end card; WhatsApp preset (<16 MB, 1:1 square); face-aware photo crop;
 scene reorder/hide; custom accent colour; undo/redo; AI-written lines via the Claude API; queue worker + S3 for scale; Remotion as an alternative engine.
