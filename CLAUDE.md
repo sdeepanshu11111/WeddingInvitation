@@ -81,8 +81,8 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
     Media types are whitelisted in `lib/media.ts` (no SVG: it could run script on our origin).
   - On localhost the dialog shows the Wi-Fi IP URL so phones on the same network can open it.
 - **Paid links** (Razorpay, `lib/server/razorpay.ts`, `lib/pay.ts`, `app/api/pay/*`): with `PAYMENTS` on (keys set), free links
-  show a watermark (`<Watermark>` in LiveInvite: corner badge + "PREVIEW" stripe 3 s of every 8 s) and the Share dialog
-  offers "Without watermark · ₹`LINK_PRICE_INR`". `POST /api/pay/order {name}` creates an order and records
+  show a watermark (`<Watermark>` in LiveInvite: diagonal BRAND · PREVIEW pattern + stripe + badge, always on) and the Share dialog
+  offers Preview (free) / Premium (₹`LINK_PRICE_INR`) plan cards. Brand name for guests/buyers: `lib/brand.ts`. `POST /api/pay/order {name}` creates an order and records
   `shares/<name>/order-<id>.json`; Checkout → `POST /api/pay/verify` checks the HMAC signature, that the order record belongs
   to that name (so one payment can't unlock other links), and with Razorpay's API that the payment is captured (captures
   if only authorized); then `markPaid` writes `paid.json` (no-overwrite, idempotent) and `revalidatePath("/e/"+name)`.

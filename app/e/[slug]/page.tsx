@@ -4,6 +4,7 @@ import { PAYMENTS } from "@/lib/features";
 import { getLiveProject, getPaid, getShare } from "@/lib/server/share";
 import { SITE_URL } from "@/lib/site";
 import { LiveInvite } from "./LiveInvite";
+import { BRAND } from "@/lib/brand";
 import { ShareButtons } from "./ShareButtons";
 
 /* Public page for a shared invitation. Server-rendered, so the Open Graph tags
@@ -87,7 +88,7 @@ export default async function WatchPage({ params }: { params: { slug: string } }
         }}
       />
       <ShareButtons title={s.title} videoPath={video} fileName={s.file} />
-      <div style={{ fontSize: 11, color: "var(--muted)" }}>Made with Invite Studio</div>
+      <div style={{ fontSize: 11, color: "var(--muted)" }}>Made with {BRAND}</div>
     </main>
   );
 }

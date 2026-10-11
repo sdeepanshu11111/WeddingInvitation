@@ -184,7 +184,7 @@ export default function Editor() {
       <header className="topbar">
         <div className="brand">
           <b>
-            Invite<i>Studio</i>
+            Future<i>Proof</i>
           </b>
           <span>wedding video invitations</span>
         </div>

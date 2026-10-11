@@ -1,6 +1,8 @@
 /* Browser side of paid links: Razorpay Checkout for removing a link's watermark.
    The server creates the order and verifies the payment (app/api/pay/*). */
 
+import { BRAND } from "./brand";
+
 let checkoutScript: Promise<void> | null = null;
 
 /** Razorpay's checkout.js, loaded on first use only. */
@@ -35,8 +37,8 @@ export async function payToRemoveWatermark(name: string, title: string): Promise
       order_id: order.orderId,
       amount: order.amount,
       currency: order.currency,
-      name: "Invite Studio",
-      description: "Invite link without watermark: " + title,
+      name: BRAND,
+      description: "Premium invite link (no watermark): " + title,
       theme: { color: "#d9b77c" },
       handler: async (r: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
         try {

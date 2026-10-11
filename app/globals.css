@@ -343,3 +343,60 @@ input[type="date"].input, input[type="time"].input { color-scheme: dark; }
 .side-cat em { font-style: normal; opacity: 0.6; margin-left: 4px; }
 .tpl-name .new { font-size: 9px; letter-spacing: 0.1em; background: var(--gold); color: #1c160d; padding: 1px 5px; border-radius: 4px; margin-left: 6px; vertical-align: 2px; font-weight: 600; }
 .browse { width: 100%; justify-content: center; margin-bottom: 14px; }
+
+/* ---------- share dialog ---------- */
+.share-modal { width: min(560px, 100%); padding: 0; }
+.share-head { padding: 22px 22px 0; display: flex; align-items: flex-start; gap: 12px; }
+.share-head h3 { margin: 0; }
+.share-head p { margin: 5px 0 0; color: var(--muted); font-size: 13px; line-height: 1.5; }
+.share-x { margin-left: auto; width: 32px; height: 32px; flex: none; border-radius: 50%; border: 1px solid var(--line-2); background: transparent; color: var(--muted); display: grid; place-items: center; font-size: 14px; }
+.share-x:hover { color: var(--text); border-color: #4a4652; }
+.share-body { padding: 18px 22px 22px; }
+.share-label { font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
+.url-field { display: flex; align-items: center; height: 46px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg); padding: 0 8px 0 14px; transition: border-color 0.15s, box-shadow 0.15s; }
+.url-field:focus-within { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(217, 183, 124, 0.15); }
+.url-field .host { color: var(--muted); white-space: nowrap; font-size: 13.5px; }
+.url-field input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; font-size: 13.5px; padding: 0 6px 0 1px; }
+.url-state { width: 24px; height: 24px; flex: none; border-radius: 50%; display: grid; place-items: center; font-size: 12px; color: var(--muted); }
+.url-state.ok { background: rgba(127, 200, 160, 0.15); color: var(--ok); }
+.url-state.bad { background: rgba(226, 118, 107, 0.15); color: var(--danger); }
+.url-hint { font-size: 12px; margin-top: 7px; min-height: 18px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--muted); }
+.chip-btn { border: 1px solid var(--line-2); background: var(--panel-2); border-radius: 99px; padding: 3px 10px; font-size: 12px; }
+.chip-btn:hover { border-color: var(--gold); }
+.plans { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.plan { position: relative; text-align: left; border: 1px solid var(--line-2); border-radius: 14px; padding: 14px 14px 13px; background: var(--panel-2); transition: border-color 0.15s, background 0.15s; }
+.plan:hover { border-color: #4a4652; }
+.plan.on { border-color: var(--gold); background: linear-gradient(180deg, rgba(217, 183, 124, 0.12), rgba(217, 183, 124, 0.02)); box-shadow: inset 0 0 0 1px var(--gold); }
+.plan .pname { font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.plan .radio { width: 16px; height: 16px; border-radius: 50%; border: 1.5px solid var(--line-2); display: grid; place-items: center; }
+.plan.on .radio { border-color: var(--gold); }
+.plan.on .radio::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); }
+.plan .price { font-family: var(--f-playfair); font-size: 27px; line-height: 1; margin: 12px 0 2px; }
+.plan .price small { font-family: var(--ui); font-size: 11.5px; color: var(--muted); margin-left: 5px; }
+.plan ul { list-style: none; margin: 10px 0 0; padding: 0; display: grid; gap: 6px; font-size: 12px; color: #c9c3cf; }
+.plan li::before { content: "✓"; color: var(--ok); margin-right: 7px; }
+.plan li.no::before { content: "✕"; color: var(--danger); }
+.plan .tag { position: absolute; top: -9px; right: 12px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; background: var(--gold); color: #1c160d; font-weight: 600; }
+.cta { width: 100%; height: 48px; margin-top: 16px; border-radius: 12px; justify-content: center; font-size: 14.5px; }
+.secure { text-align: center; font-size: 11.5px; color: var(--muted); margin-top: 9px; }
+.spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin 0.7s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.share-done { text-align: center; }
+.done-badge { width: 56px; height: 56px; border-radius: 50%; margin: 0 auto 10px; display: grid; place-items: center; font-size: 26px; background: rgba(127, 200, 160, 0.14); color: var(--ok); }
+.share-done h4 { margin: 0; font-family: var(--f-playfair); font-weight: 400; font-size: 21px; }
+.share-done > p { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
+.link-box { display: flex; align-items: center; gap: 6px; height: 46px; border: 1px solid var(--line-2); border-radius: 12px; background: var(--bg); padding: 0 5px 0 14px; margin-top: 16px; }
+.link-box input { flex: 1; min-width: 0; background: transparent; border: 0; outline: none; font-size: 13.5px; }
+.link-box .btn { height: 36px; border-radius: 9px; }
+.share-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px; }
+.share-actions .btn { justify-content: center; height: 42px; border-radius: 11px; }
+.btn.wa { background: #25d366; color: #06270f; border-color: transparent; font-weight: 600; }
+.btn.wa:hover { filter: brightness(1.05); }
+.plan-status { margin-top: 14px; border-radius: 12px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; text-align: left; flex-wrap: wrap; }
+.plan-status.free { background: rgba(217, 183, 124, 0.08); border: 1px dashed rgba(217, 183, 124, 0.45); }
+.plan-status.paid { background: rgba(127, 200, 160, 0.08); border: 1px solid rgba(127, 200, 160, 0.35); }
+.plan-status b { display: block; font-size: 13px; font-weight: 600; }
+.plan-status span { font-size: 12px; color: var(--muted); }
+.plan-status .btn { margin-left: auto; white-space: nowrap; }
+.share-foot { padding: 12px 22px; border-top: 1px solid var(--line); font-size: 11.5px; color: var(--muted); line-height: 1.45; border-radius: 0 0 14px 14px; background: rgba(0, 0, 0, 0.15); }
+@media (max-width: 520px) { .plans, .share-actions { grid-template-columns: 1fr; } }

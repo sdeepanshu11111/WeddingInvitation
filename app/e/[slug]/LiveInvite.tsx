@@ -5,6 +5,7 @@ import { SIZES, buildTimeline } from "@/lib/project";
 import type { Orientation, Project } from "@/lib/types";
 import { LINK_PRICE_INR } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
+import { BRAND } from "@/lib/brand";
 import { ShareButtons } from "./ShareButtons";
 
 /* The guest's view of a live share: the same <Frame/> as the editor, driven by
@@ -65,32 +66,37 @@ function Warmup({ tl, project, o, onReady }: { tl: ReturnType<typeof buildTimeli
 }
 
 /**
- * Free-link watermark: a corner badge, and a "PREVIEW" stripe across the middle for
- * 3 s of every 8 s (always shown once the invite has ended). Clearly a preview,
- * while the invite stays readable.
+ * Free-link watermark: a faint diagonal "BRAND · PREVIEW" pattern over the whole
+ * invite, a stripe across the middle and a corner badge, all always on. The soft
+ * shadow keeps it visible on dark and cream templates alike; the invite stays readable.
  */
-function Watermark({ T, always }: { T: number; always: boolean }) {
-  const c = T % 8000;
-  const stripe = always ? 1 : c < 3000 ? Math.min(1, c / 400, (3000 - c) / 400) : 0;
+function Watermark() {
+  const mark = BRAND.toUpperCase() + " · PREVIEW";
+  const shadow = "0 1px 3px rgba(0,0,0,.45)";
   return (
-    <>
+    <div aria-hidden style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
       <div
         style={{
           position: "absolute",
-          top: 14,
-          left: 14,
-          padding: "6px 11px",
-          borderRadius: 99,
-          background: "rgba(0,0,0,.5)",
-          color: "#fff",
-          fontSize: 11,
-          letterSpacing: "0.12em",
-          pointerEvents: "none",
-          backdropFilter: "blur(6px)",
-          WebkitBackdropFilter: "blur(6px)",
+          inset: "-60%",
+          transform: "rotate(-28deg)",
+          display: "flex",
+          flexWrap: "wrap",
+          alignContent: "center",
+          justifyContent: "center",
+          gap: "56px 72px",
+          color: "rgba(255,255,255,.2)",
+          textShadow: shadow,
+          fontSize: 17,
+          fontWeight: 600,
+          letterSpacing: "0.3em",
         }}
       >
-        PREVIEW · Invite Studio
+        {Array.from({ length: 90 }, (_, i) => (
+          <span key={i} style={{ whiteSpace: "nowrap" }}>
+            {mark}
+          </span>
+        ))}
       </div>
       <div
         style={{
@@ -106,13 +112,28 @@ function Watermark({ T, always }: { T: number; always: boolean }) {
           fontSize: 14,
           letterSpacing: "0.3em",
           whiteSpace: "nowrap",
-          opacity: stripe,
-          pointerEvents: "none",
         }}
       >
-        PREVIEW · INVITE STUDIO
+        PREVIEW · {BRAND.toUpperCase()}
       </div>
-    </>
+      <div
+        style={{
+          position: "absolute",
+          top: 14,
+          left: 14,
+          padding: "6px 11px",
+          borderRadius: 99,
+          background: "rgba(0,0,0,.55)",
+          color: "#fff",
+          fontSize: 11,
+          letterSpacing: "0.12em",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+        }}
+      >
+        PREVIEW · {BRAND}
+      </div>
+    </div>
   );
 }
 
@@ -285,7 +306,7 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
         </div>
       ) : null}
 
-      {watermark ? <Watermark T={T} always={phase === "ended"} /> : null}
+      {watermark ? <Watermark /> : null}
 
       {music && (phase === "playing" || phase === "paused") ? (
         <button aria-label={muted ? "Unmute" : "Mute"} onClick={() => setMuted((m) => !m)} style={{ ...round(42), position: "absolute", top: 14, right: 14, fontSize: 18 }}>

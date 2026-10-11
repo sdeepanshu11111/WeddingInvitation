@@ -3,11 +3,12 @@ import type { Metadata } from "next";
 // Google, and the headless renderer never waits on it. Each script (Devanagari, Gurmukhi,
 // Arabic, Tamil, ...) is its own unicode-range file, so a browser only downloads a script
 // when it actually appears on screen. Templates use the --f-* variables defined there.
+import { BRAND } from "@/lib/brand";
 import "./fonts.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Invite Studio — wedding video invitations",
+  title: BRAND + " — wedding video invitations",
   description: "Animated wedding invitation videos in 9:16 and 16:9.",
 };
 
