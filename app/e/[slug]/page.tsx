@@ -13,7 +13,8 @@ import { ShareButtons } from "./ShareButtons";
    first visit and then served from the cache (on-demand ISR): the other few
    hundred guests get it from the CDN without running any server code.
    Nothing here may read headers/cookies, or the page turns dynamic again.
-   If shares become editable or deletable, call revalidatePath("/v/" + token). */
+   Names are guessable, so POST /api/share calls revalidatePath("/e/" + name)
+   in case someone opened it before it existed (a cached 404). */
 
 export const revalidate = false;
 export function generateStaticParams() {
@@ -23,20 +24,21 @@ export function generateStaticParams() {
 const DESCRIPTION = "You're invited! Tap to open the invitation.";
 const abs = (p: string) => SITE_URL + p; // preview cards need absolute URLs
 
-export async function generateMetadata({ params }: { params: { token: string } }): Promise<Metadata> {
-  const s = await getShare(params.token);
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const s = await getShare(params.slug);
   if (!s) return { title: "Invitation not found" };
-  // metadataBase turns the og:image that Next adds from ./opengraph-image.tsx into an absolute URL.
-  const base = { metadataBase: new URL(SITE_URL), title: s.title, description: DESCRIPTION, robots: { index: false, follow: false } };
+  const base = { title: s.title, description: DESCRIPTION, robots: { index: false, follow: false } };
   if (s.kind === "live") {
-    return { ...base, openGraph: { title: s.title, description: DESCRIPTION, type: "website" }, twitter: { card: "summary_large_image" } };
+    // Versioned, so the card can never be a copy cached before this share existed (see ./card/route.tsx).
+    const images = [{ url: abs("/e/" + s.token + "/card?v=" + s.createdAt), width: 1200, height: 630, alt: s.title }];
+    return { ...base, openGraph: { title: s.title, description: DESCRIPTION, type: "website", images }, twitter: { card: "summary_large_image", images } };
   }
   const video = abs("/api/share/" + s.token + "/video");
   return { ...base, openGraph: { title: s.title, description: DESCRIPTION, type: "video.other", videos: [{ url: video, type: "video/mp4" }] } };
 }
 
-export default async function WatchPage({ params }: { params: { token: string } }) {
-  const s = await getShare(params.token);
+export default async function WatchPage({ params }: { params: { slug: string } }) {
+  const s = await getShare(params.slug);
   if (!s) notFound();
 
   if (s.kind === "live") {

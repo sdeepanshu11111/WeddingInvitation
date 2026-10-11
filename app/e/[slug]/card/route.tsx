@@ -3,17 +3,16 @@ import { ImageResponse } from "next/og";
 import { getShare, shareFile, type Card } from "@/lib/server/share";
 
 /* Link-preview card (WhatsApp, Telegram, iMessage...) for a share, drawn with
-   next/og, so it needs no headless Chrome and runs on Vercel. Next adds the
-   og:image tag to the page by itself. Rendered once per share, then cached. */
+   next/og, so it needs no headless Chrome and runs on Vercel.
+
+   The page links it as /e/<name>/card?v=<createdAt>. Names are guessable, and a
+   card cached for a name before it existed would be the generic one; Next 14
+   does not invalidate cached route responses on revalidatePath. A URL that only
+   exists after creation can never have a stale copy, so it is cached by URL. */
 
 export const runtime = "nodejs";
-export const alt = "Video invitation";
-export const size = { width: 1200, height: 630 };
-export const contentType = "image/png";
-export const revalidate = false;
-export function generateStaticParams() {
-  return []; // like the page: drawn on first request, then cached
-}
+export const dynamic = "force-dynamic";
+const size = { width: 1200, height: 630 };
 
 const DEFAULT: Card = { bg: "#4a0d1c", bg2: "#22050d", ink: "#fff4e6", soft: "#e8cfc0", accent: "#e9c46a", line: "#c9a24a" };
 
@@ -50,15 +49,16 @@ async function photo(token: string, src?: string): Promise<string | null> {
   }
 }
 
-export default async function Image({ params }: { params: { token: string } }) {
-  const s = await getShare(params.token);
-  const c = { ...DEFAULT, ...(s?.kind === "live" ? s.card : {}) };
+export async function GET(_req: Request, { params }: { params: { slug: string } }) {
+  const s = await getShare(params.slug);
+  if (s?.kind !== "live") return new Response("Not found", { status: 404, headers: { "Cache-Control": "no-store" } });
+  const c = { ...DEFAULT, ...s.card };
   // The card has no complex-script shaping (Devanagari matras, Gurmukhi, Arabic would break),
   // so names in Indian scripts fall back to a plain heading rather than render wrongly.
-  const title = s?.title ?? "Wedding invitation";
-  const heading = /^[\u0000-ɏ -⁯]+$/.test(title) ? title : "Wedding Invitation";
+  const title = s.title;
+  const heading = /^[\u0000-\u024F\u2000-\u206F]+$/.test(title) ? title : "Wedding Invitation";
   const kicker = "YOU'RE INVITED";
-  const pic = s?.kind === "live" ? await photo(s.token, s.card?.photo) : null;
+  const pic = await photo(s.token, s.card?.photo);
   const [script, caps] = await Promise.all([googleFont("Great Vibes", heading), googleFont("Cinzel", kicker + (c.date ?? ""))]);
   const fonts = [
     ...(script ? [{ name: "Great Vibes", data: script, weight: 400 as const, style: "normal" as const }] : []),
@@ -66,7 +66,7 @@ export default async function Image({ params }: { params: { token: string } }) {
   ];
   const nameSize = Math.round((heading.length <= 16 ? 120 : heading.length <= 24 ? 100 : 78) * (pic ? 0.82 : 1));
 
-  return new ImageResponse(
+  const res = new ImageResponse(
     (
       <div style={{ width: "100%", height: "100%", display: "flex", padding: 28, background: "linear-gradient(135deg, " + c.bg + ", " + c.bg2 + ")" }}>
         <div
@@ -95,4 +95,8 @@ export default async function Image({ params }: { params: { token: string } }) {
     ),
     { ...size, fonts }
   );
+  // The URL carries the share's version, so browsers and the CDN may keep it forever.
+  // (set, not passed as an option: ImageResponse would append its own value to ours)
+  res.headers.set("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
+  return res;
 }

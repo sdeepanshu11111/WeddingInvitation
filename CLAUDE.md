@@ -55,13 +55,20 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   piped as JPEG into ffmpeg (H.264 + AAC music with fade), and **auto-copy of every MP4 to `exports/`**.
 - API: `POST /api/render`, `GET /api/render/[id]`, `GET /api/render/[id]/file[?inline=1]`, `POST /api/render/[id]/reveal`
   (opens Explorer, localhost only), `GET /api/job/[id]`, `POST /api/project` (saves the project JSON to `exports/`).
-- Share links (`lib/server/share.ts`), page `/v/[token]`: server-rendered, so link previews work. The page and
-  `opengraph-image.tsx` (next/og preview card: names, date, photo, palette) are on-demand ISR (`generateStaticParams` → `[]`,
-  `revalidate = false`): drawn on first visit, then cached. Don't read headers/cookies there or they turn dynamic; absolute
+- Share links (`lib/server/share.ts`), page `/e/[slug]` with readable names (`/e/aarav-ananya`; old `/v/<token>` links
+  308-redirect there via next.config). Server-rendered, so link previews work; on-demand ISR (`generateStaticParams` → `[]`,
+  `revalidate = false`): rendered on first visit, then cached. Don't read headers/cookies there or it turns dynamic; absolute
   URLs come from `SITE_URL` (`lib/site.ts`). Caching only shows in a production build, not `next dev`.
-  - **Live** (topbar "Share", `components/editor/ShareDialog.tsx`): `POST /api/share {project,title,card}` stores a snapshot.
+  - Names (`lib/slug.ts`: 3–50 of a-z 0-9 single hyphens) are claimed by writing `project.json` with no-overwrite (Blob
+    default, `wx` on disk). The dialog checks `GET /api/share/check?name=&year=`; taken → 409 + suggestion (name-year, -2..-9).
+  - **Names are guessable, so a 404 may be cached before a name exists.** `POST /api/share` calls `revalidatePath("/e/"+name)`
+    (works for pages). The preview card is `/e/[slug]/card?v=<createdAt>` (next/og route), linked from the page metadata:
+    Next 14 does NOT invalidate cached route responses on revalidatePath (file-system-cache only checks `kind === "PAGE"`),
+    so the card must live at a URL that only exists after creation. Blob reads use the SDK's `get(..., { useCache: false })`
+    (bypasses the Blob CDN, and its undici fetch is outside Next's caching) for the same reason.
+  - **Live** (topbar "Share", `components/editor/ShareDialog.tsx`): `POST /api/share {project,title,card,name}` stores a snapshot.
     `card` (palette colours + date) is computed in the editor so server code never imports the templates.
-    `app/v/[token]/LiveInvite.tsx` plays it with `<Frame>` + rAF clock: tap-to-open cover (audio unlock on iOS), 9:16 on
+    `app/e/[slug]/LiveInvite.tsx` plays it with `<Frame>` + rAF clock: tap-to-open cover (audio unlock on iOS), 9:16 on
     portrait screens and 16:9 on landscape, pause/mute/replay. Its `<Warmup>` lays out every scene hidden once, so only the
     fonts the invite uses download (~260 KB instead of 2.4 MB for all 174 faces).
   - **Video** ("Share link" on a finished export, only with `VIDEO_EXPORT`): `POST /api/share {file,title}` links an MP4.

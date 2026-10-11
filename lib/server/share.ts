@@ -2,24 +2,28 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createHash, randomBytes } from "node:crypto";
-import { put } from "@vercel/blob";
+import { get, head, put } from "@vercel/blob";
 import type { Project } from "../types";
 import { SHARE_STORE } from "../features";
 import { MEDIA_TYPES, allSrcs, mapDataUrls, mimeOfDataUrl } from "../media";
+import { SLUG_RE } from "../slug";
 import { EXPORT_DIR } from "./paths";
 
 /* =====================================================================
- * Share links: /v/<token>. Two kinds:
+ * Share links: /e/<name>, e.g. /e/aarav-ananya (old /v/<token> links redirect there).
+ * The name is the share's id ("token" in the data). Two kinds:
  *   live  - the project itself. The watch page plays it in the guest's
  *           browser with the same <Frame/> code as the editor.
  *   video - a finished MP4 from ./exports (only where MP4 export runs).
  * Storage (SHARE_STORE):
- *   disk  - exports/shares/<token>/{share.json, project.json, media files}
- *   blob  - Vercel Blob, same layout under shares/<token>/. In this mode the
+ *   disk  - exports/shares/<name>/{share.json, project.json, media files}
+ *   blob  - Vercel Blob, same layout under shares/<name>/. In this mode the
  *           editor uploads media straight to Blob first (Vercel limits request
  *           bodies to 4.5 MB), so the project arrives with Blob URLs.
  * Shares never change after creation: the watch page is cached forever.
- * Export file names are guessable (couple names + format); tokens are not.
+ * A name is claimed by writing project.json with no-overwrite, so two couples
+ * can never end up on one link. Live shares get readable names (chosen in the
+ * editor); MP4 shares keep random tokens, as export file names are guessable.
  * ===================================================================== */
 
 /** What the link-preview card needs, so it never has to load the templates. */
@@ -30,7 +34,8 @@ export type Share =
   | { token: string; kind: "video"; title: string; createdAt: number; file: string; vertical: boolean };
 
 export const SHARE_DIR = path.join(EXPORT_DIR, "shares");
-const TOKEN = /^[\w-]{6,32}$/;
+/** Readable names (aarav-ananya) and the older random tokens (XA2IIXT4BycK). */
+const ID = /^[\w-]{3,64}$/;
 const newToken = () => randomBytes(9).toString("base64url");
 
 /* ---------------- storage backends ---------------- */
@@ -46,14 +51,17 @@ const store = {
   async readJSON<T>(key: string): Promise<T | null> {
     try {
       if (SHARE_STORE === "blob") {
-        const r = await fetch(blobBase() + "shares/" + key); // cached by Next and the Blob CDN; shares are immutable
-        return r.ok ? ((await r.json()) as T) : null;
+        // Straight from Blob storage, not its CDN: a guest who opened a name before it was taken must not be
+        // served a cached "not found". The SDK's own fetch also stays outside Next's page caching.
+        const r = await get("shares/" + key, { access: "public", useCache: false });
+        return r?.statusCode === 200 ? ((await new Response(r.stream).json()) as T) : null;
       }
       return JSON.parse(await fs.readFile(path.join(SHARE_DIR, key), "utf8")) as T;
     } catch {
       return null;
     }
   },
+  /** Never overwrites: fails if the file exists (Blob's default, "wx" on disk). That is what claims a name. */
   async writeJSON(key: string, value: unknown) {
     const body = JSON.stringify(value);
     if (SHARE_STORE === "blob") {
@@ -61,7 +69,11 @@ const store = {
       return;
     }
     await fs.mkdir(path.dirname(path.join(SHARE_DIR, key)), { recursive: true });
-    await fs.writeFile(path.join(SHARE_DIR, key), body);
+    await fs.writeFile(path.join(SHARE_DIR, key), body, { flag: "wx" });
+  },
+  async exists(key: string): Promise<boolean> {
+    if (SHARE_STORE === "blob") return head("shares/" + key).then(() => true, () => false);
+    return fs.access(path.join(SHARE_DIR, key)).then(() => true, () => false);
   },
   /** Stores one media file of a share and returns the URL the watch page loads it from. */
   async writeMedia(token: string, buf: Buffer, mime: string): Promise<string> {
@@ -85,15 +97,33 @@ function assertWritable() {
 
 /* ---------------- shares ---------------- */
 
+/** An error the API turns into this HTTP status (e.g. 409 when a name is taken). */
+export class ShareError extends Error {
+  constructor(public status: number, message: string, public suggestion?: string) {
+    super(message);
+  }
+}
+
+/** True once a share holds this name. */
+export const nameTaken = async (name: string) => (await store.exists(name + "/project.json")) || (await store.exists(name + "/share.json"));
+
+/** The first free name among base, base-<year>, base-2 ... base-9, then base-<random>. */
+export async function suggestName(base: string, year?: string): Promise<string> {
+  const stem = SLUG_RE.test(base) ? base.slice(0, 44).replace(/-+$/, "") : "invite";
+  const tries = [stem, ...(year ? [stem + "-" + year] : []), ...[2, 3, 4, 5, 6, 7, 8, 9].map((n) => stem + "-" + n)];
+  for (const t of tries) if (SLUG_RE.test(t) && !(await nameTaken(t))) return t;
+  return stem + "-" + randomBytes(3).toString("hex");
+}
+
 export async function getShare(token: string): Promise<(Share & { path: string }) | null> {
-  if (!TOKEN.test(token)) return null;
+  if (!ID.test(token)) return null;
   const s = await store.readJSON<Share>(token + "/share.json");
   if (!s) return null;
   return { ...s, path: s.kind === "video" ? path.join(EXPORT_DIR, s.file) : path.join(SHARE_DIR, token) };
 }
 
 export async function getLiveProject(token: string): Promise<Project | null> {
-  if (!TOKEN.test(token)) return null;
+  if (!ID.test(token)) return null;
   return store.readJSON<Project>(token + "/project.json");
 }
 
@@ -118,9 +148,14 @@ const COLOR = /^#[0-9a-f]{3,8}$/i;
  * become stored files, so the watch page stays a few KB and media streams
  * separately. Media may only point at this app's own storage.
  */
-export async function createLiveShare(project: Project, title: string, card: Partial<Card>): Promise<Share> {
+export async function createLiveShare(project: Project, title: string, card: Partial<Card>, name: string): Promise<Share> {
   assertWritable();
-  const token = newToken();
+  if (!SLUG_RE.test(name)) throw new ShareError(400, "Use 3–50 lowercase letters, numbers and hyphens for the link name");
+  const year = /\b(20\d\d)\b/.exec(typeof card.date === "string" ? card.date : "")?.[1];
+  if (await nameTaken(name)) throw new ShareError(409, "That link name is taken", await suggestName(name, year));
+  const token = name;
+  // On failure remove only what this call created: an existing folder may hold another share's files.
+  const hadDir = SHARE_STORE === "disk" && (await store.exists(name));
   let stored: Project;
   try {
     stored = await mapDataUrls(project, async (src) => {
@@ -135,9 +170,16 @@ export async function createLiveShare(project: Project, title: string, card: Par
     const ours = (SHARE_STORE === "blob" ? blobBase() : "/api/share/" + token + "/media/").toLowerCase(); // host names ignore case
     const foreign = allSrcs(stored).find((s) => !s.toLowerCase().startsWith(ours));
     if (foreign) throw new Error("Media must be uploaded to this app, not linked from " + foreign.slice(0, 60));
-    await store.writeJSON(token + "/project.json", stored);
+    try {
+      await store.writeJSON(token + "/project.json", stored); // claims the name
+    } catch (e) {
+      // Someone else claimed it between the check above and now.
+      if (await nameTaken(name)) throw new ShareError(409, "That link name was just taken", await suggestName(name, year));
+      throw e;
+    }
   } catch (e) {
-    if (SHARE_STORE === "disk") await fs.rm(path.join(SHARE_DIR, token), { recursive: true, force: true });
+    const lostRace = e instanceof ShareError && e.status === 409;
+    if (SHARE_STORE === "disk" && !hadDir && !lostRace) await fs.rm(path.join(SHARE_DIR, token), { recursive: true, force: true });
     throw e;
   }
 
@@ -166,7 +208,7 @@ export async function createLiveShare(project: Project, title: string, card: Par
 
 /** Path of one media file inside a disk share, or null if the name is not a plain file name. */
 export function shareFile(token: string, name: string): string | null {
-  if (!TOKEN.test(token) || !/^[\w.-]+$/.test(name) || name.startsWith(".") || name.endsWith(".json")) return null;
+  if (!ID.test(token) || !/^[\w.-]+$/.test(name) || name.startsWith(".") || name.endsWith(".json")) return null;
   return path.join(SHARE_DIR, token, name);
 }
 
