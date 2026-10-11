@@ -4,18 +4,24 @@ import type { Metadata } from "next";
 // Arabic, Tamil, ...) is its own unicode-range file, so a browser only downloads a script
 // when it actually appears on screen. Templates use the --f-* variables defined there.
 import { BRAND } from "@/lib/brand";
+import { MetaPixel } from "@/components/MetaPixel";
 import "./fonts.css";
 import "./globals.css";
+import "./studio.css";
+import "./site.css";
 
 export const metadata: Metadata = {
-  title: BRAND + " — wedding video invitations",
-  description: "Animated wedding invitation videos in 9:16 and 16:9.",
+  title: BRAND + " · Wedding video invitations",
+  description: "Animated video invitations for Indian weddings and every function. Preview free with your names and share on WhatsApp.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body>
+        {children}
+        <MetaPixel />
+      </body>
     </html>
   );
 }

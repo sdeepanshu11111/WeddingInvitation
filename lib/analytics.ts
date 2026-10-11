@@ -6,15 +6,20 @@
    queued in order. Off unless MIXPANEL_TOKEN is set (production deploys, see next.config.mjs).
 
    Nobody signs in, so everyone is an anonymous device: no identify(), and no names, emails or phone
-   numbers. Guest pages also drop the URL and page title, which carry the couple's names. */
+   numbers. Guest pages also drop the URL and page title, which carry the couple's names.
+
+   Ad measurement (Meta Pixel) rides on the same events: track() also sends the few that matter to Meta
+   (see META below). The pixel runs on the site pages only (startPixel, from <MetaPixel> in the root
+   layout), never on a guest's invite (/e/<name>: its URL has the names; /privacy promises this) or on
+   /render and /client-render. */
 
 import type { Mixpanel } from "mixpanel-browser";
 import type { Orientation } from "./types";
-import { MIXPANEL_API_HOST, MIXPANEL_TOKEN } from "./features";
+import { LINK_PRICE_INR, META_PIXEL_ID, MIXPANEL_API_HOST, MIXPANEL_TOKEN, PAYMENTS } from "./features";
 
 /** The tracking plan. Names are snake_case and fixed: never build an event or property name at runtime. */
 type Events = {
-  template_selected: { template_id: string; source: "sidebar" | "gallery" };
+  template_selected: { template_id: string; source: "sidebar" | "gallery" | "template_page" };
   share_dialog_opened: { template_id: string };
   /** The value moment: the couple has a link guests can open. */
   invite_link_created: {
@@ -67,6 +72,61 @@ export function startAnalytics(surface: "editor" | "guest_page", props: Super = 
 
 export function track<E extends keyof Events>(event: E, ...props: {} extends Events[E] ? [Events[E]?] : [Events[E]]) {
   sdk?.then((mp) => mp?.track(event, present(props[0] ?? {})));
+  const meta = (META[event] as ((p: Events[E]) => MetaEvent | null) | undefined)?.(props[0] as Events[E]);
+  if (meta && pixelAllowed()) fbq()?.("track", meta[0], meta[1], meta[2] ? { eventID: meta[2] } : undefined);
+}
+
+/* ---- Meta Pixel ---- */
+
+/** [Meta standard event, its parameters, eventID]. The eventID lets a future Conversions API (server)
+    send the same event without Meta counting it twice, so it must be computable on the server too. */
+type MetaEvent = [string, Record<string, unknown>, string?];
+const product = (template_id: string) => ({ content_ids: [template_id], content_type: "product" });
+const price = () => (PAYMENTS ? { value: LINK_PRICE_INR, currency: "INR" } : {});
+
+/** Which tracking-plan events also go to Meta. No names or link names: only template ids and amounts. */
+const META: { [E in keyof Events]?: (p: Events[E]) => MetaEvent | null } = {
+  template_selected: (p) => ["ViewContent", product(p.template_id)],
+  share_dialog_opened: (p) => ["AddToCart", { ...product(p.template_id), ...price() }],
+  payment_started: (p) => ["InitiateCheckout", { value: p.amount_inr, currency: "INR" }],
+  // One payment per invite (paid.json is write-once), so the invite id is a stable dedup key.
+  payment_completed: (p) => ["Purchase", { value: p.amount_inr, currency: "INR" }, "purchase-" + p.invite_id],
+  // A premium link is followed by a Purchase instead.
+  invite_link_created: (p) => (p.plan === "premium" ? null : ["Lead", product(p.template_id)]),
+};
+
+type Fbq = ((...args: unknown[]) => void) & Record<string, any>;
+const fbq = () => (typeof window === "undefined" ? undefined : ((window as any).fbq as Fbq | undefined));
+
+/** Pages the pixel may see: not a guest's invite (names in the URL), not the headless export pages. */
+export const pixelAllowed = (path = typeof location === "undefined" ? "" : location.pathname) =>
+  !!META_PIXEL_ID && !/^\/(e|v|render|client-render)(\/|$)/.test(path);
+
+/** Loads Meta's fbevents.js once (their base code, unminified) and sends a PageView. Call on every route change. */
+export function pixelPageView() {
+  if (!pixelAllowed()) return;
+  const w = window as any;
+  if (!w.fbq) {
+    const n: Fbq = (w.fbq = function () {
+      // eslint-disable-next-line prefer-rest-params
+      n.callMethod ? n.callMethod.apply(n, arguments) : n.queue.push(arguments);
+    } as Fbq);
+    w._fbq ??= n;
+    n.push = n;
+    n.loaded = true;
+    n.version = "2.0";
+    n.queue = [];
+    // Our own PageView per route instead of Meta's history listener, which would also fire on /e/ pages.
+    n.disablePushState = true;
+    const s = document.createElement("script");
+    s.async = true;
+    s.src = "https://connect.facebook.net/en_US/fbevents.js";
+    document.head.appendChild(s);
+    // No automatic events: they read button text and page content, which in the editor is the couple's names.
+    n("set", "autoConfig", false, META_PIXEL_ID);
+    n("init", META_PIXEL_ID);
+  }
+  w.fbq("track", "PageView");
 }
 
 /** Mixpanel wants a missing property left out, not sent as null or "". */

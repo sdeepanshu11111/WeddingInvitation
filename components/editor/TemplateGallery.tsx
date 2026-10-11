@@ -1,52 +1,9 @@
 "use client";
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { Frame, Stage } from "@/components/Frame";
+import React, { useEffect, useRef, useState } from "react";
+import { LazyPreview } from "@/components/LivePreview";
 import { CATEGORIES, COMMUNITIES, countIn, filterTemplates, type Filter } from "@/lib/catalog";
-import { withDemoMedia } from "@/lib/demo";
-import { SIZES, buildTimeline, defaultProject } from "@/lib/project";
 import { TEMPLATES } from "@/lib/templates";
-import type { Orientation, Project, TemplateDef } from "@/lib/types";
-
-/* Demo media is generated on a canvas once per template and reused. */
-const demoCache = new Map<string, Record<string, any>>();
-function demoProject(t: TemplateDef, orientation: Orientation): Project {
-  if (!demoCache.has(t.id)) demoCache.set(t.id, withDemoMedia(t, t.defaults));
-  return { ...defaultProject(t.id), orientation, data: demoCache.get(t.id)! };
-}
-
-/** Live preview: rests on the poster frame, plays the whole video while hovered. */
-function LivePreview({ t, orientation, active }: { t: TemplateDef; orientation: Orientation; active: boolean }) {
-  const project = useMemo(() => demoProject(t, orientation), [t, orientation]);
-  const tl = useMemo(() => buildTimeline(project), [project]);
-  const poster = useMemo(() => {
-    const i = Math.max(0, tl.scenes.findIndex((s) => s.id === t.poster));
-    const idx = t.poster ? i : Math.min(1, tl.scenes.length - 1);
-    return tl.slots[idx].start + tl.scenes[idx].duration * 0.72;
-  }, [tl, t.poster]);
-  const [T, setT] = useState(poster);
-
-  useEffect(() => {
-    if (!active) {
-      setT(poster);
-      return;
-    }
-    let raf = 0;
-    const t0 = performance.now();
-    const loop = (now: number) => {
-      setT((now - t0) % tl.total);
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [active, poster, tl.total]);
-
-  const { W, H } = SIZES[orientation];
-  return (
-    <Stage W={W} H={H}>
-      <Frame project={project} template={tl.template} theme={tl.theme} scenes={tl.scenes} slots={tl.slots} total={tl.total} T={T} />
-    </Stage>
-  );
-}
+import type { Orientation } from "@/lib/types";
 
 export function TemplateGallery({
   current,
@@ -131,7 +88,7 @@ export function TemplateGallery({
             onClick={() => onPick(t.id)}
           >
             <div className={"g-prev " + o}>
-              <LivePreview t={t} orientation={o} active={hover === t.id} />
+              <LazyPreview t={t} orientation={o} active={hover === t.id} />
               {t.isNew ? <span className="badge-new">NEW</span> : null}
               {t.id === current ? <span className="badge-cur">In use</span> : null}
             </div>

@@ -153,7 +153,7 @@ export function ExportDialog({ project, onClose }: { project: Project; onClose: 
         </p>
 
         {empty.length ? (
-          <div className="job" style={{ marginTop: 0, marginBottom: 16, borderColor: "#6b5330", background: "#211b12" }}>
+          <div className="job" style={{ marginTop: 0, marginBottom: 16, borderColor: "rgba(183, 71, 42, 0.4)", background: "rgba(183, 71, 42, 0.06)" }}>
             <b style={{ fontWeight: 500 }}>Empty media: </b>
             <span style={{ color: "var(--muted)" }}>
               {empty.join(", ")} will show as placeholders in the video. Add them in the panel on the right first.

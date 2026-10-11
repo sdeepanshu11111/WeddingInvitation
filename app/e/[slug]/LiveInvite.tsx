@@ -287,7 +287,7 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
   });
 
   return (
-    <main style={{ position: "fixed", inset: 0, overflow: "hidden", background: theme.bg2, userSelect: "none" }}>
+    <main className="guest-ui" style={{ position: "fixed", inset: 0, overflow: "hidden", background: theme.bg2, userSelect: "none" }}>
       {music ? <audio ref={audio} src={music.src} preload="auto" /> : null}
       {warming ? (
         <Warmup

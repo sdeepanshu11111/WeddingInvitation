@@ -7,7 +7,7 @@ export const metadata: Metadata = { title: "Privacy Policy · " + BRAND, descrip
 
 /* Keep this in step with what the app really does: Blob storage for share links (lib/server/share.ts),
    Razorpay (lib/server/razorpay.ts), Mixpanel (lib/analytics.ts, AGENTS.md), local autosave (lib/project.ts).
-   Adding a tracker (e.g. the Meta Pixel) or a new processor means updating sections 2, 4 and 5. */
+   Meta Pixel (lib/analytics.ts, AGENTS.md). Adding a tracker or a new processor means updating sections 2, 4 and 5. */
 export default function Privacy() {
   const mail = <a href={"mailto:" + LEGAL.email}>{LEGAL.email}</a>;
   return (
@@ -51,8 +51,10 @@ export default function Privacy() {
           and we do not record your screen.
         </li>
         <li>
-          <b>Advertising measurement</b>: we advertise on Meta platforms (Facebook and Instagram). We may use Meta&rsquo;s business tools, such as the
-          Meta Pixel and Conversions API, to measure how well our ads work, for example whether someone who saw an ad later created an invitation.
+          <b>Advertising measurement</b>: we advertise on Meta platforms (Facebook and Instagram) and use the Meta Pixel on our website pages to
+          measure how well our ads work, for example whether someone who saw an ad later viewed a template, created an invitation or bought the
+          Premium plan. It receives the page address, the template chosen and the amount paid, never the names, photos or other content of your
+          invitation. We may also send the same events from our servers through Meta&rsquo;s Conversions API.
           Meta and other third parties may use cookies, web beacons and similar technologies to collect or receive information from our website and
           elsewhere on the internet, and use it to provide measurement services and to show ads. These tools are never used on your guests&rsquo;
           invitation pages. See section 5 for how to opt out.

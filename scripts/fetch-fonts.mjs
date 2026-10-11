@@ -34,6 +34,10 @@ const FONTS = [
   ["--f-rozha", "Rozha One", "wght@400", "serif"],
   ["--f-kalam", "Kalam", "wght@400;700", "cursive"],
   ["--f-yatra", "Yatra One", "wght@400", "serif"],
+  // App UI (site + editor), not used by templates: editorial serif, body sans, mono labels.
+  ["--f-fraunces", "Fraunces", "ital,opsz,wght@0,9..144,400..800;1,9..144,400..800", "Georgia, serif"],
+  ["--f-intertight", "Inter Tight", "wght@400;500;600;700", "system-ui, sans-serif"],
+  ["--f-mono", "JetBrains Mono", "wght@400;500", "ui-monospace, monospace"],
 ];
 
 // A modern Chrome UA makes Google answer with woff2 files split by unicode-range.

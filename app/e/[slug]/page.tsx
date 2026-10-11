@@ -57,6 +57,7 @@ export default async function WatchPage({ params }: { params: { slug: string } }
   const video = "/api/share/" + s.token + "/video";
   return (
     <main
+      className="guest-ui"
       style={{
         minHeight: "100%",
         display: "flex",

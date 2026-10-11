@@ -3,6 +3,8 @@ const videoExport = (process.env.VIDEO_EXPORT ?? (process.env.VERCEL ? "0" : "1"
 // Mixpanel analytics: on for the production deployment only, so local dev and preview deploys keep test
 // clicks out of the real numbers. Force with MIXPANEL=1/0; MIXPANEL_TOKEN points it at another project.
 const mixpanel = (process.env.MIXPANEL ?? (process.env.VERCEL_ENV === "production" ? "1" : "0")) === "1";
+// Meta Pixel (ad measurement): same rule. Force with META_PIXEL=1/0; META_PIXEL_ID points it at another pixel.
+const metaPixel = (process.env.META_PIXEL ?? (process.env.VERCEL_ENV === "production" ? "1" : "0")) === "1";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -22,6 +24,8 @@ const nextConfig = {
     // Must match the project's data residency: US https://api-js.mixpanel.com, India https://api-in.mixpanel.com,
     // EU https://api-eu.mixpanel.com. The wrong one answers status 1 and silently drops every event.
     NEXT_PUBLIC_MIXPANEL_API_HOST: process.env.MIXPANEL_API_HOST || "https://api-js.mixpanel.com",
+    // Pixel "FutureProof Wedding Web" (Futureproof 2 portfolio). Public by design, like the Mixpanel token. Empty = off.
+    NEXT_PUBLIC_META_PIXEL_ID: metaPixel ? process.env.META_PIXEL_ID || "1116330824214375" : "",
   },
   // Share links moved from /v/<token> to /e/<name>; links already sent keep working.
   async redirects() {
@@ -29,7 +33,12 @@ const nextConfig = {
   },
   // Font file names are content-addressed (scripts/fetch-fonts.mjs), so they can be cached forever.
   async headers() {
-    return [{ source: "/fonts/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] }];
+    return [
+      { source: "/fonts/:file*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
+      // A guest page's URL carries the couple's names: never pass it on as a referrer (e.g. to the Meta Pixel
+      // on a site page a guest clicks through to).
+      { source: "/e/:path*", headers: [{ key: "Referrer-Policy", value: "origin" }] },
+    ];
   },
   experimental: {
     serverComponentsExternalPackages: ["puppeteer", "ffmpeg-static"],

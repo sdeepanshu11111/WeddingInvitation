@@ -9,7 +9,7 @@ The owner is building this as a product. Keep the UI in English; templates use I
 
 ```bash
 npm install          # also downloads headless Chrome (puppeteer) + ffmpeg-static
-npm run dev          # http://localhost:4321
+npm run dev          # http://localhost:4321 (site), /create (studio)
 npm run typecheck    # tsc --noEmit (keep it clean)
 npm run snapshot -- <outDir> --only=<template-id>   # contact sheets of every scene, both orientations (dev server must run)
 node scripts/frame.mjs out.png <template-id> vertical|horizontal <ms>   # one full-res frame
@@ -49,7 +49,18 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   EventCard, EventsOverview, `lines()`.
 - `components/editor/`: `Fields.tsx` (schema-driven form incl. EventsField + MusicPanel), `ExportDialog.tsx`, `TemplateGallery.tsx`
   (category tabs, community filter, search, live previews that play on hover).
-- `app/page.tsx`: the editor (sidebar categories, canvas, transport, form). **Phones (≤ 860px)**: an app layout, not a stack:
+- **Public site**, an editorial look modelled on wishnwed.com: cream paper (`--bg #f5f0e6`), ink (`--text #1f1a14`), terracotta
+  (`--accent #b7472a`), Fraunces `--display` headlines with the accent word in `<em>` (italic, terracotta), Inter Tight `--ui`, JetBrains Mono
+  `--mono` for `.mono-label` kickers ("§02 — How it works"), square CTAs (`.cta-btn`, `.ghost-btn`).
+  `/` is the landing page (`app/page.tsx`: hero `HeroReel` playing real templates, how it works, showcase, guests, pricing, FAQ, footer);
+  `/templates` is the browser (`?category=`, Refine sidebar, chips on phones); `/templates/<id>` has a big player, palettes, and
+  "Customize →" = `/create?template=&palette=&o=`. Shared parts: `components/site/` (SiteHeader, SiteFooter, TemplateCard, Faq with
+  `faqItems()` that follows the feature flags, Landing) and `components/LivePreview.tsx` (demo timeline, loop clock, `LazyPreview` mounts
+  only near the viewport). Styles: `app/site.css`; the studio restyle is `app/studio.css`, loaded after `globals.css`. The guest page wraps
+  itself in `.guest-ui`, which restores the old dark/gold tokens, because it frames the couple's invitation, not our brand. Public pages
+  don't track analytics yet. Copy is our own: no invented reviews, ratings or claims, and answers stay true to `PAYMENTS` / `VIDEO_EXPORT`.
+- `app/create/page.tsx`: the editor (sidebar categories, canvas, transport, form). It reads `?template&palette&o` once, then strips them
+  from the URL. **Phones (≤ 860px)**: an app layout, not a stack:
   preview on top, one panel below chosen by bottom tabs (`.app[data-tab]` = design → `.left`, details → `.right`, preview =
   full-height canvas) plus Share; sticky "Next" steps guide Design → Details → Share; the ⋯ menu holds Browse/Open/Export.
   Use `desk-only` / `mob-only` classes for parts that differ; inputs are 16px on phones (iOS zooms below that); dialogs
@@ -107,6 +118,11 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 - **Analytics** (Mixpanel, `lib/analytics.ts`; tracking plan and rules in `AGENTS.md`): typed `track()`, started only by the
   editor and the guest page (never `/render`), production deploy only (`MIXPANEL=1` to test locally), US residency
   (`api-js.mixpanel.com`; api-in silently drops this project's events), anonymous (no identify), no names: guest pages strip the URL/title and use a hashed `invite_id`.
+- **Meta Pixel** (ads, pixel `1116330824214375`; details in `AGENTS.md`): `<MetaPixel>` in the root layout sends PageView on
+  site pages only (never `/e/`, `/render`, `/client-render`), production only (`META_PIXEL=1` to test). `track()` maps
+  template_selected → ViewContent, share_dialog_opened → AddToCart, payment_started → InitiateCheckout, payment_completed →
+  Purchase (eventID `purchase-<invite_id>`), free invite_link_created → Lead. Automatic events off. Headless Chrome only
+  sends events when `navigator.webdriver` is hidden, so check by hand or with that override.
 
 ## Templates (14), in `lib/templates/`, registered in `index.ts`
 

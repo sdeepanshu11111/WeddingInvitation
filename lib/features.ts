@@ -18,6 +18,9 @@ export const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || "";
 /** Mixpanel ingestion host for the project's data residency (MIXPANEL_API_HOST; default US). */
 export const MIXPANEL_API_HOST = process.env.NEXT_PUBLIC_MIXPANEL_API_HOST || "https://api-js.mixpanel.com";
 
+/** Meta Pixel ID for ad measurement, set only on the production deployment (or with META_PIXEL=1). Empty = off. */
+export const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || "";
+
 /** Response for export endpoints while video export is switched off. */
 export const exportOff = () =>
   Response.json({ error: "Video export is coming soon. Use Share to send a link for now." }, { status: 501 });

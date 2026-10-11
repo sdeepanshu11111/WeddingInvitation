@@ -1,532 +1,290 @@
-"use client";
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Frame, Stage } from "@/components/Frame";
-import { ExportDialog } from "@/components/editor/ExportDialog";
-import { ShareDialog } from "@/components/editor/ShareDialog";
-import { FieldGroups, MusicPanel } from "@/components/editor/Fields";
-import { TemplateGallery } from "@/components/editor/TemplateGallery";
-import { CATEGORIES, countIn } from "@/lib/catalog";
-import { fmt } from "@/lib/anim";
-import { SIZES, buildTimeline, defaultProject, idbGet, idbSet } from "@/lib/project";
+import type { Metadata } from "next";
+import Link from "next/link";
+import { PayIcons } from "@/components/PayIcons";
+import { Faq, SectionHead, faqItems } from "@/components/site/Faq";
+import { DesignStack, HeroReel, Showcase } from "@/components/site/Landing";
+import { SiteFooter } from "@/components/site/SiteFooter";
+import { SiteHeader } from "@/components/site/SiteHeader";
+import { BRAND } from "@/lib/brand";
+import { CATEGORIES } from "@/lib/catalog";
+import { LINK_PRICE_INR, PAYMENTS, VIDEO_EXPORT } from "@/lib/features";
+import { SITE_URL } from "@/lib/site";
 import { TEMPLATES } from "@/lib/templates";
-import { VIDEO_EXPORT } from "@/lib/features";
-import { LegalLinks } from "@/components/LegalLinks";
-import { startAnalytics, track } from "@/lib/analytics";
-import type { CategoryId, Orientation, Project } from "@/lib/types";
 
-type View = Orientation | "both";
+const HOST = SITE_URL.replace(/^https?:\/\//, "");
 
-export default function Editor() {
-  const [project, setProject] = useState<Project | null>(null);
-  const [view, setView] = useState<View>("vertical");
-  const [T, setT] = useState(0);
-  const [playing, setPlaying] = useState(false);
-  const [exporting, setExporting] = useState(false);
-  const [sharing, setSharing] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
-  const [gallery, setGallery] = useState(false);
-  const [cat, setCat] = useState<CategoryId | "all">("all");
-  // Phones: one section at a time under the preview (bottom tabs), and a ⋯ menu for the rest of the top bar.
-  const [tab, setTab] = useState<"design" | "details" | "preview">("design");
-  const [menu, setMenu] = useState(false);
-  const [narrow, setNarrow] = useState(false);
-  const audio = useRef<HTMLAudioElement | null>(null);
+export const metadata: Metadata = {
+  title: BRAND + " · Wedding video invitations, ready in minutes",
+  description:
+    "Animated video invitations for Indian weddings and every function. Pick a design, add your names and date, watch it play, and share the link on WhatsApp.",
+};
 
-  useEffect(() => startAnalytics("editor"), []);
-
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 860px)");
-    const on = () => setNarrow(mq.matches);
-    on();
-    mq.addEventListener("change", on);
-    return () => mq.removeEventListener("change", on);
-  }, []);
-
-  /* ---------- load / autosave ---------- */
-  useEffect(() => {
-    idbGet<Project>("project")
-      .then((p) => {
-        const proj = p && TEMPLATES.some((t) => t.id === p.templateId) ? p : defaultProject(TEMPLATES[0].id);
-        setProject(proj);
-        setView(proj.orientation);
-        setPlaying(true); // start on a moving invite, not a blank first frame
-      })
-      .catch(() => setProject(defaultProject(TEMPLATES[0].id)));
-  }, []);
-
-  useEffect(() => {
-    if (!project) return;
-    const id = setTimeout(() => idbSet("project", project).catch(() => {}), 400);
-    return () => clearTimeout(id);
-  }, [project]);
-
-  const say = useCallback((m: string) => {
-    setToast(m);
-    setTimeout(() => setToast(null), 3200);
-  }, []);
-
-  /* ---------- timelines (one per visible orientation) ---------- */
-  const tlV = useMemo(() => (project ? buildTimeline({ ...project, orientation: "vertical" }) : null), [project]);
-  const tlH = useMemo(() => (project ? buildTimeline({ ...project, orientation: "horizontal" }) : null), [project]);
-  const main = project ? (project.orientation === "vertical" ? tlV : tlH) : null;
-  const total = main?.total ?? 1;
-  const speed = project?.speed ?? 1;
-
-  /* ---------- playback clock ---------- */
-  useEffect(() => {
-    if (!playing) return;
-    let raf = 0;
-    let last = performance.now();
-    const loop = (now: number) => {
-      const dt = now - last;
-      last = now;
-      setT((prev) => {
-        const n = prev + dt * speed;
-        if (n >= total) {
-          setPlaying(false);
-          return total;
-        }
-        return n;
-      });
-      raf = requestAnimationFrame(loop);
-    };
-    raf = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(raf);
-  }, [playing, speed, total]);
-
-  /* ---------- music sync ---------- */
-  const music = project?.music;
-  useEffect(() => {
-    const a = audio.current;
-    if (!a || !music) return;
-    if (playing) {
-      a.currentTime = (music.offset || 0) + T / speed / 1000;
-      a.play().catch(() => {});
-    } else a.pause();
-    // Only resync on play/pause, not every frame
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing, music?.src, music?.offset]);
-
-  useEffect(() => {
-    const a = audio.current;
-    if (!a || !music) return;
-    const realLeft = (total - T) / speed;
-    const fade = Math.min(1, realLeft / 2200, (T / speed) / 600 + 0.0001);
-    a.volume = Math.max(0, Math.min(1, music.volume * fade));
-  }, [T, total, speed, music]);
-
-  /* ---------- actions ---------- */
-  const togglePlay = useCallback(() => {
-    if (!playing && T >= total - 1) setT(0);
-    setPlaying((p) => !p);
-  }, [playing, T, total]);
-
-  const seek = (t: number) => {
-    setT(Math.max(0, Math.min(total, t)));
-    if (playing && audio.current && music) audio.current.currentTime = (music.offset || 0) + t / speed / 1000;
-  };
-
-  useEffect(() => {
-    const k = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement)?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
-      if (e.code === "Space") {
-        e.preventDefault();
-        togglePlay();
-      }
-      if (e.code === "ArrowRight") setT((t) => Math.min(total, t + 1000));
-      if (e.code === "ArrowLeft") setT((t) => Math.max(0, t - 1000));
-    };
-    window.addEventListener("keydown", k);
-    return () => window.removeEventListener("keydown", k);
-  }, [togglePlay, total]);
-
-  const update = (patch: Partial<Project>) => setProject((p) => (p ? { ...p, ...patch } : p));
-  const setField = (key: string, value: any) => setProject((p) => (p ? { ...p, data: { ...p.data, [key]: value } } : p));
-
-  const chooseView = (v: View) => {
-    setView(v);
-    if (v !== "both") update({ orientation: v });
-  };
-
-  const chooseTemplate = (id: string, source: "sidebar" | "gallery") => {
-    if (!project || id === project.templateId) return;
-    track("template_selected", { template_id: id, source });
-    setProject(defaultProject(id, project));
-    setT(0);
-    setPlaying(true);
-  };
-
-  const openShare = () => {
-    if (project) track("share_dialog_opened", { template_id: project.templateId });
-    setMenu(false);
-    setPlaying(false);
-    setSharing(true);
-  };
-
-  /** "Export MP4": the dialog where video export runs, else the "coming soon" note. */
-  const openExport = () => {
-    track("video_export_clicked", { is_available: VIDEO_EXPORT });
-    setMenu(false);
-    if (VIDEO_EXPORT) {
-      setPlaying(false);
-      setExporting(true);
-    } else say("MP4 export is coming soon. Use Share to send guests a link for now.");
-  };
-
-  /** Phone tabs. Preview fills the screen and starts playing. */
-  const goTab = (t: "design" | "details" | "preview") => {
-    setTab(t);
-    if (t === "preview" && !playing) togglePlay();
-  };
-
-  const importJSON = async (f: File) => {
-    try {
-      const p = JSON.parse(await f.text()) as Project;
-      if (!TEMPLATES.some((t) => t.id === p.templateId)) throw new Error();
-      setProject(p);
-      setView(p.orientation);
-      setT(0);
-      say("Project loaded");
-    } catch {
-      say("That is not a valid project file");
-    }
-  };
-
-  if (!project || !main || !tlV || !tlH) {
-    return <div style={{ display: "grid", placeItems: "center", height: "100vh", color: "var(--muted)" }}>Loading studio...</div>;
-  }
-
-  const tpl = main.template;
-  const showBoth = view === "both" && !narrow; // side by side needs a wide screen
-  const activeScene = [...main.slots].reverse().find((s) => T >= s.start) ?? main.slots[0];
-
-  const renderStage = (o: Orientation) => {
-    const tl = o === "vertical" ? tlV : tlH;
-    const { W, H } = SIZES[o];
-    return (
-      <Stage W={W} H={H} pad={narrow ? 10 : view === "both" ? 18 : 28}>
-        <Frame
-          project={{ ...project, orientation: o }}
-          template={tl.template}
-          theme={tl.theme}
-          scenes={tl.scenes}
-          slots={tl.slots}
-          total={tl.total}
-          T={Math.min(T, tl.total)}
-          playing={playing}
-        />
-      </Stage>
-    );
-  };
-
+export default function Home() {
   return (
-    <div className="app" data-tab={tab}>
-      {/* ---------------- top bar ---------------- */}
-      <header className="topbar">
-        <div className="brand">
-          <b>
-            Future<i>Proof</i>
-          </b>
-          <span>wedding video invitations</span>
-        </div>
+    <div className="site">
+      <SiteHeader />
 
-        <div className="seg" role="tablist" aria-label="Format">
-          <button className={view === "vertical" ? "on" : ""} onClick={() => chooseView("vertical")} title={SIZES.vertical.hint}>
-            <span className="shape" style={{ width: 9, height: 15 }} /> 9:16
-          </button>
-          <button className={view === "horizontal" ? "on" : ""} onClick={() => chooseView("horizontal")} title={SIZES.horizontal.hint}>
-            <span className="shape" style={{ width: 16, height: 9 }} /> 16:9
-          </button>
-          <button className={"both-btn" + (view === "both" ? " on" : "")} onClick={() => chooseView("both")} title="Preview both side by side">
-            Both
-          </button>
+      {/* ---------- hero ---------- */}
+      <section className="hero">
+        <div className="hero-copy">
+          <span className="mono-label">Shaadi season · Video invitations</span>
+          <h1>
+            Your invite,
+            <br />
+            <em>in motion.</em>
+          </h1>
+          <p className="lead">
+            Pick a design, type the names, date and venue, and watch your animated invitation play straight away. Send it as a link on WhatsApp:
+            {PAYMENTS ? " free to try, ₹" + LINK_PRICE_INR + " to remove the watermark." : " free to make and share."}
+          </p>
+          <div className="hero-ctas">
+            <Link href="/templates" className="cta-btn lg">
+              Start yours →
+            </Link>
+            <Link href="#how" className="ghost-btn lg">
+              How it works
+            </Link>
+          </div>
+          <dl className="hero-facts">
+            <div>
+              <dt>Designs</dt>
+              <dd>{TEMPLATES.length}</dd>
+            </div>
+            <div>
+              <dt>Formats</dt>
+              <dd>9:16 · 16:9</dd>
+            </div>
+            <div>
+              <dt>Ready in</dt>
+              <dd>~2 min</dd>
+            </div>
+          </dl>
         </div>
+        <HeroReel />
+      </section>
 
-        <label className="btn ghost desk-only" style={{ cursor: "pointer" }} title="Open a saved project file">
-          <input type="file" accept="application/json" hidden onChange={(e) => e.target.files?.[0] && importJSON(e.target.files[0])} />
-          Open
-        </label>
-        {VIDEO_EXPORT ? (
-          <>
-            <button className="btn desk-only" onClick={openShare} title="Send guests a link that plays the invitation in their browser">
-              Share
-            </button>
-            <button className="btn primary desk-only" onClick={openExport}>
-              Export MP4
-            </button>
-          </>
-        ) : (
-          <>
-            <button className="btn ghost desk-only" onClick={openExport} title="Coming soon">
-              Export MP4 <span className="soon">Soon</span>
-            </button>
-            <button className="btn primary desk-only" onClick={openShare} title="Send guests a link that plays the invitation in their browser">
-              Share
-            </button>
-          </>
-        )}
-        <div className="more mob-only">
-          <button className="btn ghost more-btn" onClick={() => setMenu((m) => !m)} aria-label="More" aria-expanded={menu}>
-            ⋯
-          </button>
-          {menu ? (
-            <>
-              <div className="menu-scrim" onClick={() => setMenu(false)} />
-              <div className="menu" role="menu">
-                <button role="menuitem" onClick={() => { setMenu(false); setPlaying(false); setGallery(true); }}>
-                  ▦ Browse all templates
-                </button>
-                <label role="menuitem">
-                  <input type="file" accept="application/json" hidden onChange={(e) => { setMenu(false); if (e.target.files?.[0]) importJSON(e.target.files[0]); }} />
-                  ⇪ Open a saved project
+      {/* ---------- ticker of functions ---------- */}
+      <div className="ticker" aria-hidden>
+        <div className="ticker-run">
+          {[0, 1].map((k) => (
+            <span key={k}>
+              {CATEGORIES.map((c) => (
+                <span key={c.id}>
+                  {c.label} <b lang="hi">{c.local}</b> ✦{" "}
+                </span>
+              ))}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ---------- how it works ---------- */}
+      <section className="sec surface" id="how">
+        <SectionHead n="02" label="How it works">
+          Three steps. <em>One link.</em>
+        </SectionHead>
+        <div className="steps">
+          <article className="step">
+            <div className="step-vis">
+              <DesignStack />
+            </div>
+            <span className="step-n">01</span>
+            <h3>Choose a design</h3>
+            <p>Handmade for Hindu, South Indian, Muslim, Sikh and modern weddings, and for every function around them.</p>
+          </article>
+          <article className="step">
+            <div className="step-vis">
+              <div className="mini-form">
+                <label>
+                  <span className="mono-label">Bride</span>
+                  <b>Ananya</b>
                 </label>
-                <button role="menuitem" onClick={openExport}>
-                  ⬇ Export MP4 {VIDEO_EXPORT ? null : <span className="soon">Soon</span>}
-                </button>
-                <LegalLinks className="menu-legal" />
+                <label>
+                  <span className="mono-label">Groom</span>
+                  <b>Aarav</b>
+                </label>
+                <label>
+                  <span className="mono-label">Date</span>
+                  <b>8 Dec 2026</b>
+                </label>
+                <label>
+                  <span className="mono-label">Venue</span>
+                  <b>Rambagh Palace, Jaipur</b>
+                </label>
+                <span className="mini-btn">Preview →</span>
               </div>
-            </>
-          ) : null}
-        </div>
-      </header>
-
-      {/* ---------------- left: templates + palette ---------------- */}
-      <aside className="left">
-        <button className="btn browse" onClick={() => { setPlaying(false); setGallery(true); }}>
-          ▦ Browse all {TEMPLATES.length} templates
-        </button>
-        <div className="section-title">Categories</div>
-        <div className="side-cats">
-          {(["all", ...CATEGORIES.map((c) => c.id)] as (CategoryId | "all")[]).map((id) => (
-            <button key={id} className={"side-cat" + (cat === id ? " on" : "")} onClick={() => setCat(id)}>
-              {id === "all" ? "All" : CATEGORIES.find((c) => c.id === id)!.label}
-              <em>{countIn(TEMPLATES, id)}</em>
-            </button>
-          ))}
-        </div>
-        <div className="tpl">
-          {TEMPLATES.filter((t) => cat === "all" || t.categories.includes(cat)).map((t) => (
-            <button key={t.id} className={"tpl-card" + (t.id === project.templateId ? " on" : "")} onClick={() => chooseTemplate(t.id, "sidebar")}>
-              <div className="tpl-thumb">{t.thumb(t.palettes[0])}</div>
-              <div>
-                <div className="tpl-name">
-                  {t.name}
-                  {t.isNew ? <span className="new">NEW</span> : null}
+            </div>
+            <span className="step-n">02</span>
+            <h3>Add your details</h3>
+            <p>Names, dates, venue, photos and music in one short form. The preview plays as you type.</p>
+          </article>
+          <article className="step">
+            <div className="step-vis">
+              <div className="mini-share">
+                <div className="mini-bubble">
+                  <div className="mini-card">
+                    <i />
+                    <b>Aarav &amp; Ananya</b>
+                    <small>Tap to open the invitation</small>
+                  </div>
+                  <span>
+                    You&apos;re invited! 🌸 <u>{HOST}/e/aarav-ananya</u>
+                  </span>
+                  <em>21:14 ✓✓</em>
                 </div>
-                <div className="tpl-tag">{t.tagline}</div>
-                <div className="chips">
-                  {t.tags.map((x) => (
-                    <span className="chip" key={x}>
-                      {x}
-                    </span>
-                  ))}
+                <div className="mini-chan">
+                  <span className="mono-label">Share via</span>
+                  <b>WhatsApp</b>
+                  <b>Link</b>
+                  {VIDEO_EXPORT ? <b>MP4</b> : null}
                 </div>
               </div>
-            </button>
-          ))}
+            </div>
+            <span className="step-n">03</span>
+            <h3>Watch &amp; share</h3>
+            <p>Send one link to the family group. Guests tap it and the invitation plays in their browser. No app needed.</p>
+          </article>
         </div>
+      </section>
 
-        <div className="section-title" style={{ marginTop: 24 }}>
-          Colour palette
-        </div>
-        <div className="palettes">
-          {tpl.palettes.map((p) => (
-            <button key={p.id} className={"pal" + (p.id === project.paletteId ? " on" : "")} onClick={() => update({ paletteId: p.id })}>
-              <div className="sw">
-                <i style={{ background: p.bg }} />
-                <i style={{ background: p.bg2 }} />
-                <i style={{ background: p.accent }} />
-                <i style={{ background: p.ink }} />
+      {/* ---------- templates ---------- */}
+      <section className="sec" id="templates">
+        <SectionHead n="03" label="Templates">
+          Designs you&apos;d <em>actually</em> send.
+        </SectionHead>
+        <Showcase />
+      </section>
+
+      {/* ---------- what guests get ---------- */}
+      <section className="sec surface">
+        <div className="guests">
+          <div>
+            <SectionHead n="04" label="On their phone">
+              Made for the <em>family group.</em>
+            </SectionHead>
+            <ol className="points">
+              <li>
+                <b>Opens anywhere.</b> WhatsApp, SMS, email or Instagram DMs. No app and no download.
+              </li>
+              <li>
+                <b>Fits the screen.</b> Upright on phones, widescreen on laptops and the living-room TV.
+              </li>
+              <li>
+                <b>Every function.</b> The All Functions design puts haldi, mehendi, sangeet, pheras and reception in one video, each with its date and venue.
+              </li>
+              <li>
+                <b>Your music and photos.</b> Add a song and your favourite pictures; we handle the timing.
+              </li>
+            </ol>
+          </div>
+          <div className="wa-demo">
+            <div className="wa-phone">
+              <div className="wa-top">
+                <span className="wa-av">👪</span>
+                <div>
+                  <b>Sharma Family 🏡</b>
+                  <small>Mummy, Papa, Dadi, +38</small>
+                </div>
               </div>
-              {p.name}
-            </button>
-          ))}
+              <div className="wa-chat">
+                <span className="wa-day">Today</span>
+                <div className="wa-bubble">
+                  <div className="wa-card">
+                    <div className="wa-art">
+                      <span>The wedding of</span>
+                      <b>Aarav &amp; Ananya</b>
+                      <small>Tuesday, 8 December 2026</small>
+                    </div>
+                    <div className="t">Aarav &amp; Ananya</div>
+                    <div className="d">Tap to open the invitation</div>
+                    <div className="h">{HOST}</div>
+                  </div>
+                  <div className="wa-msg">
+                    Please join us 🙏 <span>{HOST}/e/aarav-ananya</span>
+                  </div>
+                  <div className="wa-time">21:14 ✓✓</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <LegalLinks />
-        <div className="next-cta mob-only">
-          <button className="btn primary" onClick={() => goTab("details")}>
-            Next: add your details →
-          </button>
-        </div>
-      </aside>
+      </section>
 
-      {/* ---------------- centre: canvas + transport ---------------- */}
-      <main className="center">
-        <div className={"canvas" + (showBoth ? " compare" : "")}>
-          {showBoth ? (
+      {/* ---------- pricing ---------- */}
+      <section className="sec" id="pricing">
+        <SectionHead n="05" label="Pricing">
+          {PAYMENTS ? (
             <>
-              <div>
-                <span className="canvas-label">9:16 · 1080×1920</span>
-                {renderStage("vertical")}
-              </div>
-              <div>
-                <span className="canvas-label">16:9 · 1920×1080</span>
-                {renderStage("horizontal")}
-              </div>
+              Free to make. <em>Pay</em> only to keep it clean.
             </>
           ) : (
-            renderStage(project.orientation)
+            <>
+              Free to make, <em>free</em> to share.
+            </>
           )}
-        </div>
-
-        <div className="transport">
-          <div className="transport-row">
-            <button className="play" onClick={togglePlay} aria-label={playing ? "Pause" : "Play"}>
-              {playing ? (
-                <svg width="14" height="14" viewBox="0 0 14 14"><rect x="2" y="1" width="3.5" height="12" fill="currentColor" /><rect x="8.5" y="1" width="3.5" height="12" fill="currentColor" /></svg>
-              ) : (
-                <svg width="14" height="14" viewBox="0 0 14 14"><path d="M3 1 L13 7 L3 13 Z" fill="currentColor" /></svg>
-              )}
-            </button>
-            <span className="time">
-              {fmt(T / speed)} / {fmt(total / speed)}
-            </span>
-            <Scrubber T={T} total={total} slots={main.slots} onSeek={seek} />
+        </SectionHead>
+        <p className="sec-lead">
+          {PAYMENTS
+            ? "Try every design with your own details for as long as you like. Upgrade a link when you're happy with it."
+            : "Every design, your own details, one link for all your guests."}
+        </p>
+        <div className={"price-grid" + (PAYMENTS ? "" : " one")}>
+          <div className="price-card">
+            <span className="mono-label">Preview</span>
+            <div className="price-num">Free</div>
+            <p>Your full invitation with your details, shared as a link.</p>
+            <ul>
+              <li>Every design and colour palette</li>
+              <li>Names, dates, photos and music</li>
+              <li>Share link for WhatsApp</li>
+              {PAYMENTS ? <li className="minus">Watermark on the video</li> : null}
+            </ul>
+            <Link href="/templates" className="ghost-btn block">
+              Browse designs
+            </Link>
           </div>
-          <div className="scenes">
-            {main.scenes.map((s, i) => (
-              <button
-                key={s.id}
-                className={"scene-chip" + (activeScene?.index === i ? " on" : "")}
-                onClick={() => seek(main.slots[i].start + (s.in?.dur ?? 0) + 200)}
-              >
-                {i + 1}. {s.label}
-              </button>
-            ))}
-          </div>
-        </div>
-      </main>
-
-      {/* ---------------- right: content ---------------- */}
-      <aside className="right">
-        <FieldGroups groups={tpl.groups} data={project.data} set={setField} onError={say} />
-
-        <details className="group" open={!!project.music}>
-          <summary>Music</summary>
-          <MusicPanel music={project.music} setMusic={(m) => update({ music: m })} onError={say} />
-        </details>
-
-        <details className="group">
-          <summary>Pacing</summary>
-          <div className="group-body">
-            <div className="field">
-              <div className="lbl">
-                <span>Animation speed</span>
-                <em>
-                  {project.speed.toFixed(2)}× · {(total / project.speed / 1000).toFixed(1)}s
-                </em>
+          {PAYMENTS ? (
+            <div className="price-card dark">
+              <span className="mono-label">Premium · per invitation</span>
+              <div className="price-num">₹{LINK_PRICE_INR}</div>
+              <p>One payment. The watermark comes off the same link, instantly.</p>
+              <ul>
+                <li>No watermark</li>
+                <li>Guests keep the link they already have</li>
+                <li>UPI, cards and net banking</li>
+                <li>No subscription</li>
+              </ul>
+              <Link href="/templates" className="cta-btn block">
+                Choose a design →
+              </Link>
+              <div className="price-pay">
+                <PayIcons size={18} />
               </div>
-              <input
-                className="range"
-                type="range"
-                min={0.7}
-                max={1.4}
-                step={0.05}
-                value={project.speed}
-                onChange={(e) => update({ speed: +e.target.value })}
-              />
-              <div className="hint">Lower = slower and more cinematic. Instagram favours under 30s.</div>
             </div>
-            <button
-              className="btn sm ghost"
-              onClick={() => {
-                if (confirm("Reset all fields for this template?")) setProject(defaultProject(project.templateId));
-              }}
-            >
-              Reset template fields
-            </button>
-          </div>
-        </details>
-        <div className="next-cta mob-only">
-          <button className="btn primary" onClick={openShare}>
-            Next: share your invite →
-          </button>
+          ) : null}
         </div>
-      </aside>
+      </section>
 
-      {/* ---------------- phones: bottom tabs ---------------- */}
-      <nav className="mtabs" aria-label="Sections">
-        {(
-          [
-            ["design", "Design", <path key="d" d="M4 20h4L19 9l-4-4L4 16v4zM14 6l4 4" />],
-            ["details", "Details", <path key="t" d="M4 6h16M4 12h16M4 18h10" />],
-            ["preview", "Preview", <path key="p" d="M8 5v14l11-7z" />],
-          ] as const
-        ).map(([id, label, icon]) => (
-          <button key={id} className={"mtab" + (tab === id ? " on" : "")} onClick={() => goTab(id)} aria-current={tab === id}>
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              {icon}
-            </svg>
-            {label}
-          </button>
-        ))}
-        <button className="mtab share" onClick={openShare}>
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 3v12M7 8l5-5 5 5M5 14v5h14v-5" />
-          </svg>
-          Share
-        </button>
-      </nav>
+      {/* ---------- FAQ ---------- */}
+      <section className="sec surface" id="faq">
+        <SectionHead n="06" label="Asked & answered">
+          Questions, <em>answered.</em>
+        </SectionHead>
+        <Faq items={faqItems()} />
+      </section>
 
-      {music ? <audio ref={audio} src={music.src} preload="auto" /> : null}
-      {exporting ? <ExportDialog project={project} onClose={() => setExporting(false)} /> : null}
-      {sharing ? <ShareDialog project={project} onClose={() => setSharing(false)} /> : null}
-      {gallery ? (
-        <TemplateGallery
-          current={project.templateId}
-          orientation={project.orientation}
-          initial={{ category: cat }}
-          onClose={() => setGallery(false)}
-          onPick={(id) => {
-            setGallery(false);
-            chooseTemplate(id, "gallery");
-          }}
-        />
-      ) : null}
-      {toast ? <div className="toast">{toast}</div> : null}
-    </div>
-  );
-}
+      {/* ---------- final call ---------- */}
+      <section className="final">
+        <span className="mono-label">Ready when you are</span>
+        <h2>
+          Your names, <em>moving,</em> in two minutes.
+        </h2>
+        <Link href="/templates" className="cta-btn lg">
+          Start yours →
+        </Link>
+      </section>
 
-function Scrubber({
-  T,
-  total,
-  slots,
-  onSeek,
-}: {
-  T: number;
-  total: number;
-  slots: { start: number }[];
-  onSeek: (t: number) => void;
-}) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const at = (clientX: number) => {
-    const r = ref.current!.getBoundingClientRect();
-    onSeek(((clientX - r.left) / r.width) * total);
-  };
-  const pct = (T / total) * 100;
-  return (
-    <div
-      ref={ref}
-      className="scrub"
-      role="slider"
-      aria-label="Timeline"
-      aria-valuemin={0}
-      aria-valuemax={Math.round(total)}
-      aria-valuenow={Math.round(T)}
-      onPointerDown={(e) => {
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        at(e.clientX);
-      }}
-      onPointerMove={(e) => e.buttons === 1 && at(e.clientX)}
-    >
-      <div className="track" />
-      {slots.slice(1).map((s, i) => (
-        <div key={i} className="mark" style={{ left: (s.start / total) * 100 + "%" }} />
-      ))}
-      <div className="fill" style={{ width: pct + "%" }} />
-      <div className="head" style={{ left: pct + "%" }} />
+      <SiteFooter />
     </div>
   );
 }
