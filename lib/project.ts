@@ -66,12 +66,20 @@ export function coupleTitle(d: Record<string, any>): string {
   return [d.nameA ?? d.groomName, d.nameB ?? d.brideName].filter(Boolean).join(" & ") || "Wedding invitation";
 }
 
-/** The invite's main date, e.g. "Tuesday, 8 December 2026", for link previews. Undefined if none is set. */
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/**
+ * The invite's main date, e.g. "Tuesday, 8 December 2026", for link previews and the guest cover. Undefined if
+ * none is set. Formatted by hand, not toLocaleDateString: the server (Vercel's Node) and phones format "en-IN"
+ * differently, and the cover is server-rendered, so a mismatch breaks hydration.
+ */
 export function inviteDate(d: Record<string, any>): string | undefined {
   const raw = d.weddingDate ?? (Array.isArray(d.events) ? d.events.find((e: any) => e?.date)?.date : undefined) ?? d.receptionDate ?? d.walimaDate;
   const m = typeof raw === "string" ? /^(\d{4})-(\d{2})-(\d{2})$/.exec(raw) : null;
   if (!m) return undefined;
-  return new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const day = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3])).getUTCDay(); // UTC: no time zone can shift the weekday
+  return DAYS[day] + ", " + +m[3] + " " + MONTHS[+m[2] - 1] + " " + m[1];
 }
 
 /* ---------------- media helpers (browser only) ---------------- */
