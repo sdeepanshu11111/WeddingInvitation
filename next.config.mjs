@@ -9,7 +9,8 @@ const nextConfig = {
   // Feature flags for lib/features.ts, inlined into server and browser code alike.
   env: {
     NEXT_PUBLIC_VIDEO_EXPORT: videoExport ? "1" : "0",
-    NEXT_PUBLIC_SHARE_STORE: process.env.BLOB_READ_WRITE_TOKEN ? "blob" : "disk",
+    // Connecting a Blob store sets BLOB_STORE_ID (new stores, OIDC auth) or BLOB_READ_WRITE_TOKEN (older ones).
+    NEXT_PUBLIC_SHARE_STORE: process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN ? "blob" : "disk",
   },
   // Share links moved from /v/<token> to /e/<name>; links already sent keep working.
   async redirects() {

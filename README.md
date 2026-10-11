@@ -87,15 +87,15 @@ On Vercel you get the editor, **Share** links (the invitation plays in the guest
 **Export MP4 shows "Soon"**: it needs Chrome + ffmpeg on a long-running server, which serverless functions are not. Locally, everything works.
 
 1. Push the repo to GitHub and import it in Vercel (**Add New → Project**). Next.js is detected; no build settings needed.
-2. **Storage → Create → Blob**: choose a **public** store in the region nearest India, then **Connect** it to the project (all environments). This adds `BLOB_READ_WRITE_TOKEN`.
-3. Optional: **Settings → Environment Variables** → `SITE_URL` = your domain, e.g. `https://invitestudio.in` (defaults to the Vercel production domain).
+2. **Storage → Create → Blob**: choose a **public** store in the region nearest India, then **Connect** it to the project (all environments). This adds `BLOB_STORE_ID` (new stores sign in with Vercel's OIDC token, no secret needed) or, on older stores, `BLOB_READ_WRITE_TOKEN`. Free on Hobby within the monthly limits (1 GB storage, 10 GB transfer); Hobby is never billed, Blob just pauses if a limit is hit.
+3. **Settings → Environment Variables** → `SITE_URL` = the domain guests should see, e.g. `https://invitestudio.in`. Set it if your production domain isn't live yet: without it, link previews point at the production domain.
 4. **Redeploy** after connecting Blob or changing variables: the share mode is fixed at build time.
 5. Check: open the editor → **Share** → **Create link** → open it on a phone, then paste it into WhatsApp to see the preview card.
 
 | Variable | Set by | Purpose |
 |---|---|---|
-| `BLOB_READ_WRITE_TOKEN` | Vercel, when Blob is connected | Share media + data go to Vercel Blob instead of `exports/` |
-| `SITE_URL` | you (optional) | Absolute URLs in link previews |
+| `BLOB_STORE_ID` or `BLOB_READ_WRITE_TOKEN` | Vercel, when Blob is connected | Share media + data go to Vercel Blob instead of `exports/` |
+| `SITE_URL` | you | Absolute URLs in link previews (defaults to the production domain) |
 | `VIDEO_EXPORT` | you (optional) | `1`/`0` forces MP4 export on/off (default: off on Vercel, on elsewhere) |
 
 `vercel.json` pins functions to Mumbai (`bom1`); `.puppeteerrc.cjs` skips the Chrome download on Vercel builds.

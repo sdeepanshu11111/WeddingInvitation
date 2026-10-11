@@ -73,9 +73,12 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
     fonts the invite uses download (~260 KB instead of 2.4 MB for all 174 faces).
   - **Video** ("Share link" on a finished export, only with `VIDEO_EXPORT`): `POST /api/share {file,title}` links an MP4.
   - Storage (`SHARE_STORE`): `disk` = `exports/shares/<token>/`, media served by `/api/share/[token]/media/[name]` via
-    `lib/server/stream.ts` (Range support; iOS needs it). `blob` (when `BLOB_READ_WRITE_TOKEN` is set) = Vercel Blob
-    `shares/<token>/`; the editor first uploads media straight to Blob through `/api/share/upload` (Vercel caps request
-    bodies at 4.5 MB). Media types are whitelisted in `lib/media.ts` (no SVG: it could run script on our origin).
+    `lib/server/stream.ts` (Range support; iOS needs it). `blob` (when `BLOB_STORE_ID` or `BLOB_READ_WRITE_TOKEN` is set)
+    = Vercel Blob `shares/<name>/`; the editor first uploads media straight to Blob (Vercel caps request bodies at 4.5 MB)
+    with `uploadPresigned` to `shares/uploads/<uuid>.<ext>`; `/api/share/upload` answers with `handleUploadPresigned` +
+    `issueSignedToken`. That flow works with **OIDC** (`BLOB_STORE_ID`, what Vercel sets for new stores, no secret) and
+    with the old token; the older `handleUpload`/`upload` pair needs `BLOB_READ_WRITE_TOKEN` and fails on OIDC stores.
+    Media types are whitelisted in `lib/media.ts` (no SVG: it could run script on our origin).
   - On localhost the dialog shows the Wi-Fi IP URL so phones on the same network can open it.
 - Feature flags (`lib/features.ts`, set in `next.config.mjs` at build time): `VIDEO_EXPORT` (off on Vercel: Export MP4 shows
   "Soon" and every export API returns 501) and `SHARE_STORE`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`

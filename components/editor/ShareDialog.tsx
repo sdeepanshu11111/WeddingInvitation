@@ -47,13 +47,14 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
       let shared = uploaded.current ?? project;
       if (SHARE_STORE === "blob" && !uploaded.current) {
         // Vercel caps request bodies at 4.5 MB, so photos/video/music go straight to Blob first.
-        const { upload } = await import("@vercel/blob/client");
+        const { uploadPresigned } = await import("@vercel/blob/client");
         const total = new Set(allSrcs(project).filter((s) => s.startsWith("data:"))).size;
         let n = 0;
         shared = await mapDataUrls(project, async (src) => {
           setStep("Uploading media " + ++n + " of " + total + "...");
           const file = await (await fetch(src)).blob();
-          const r = await upload("shares/uploads/media" + (MEDIA_TYPES[file.type] ?? ""), file, {
+          // Random, unguessable name; the server refuses anything else and never overwrites.
+          const r = await uploadPresigned("shares/uploads/" + crypto.randomUUID() + (MEDIA_TYPES[file.type] ?? ""), file, {
             access: "public",
             handleUploadUrl: "/api/share/upload",
             contentType: file.type,
