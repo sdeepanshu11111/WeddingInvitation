@@ -208,6 +208,34 @@ export async function createLiveShare(project: Project, title: string, card: Par
   return share;
 }
 
+/* ---------------- paid links (watermark removed) ---------------- */
+
+export type Paid = { orderId: string; paymentId: string; amount: number; paidAt: number };
+const ORDER_ID = /^order_\w{6,40}$/;
+
+/** Remembers which share a Razorpay order was made for, so one payment unlocks exactly one link. */
+export async function recordOrder(name: string, orderId: string) {
+  if (!ID.test(name) || !ORDER_ID.test(orderId)) throw new Error("Bad order");
+  await store.writeJSON(name + "/order-" + orderId + ".json", { orderId, createdAt: Date.now() });
+}
+
+export async function orderBelongsTo(name: string, orderId: string) {
+  return ID.test(name) && ORDER_ID.test(orderId) && store.exists(name + "/order-" + orderId + ".json");
+}
+
+export async function getPaid(name: string): Promise<Paid | null> {
+  return ID.test(name) ? store.readJSON<Paid>(name + "/paid.json") : null;
+}
+
+/** Written once (no-overwrite): the first confirmed payment wins, a repeat (checkout + webhook) is a no-op. */
+export async function markPaid(name: string, paid: Paid) {
+  try {
+    await store.writeJSON(name + "/paid.json", paid);
+  } catch (e) {
+    if (!(await store.exists(name + "/paid.json"))) throw e;
+  }
+}
+
 /** Path of one media file inside a disk share, or null if the name is not a plain file name. */
 export function shareFile(token: string, name: string): string | null {
   if (!ID.test(token) || !/^[\w.-]+$/.test(name) || name.startsWith(".") || name.endsWith(".json")) return null;

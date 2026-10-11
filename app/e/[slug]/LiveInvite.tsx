@@ -3,6 +3,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Frame, Stage } from "@/components/Frame";
 import { SIZES, buildTimeline } from "@/lib/project";
 import type { Orientation, Project } from "@/lib/types";
+import { LINK_PRICE_INR } from "@/lib/features";
+import { payToRemoveWatermark } from "@/lib/pay";
 import { ShareButtons } from "./ShareButtons";
 
 /* The guest's view of a live share: the same <Frame/> as the editor, driven by
@@ -62,11 +64,64 @@ function Warmup({ tl, project, o, onReady }: { tl: ReturnType<typeof buildTimeli
   );
 }
 
-export function LiveInvite({ project, title }: { project: Project; title: string }) {
+/**
+ * Free-link watermark: a corner badge, and a "PREVIEW" stripe across the middle for
+ * 3 s of every 8 s (always shown once the invite has ended). Clearly a preview,
+ * while the invite stays readable.
+ */
+function Watermark({ T, always }: { T: number; always: boolean }) {
+  const c = T % 8000;
+  const stripe = always ? 1 : c < 3000 ? Math.min(1, c / 400, (3000 - c) / 400) : 0;
+  return (
+    <>
+      <div
+        style={{
+          position: "absolute",
+          top: 14,
+          left: 14,
+          padding: "6px 11px",
+          borderRadius: 99,
+          background: "rgba(0,0,0,.5)",
+          color: "#fff",
+          fontSize: 11,
+          letterSpacing: "0.12em",
+          pointerEvents: "none",
+          backdropFilter: "blur(6px)",
+          WebkitBackdropFilter: "blur(6px)",
+        }}
+      >
+        PREVIEW · Invite Studio
+      </div>
+      <div
+        style={{
+          position: "absolute",
+          left: 0,
+          right: 0,
+          top: "50%",
+          transform: "translateY(-50%)",
+          padding: "16px 12px",
+          background: "rgba(0,0,0,.55)",
+          color: "#fff",
+          textAlign: "center",
+          fontSize: 14,
+          letterSpacing: "0.3em",
+          whiteSpace: "nowrap",
+          opacity: stripe,
+          pointerEvents: "none",
+        }}
+      >
+        PREVIEW · INVITE STUDIO
+      </div>
+    </>
+  );
+}
+
+export function LiveInvite({ project, title, name, watermark = false }: { project: Project; title: string; name?: string; watermark?: boolean }) {
   const [phase, setPhase] = useState<Phase>("cover");
   const [o, setO] = useState<Orientation>(project.orientation);
   const [T, setT] = useState(0);
   const [muted, setMuted] = useState(false);
+  const [payMsg, setPayMsg] = useState<string | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
   const wantMusic = useRef(false);
   const images = useRef<Promise<unknown> | null>(null);
@@ -230,6 +285,8 @@ export function LiveInvite({ project, title }: { project: Project; title: string
         </div>
       ) : null}
 
+      {watermark ? <Watermark T={T} always={phase === "ended"} /> : null}
+
       {music && (phase === "playing" || phase === "paused") ? (
         <button aria-label={muted ? "Unmute" : "Mute"} onClick={() => setMuted((m) => !m)} style={{ ...round(42), position: "absolute", top: 14, right: 14, fontSize: 18 }}>
           {muted ? "🔇" : "🔊"}
@@ -261,6 +318,24 @@ export function LiveInvite({ project, title }: { project: Project; title: string
             ↻ Watch again
           </button>
           <ShareButtons title={title} />
+          {watermark && name ? (
+            <button
+              className="btn ghost sm"
+              disabled={payMsg === "Waiting for payment..."}
+              onClick={async () => {
+                setPayMsg("Waiting for payment...");
+                try {
+                  // Paid: the server already refreshed this page, so a reload shows it without the watermark.
+                  if ((await payToRemoveWatermark(name, title)) === "paid") window.location.reload();
+                  else setPayMsg(null);
+                } catch (e: any) {
+                  setPayMsg(e?.message || String(e));
+                }
+              }}
+            >
+              {payMsg ?? "Remove watermark · ₹" + LINK_PRICE_INR}
+            </button>
+          ) : null}
         </div>
       ) : null}
 

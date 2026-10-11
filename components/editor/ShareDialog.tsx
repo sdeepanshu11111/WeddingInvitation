@@ -3,7 +3,8 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Project } from "@/lib/types";
 import { coupleTitle, inviteDate, makeTheme } from "@/lib/project";
 import { getTemplate } from "@/lib/templates";
-import { SHARE_STORE } from "@/lib/features";
+import { LINK_PRICE_INR, PAYMENTS, SHARE_STORE } from "@/lib/features";
+import { payToRemoveWatermark } from "@/lib/pay";
 import { MEDIA_TYPES, allSrcs, mapDataUrls } from "@/lib/media";
 import { SLUG_RE, slugify } from "@/lib/slug";
 
@@ -23,6 +24,9 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   const [name, setName] = useState(() => slugify(title));
   const [check, setCheck] = useState<Check | null>(null);
   const uploaded = useRef<Project | null>(null); // reused if the name has to change after media went up
+  // Paid links: "none" = free preview link (watermarked), "paid" = watermark removed.
+  const [pay, setPay] = useState<"none" | "paying" | "paid" | { error: string }>("none");
+  const [created, setCreated] = useState<string | null>(null); // the name of the link once it exists
 
   // Is the name free? Asked as the user types (debounced); stale answers are ignored.
   useEffect(() => {
@@ -41,7 +45,17 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
     };
   }, [name, year]);
 
-  const create = async () => {
+  const removeWatermark = async (link: string) => {
+    setPay("paying");
+    try {
+      setPay((await payToRemoveWatermark(link, title)) === "paid" ? "paid" : "none");
+    } catch (e: any) {
+      setPay({ error: e?.message || String(e) });
+    }
+  };
+
+  /** withoutWatermark: create the link, then go straight to payment (the free link stays if they cancel). */
+  const create = async (withoutWatermark = false) => {
     setState("busy");
     try {
       let shared = uploaded.current ?? project;
@@ -76,7 +90,10 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
         setState("idle");
         return;
       }
-      setState(res.ok ? { url: r.url, lanUrl: r.lanUrl } : { error: r.error || "Could not create the link" });
+      if (!res.ok) return setState({ error: r.error || "Could not create the link" });
+      setState({ url: r.url, lanUrl: r.lanUrl });
+      setCreated(r.token);
+      if (withoutWatermark) await removeWatermark(r.token);
     } catch (e: any) {
       setState({ error: "Could not create the link: " + (e?.message || e) });
     }
@@ -126,12 +143,32 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                 </button>
               ) : null}
             </div>
-            <button className="btn primary" style={{ marginTop: 12 }} onClick={create} disabled={state === "busy" || !ready}>
-              {state === "busy" ? step : "Create link"}
-            </button>
+            {state === "busy" ? (
+              <button className="btn primary" style={{ marginTop: 12 }} disabled>
+                {step}
+              </button>
+            ) : PAYMENTS ? (
+              <div className="opt-grid" style={{ gridTemplateColumns: "1fr 1fr", marginTop: 12 }}>
+                <button className="opt" onClick={() => create(false)} disabled={!ready}>
+                  <b>Free preview link</b>
+                  <small>Guests see a &quot;Preview&quot; watermark</small>
+                </button>
+                <button className="opt on" onClick={() => create(true)} disabled={!ready}>
+                  <b>Without watermark · ₹{LINK_PRICE_INR}</b>
+                  <small>One-time, UPI / card / netbanking</small>
+                </button>
+              </div>
+            ) : (
+              <button className="btn primary" style={{ marginTop: 12 }} onClick={() => create(false)} disabled={!ready}>
+                Create link
+              </button>
+            )}
           </>
         ) : (
-          <SharePanel share={state} title={title} />
+          <>
+            <SharePanel share={state} title={title} />
+            {PAYMENTS && created ? <PaidStatus pay={pay} onPay={() => removeWatermark(created)} /> : null}
+          </>
         )}
 
         <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 12, lineHeight: 1.45 }}>
@@ -144,6 +181,21 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/** Under the created link: is it the watermarked preview or the paid one, and the button to pay. */
+function PaidStatus({ pay, onPay }: { pay: "none" | "paying" | "paid" | { error: string }; onPay: () => void }) {
+  if (pay === "paid")
+    return <div style={{ fontSize: 12.5, color: "var(--ok)", marginTop: 10 }}>✓ Paid. Guests see the invite without a watermark.</div>;
+  return (
+    <div style={{ marginTop: 10, display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+      <span style={{ fontSize: 12.5, color: "var(--muted)" }}>Preview link: guests see a watermark.</span>
+      <button className="btn sm primary" onClick={onPay} disabled={pay === "paying"}>
+        {pay === "paying" ? "Waiting for payment..." : "Remove watermark · ₹" + LINK_PRICE_INR}
+      </button>
+      {typeof pay === "object" ? <div className="err" style={{ fontSize: 12, width: "100%" }}>{pay.error}</div> : null}
     </div>
   );
 }

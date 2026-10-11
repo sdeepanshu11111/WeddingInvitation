@@ -97,6 +97,11 @@ On Vercel you get the editor, **Share** links (the invitation plays in the guest
 | `BLOB_STORE_ID` or `BLOB_READ_WRITE_TOKEN` | Vercel, when Blob is connected | Share media + data go to Vercel Blob instead of `exports/` |
 | `SITE_URL` | you | Absolute URLs in link previews (defaults to the production domain) |
 | `VIDEO_EXPORT` | you (optional) | `1`/`0` forces MP4 export on/off (default: off on Vercel, on elsewhere) |
+| `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | you (Razorpay → Account & Settings → API Keys) | Turns on paid links: free links get a "Preview" watermark, removing it costs `LINK_PRICE_INR` |
+| `RAZORPAY_WEBHOOK_SECRET` | you (Razorpay → Webhooks) | Backup confirmation if the buyer closes the tab mid-payment. Webhook URL `<site>/api/pay/webhook`, event **order.paid**, same secret |
+| `LINK_PRICE_INR` | you (optional) | Price of a link without watermark, default `99` |
+
+Paid links: the Share dialog offers **Free preview link** (watermarked) and **Without watermark · ₹99** (Razorpay Checkout: UPI, cards, netbanking). The server checks the Checkout signature, that the order was made for that link, and with Razorpay that the payment was captured, then writes `paid.json` and revalidates `/e/<name>`. Keys only ever live in Vercel env vars; changing them or the price needs a redeploy.
 
 `vercel.json` pins functions to Mumbai (`bom1`); `.puppeteerrc.cjs` skips the Chrome download on Vercel builds.
 

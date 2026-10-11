@@ -80,8 +80,16 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
     with the old token; the older `handleUpload`/`upload` pair needs `BLOB_READ_WRITE_TOKEN` and fails on OIDC stores.
     Media types are whitelisted in `lib/media.ts` (no SVG: it could run script on our origin).
   - On localhost the dialog shows the Wi-Fi IP URL so phones on the same network can open it.
+- **Paid links** (Razorpay, `lib/server/razorpay.ts`, `lib/pay.ts`, `app/api/pay/*`): with `PAYMENTS` on (keys set), free links
+  show a watermark (`<Watermark>` in LiveInvite: corner badge + "PREVIEW" stripe 3 s of every 8 s) and the Share dialog
+  offers "Without watermark · ₹`LINK_PRICE_INR`". `POST /api/pay/order {name}` creates an order and records
+  `shares/<name>/order-<id>.json`; Checkout → `POST /api/pay/verify` checks the HMAC signature, that the order record belongs
+  to that name (so one payment can't unlock other links), and with Razorpay's API that the payment is captured (captures
+  if only authorized); then `markPaid` writes `paid.json` (no-overwrite, idempotent) and `revalidatePath("/e/"+name)`.
+  `POST /api/pay/webhook` (event `order.paid`, `RAZORPAY_WEBHOOK_SECRET`) is the backup. The page computes
+  `watermark = PAYMENTS && !getPaid(name)`. `shareFile()` refuses `.json`, so order/paid records are not served as media.
 - Feature flags (`lib/features.ts`, set in `next.config.mjs` at build time): `VIDEO_EXPORT` (off on Vercel: Export MP4 shows
-  "Soon" and every export API returns 501) and `SHARE_STORE`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`
+  "Soon" and every export API returns 501), `SHARE_STORE`, `PAYMENTS` and `LINK_PRICE_INR`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`
   holds `EXPORT_DIR` so share code does not import render.ts (that would pull Chrome/ffmpeg into its function bundle).
 
 ## Templates (14), in `lib/templates/`, registered in `index.ts`

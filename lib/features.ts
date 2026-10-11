@@ -8,6 +8,11 @@ export const VIDEO_EXPORT = process.env.NEXT_PUBLIC_VIDEO_EXPORT === "1";
     BLOB_READ_WRITE_TOKEN) or "disk" (./exports). */
 export const SHARE_STORE: "blob" | "disk" = process.env.NEXT_PUBLIC_SHARE_STORE === "blob" ? "blob" : "disk";
 
+/** Paid links: on when RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET are set. Then free links carry a watermark and
+    removing it costs LINK_PRICE_INR. Without keys there is no watermark and no paid option. */
+export const PAYMENTS = process.env.NEXT_PUBLIC_PAYMENTS === "1";
+export const LINK_PRICE_INR = Number(process.env.NEXT_PUBLIC_LINK_PRICE_INR) || 99;
+
 /** Response for export endpoints while video export is switched off. */
 export const exportOff = () =>
   Response.json({ error: "Video export is coming soon. Use Share to send a link for now." }, { status: 501 });

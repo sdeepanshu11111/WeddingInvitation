@@ -11,6 +11,9 @@ const nextConfig = {
     NEXT_PUBLIC_VIDEO_EXPORT: videoExport ? "1" : "0",
     // Connecting a Blob store sets BLOB_STORE_ID (new stores, OIDC auth) or BLOB_READ_WRITE_TOKEN (older ones).
     NEXT_PUBLIC_SHARE_STORE: process.env.BLOB_STORE_ID || process.env.BLOB_READ_WRITE_TOKEN ? "blob" : "disk",
+    // Paid links (Razorpay). Only the on/off flag and the price reach the browser, never the keys.
+    NEXT_PUBLIC_PAYMENTS: process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET ? "1" : "0",
+    NEXT_PUBLIC_LINK_PRICE_INR: process.env.LINK_PRICE_INR || "99",
   },
   // Share links moved from /v/<token> to /e/<name>; links already sent keep working.
   async redirects() {

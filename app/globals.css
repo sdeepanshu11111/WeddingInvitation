@@ -264,6 +264,7 @@ input[type="date"].input, input[type="time"].input { color-scheme: dark; }
 .opt.on { border-color: var(--gold); background: var(--panel-2); }
 .opt b { display: block; font-weight: 500; margin-bottom: 3px; }
 .opt small { color: var(--muted); }
+.opt:disabled { opacity: 0.45; cursor: not-allowed; }
 .job { border: 1px solid var(--line); border-radius: 10px; padding: 12px; margin-top: 10px; }
 .job .bar { height: 5px; background: var(--line); border-radius: 5px; overflow: hidden; margin: 8px 0; }
 .job .bar i { display: block; height: 100%; background: var(--gold); transition: width 0.3s; }
