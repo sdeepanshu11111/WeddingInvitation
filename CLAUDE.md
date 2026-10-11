@@ -90,7 +90,9 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   `shares/<name>/order-<id>.json`; Checkout → `POST /api/pay/verify` checks the HMAC signature, that the order record belongs
   to that name (so one payment can't unlock other links), and with Razorpay's API that the payment is captured (captures
   if only authorized); then `markPaid` writes `paid.json` (no-overwrite, idempotent) and `revalidatePath("/e/"+name)`.
-  `POST /api/pay/webhook` (event `order.paid`, `RAZORPAY_WEBHOOK_SECRET`) is the backup. The page computes
+  `POST /api/pay/webhook` (event `order.paid`, `RAZORPAY_WEBHOOK_SECRET`) is the backup. The guest page has an always-on
+  `<GuestBar>` (WhatsApp share; on free links also "Remove · ₹") from the cover on; the success screen shows the real
+  WhatsApp card (`card` URL returned by POST /api/share). The page computes
   `watermark = PAYMENTS && !getPaid(name)`. `shareFile()` refuses `.json`, so order/paid records are not served as media.
 - Feature flags (`lib/features.ts`, set in `next.config.mjs` at build time): `VIDEO_EXPORT` (off on Vercel: Export MP4 shows
   "Soon" and every export API returns 501), `SHARE_STORE`, `PAYMENTS` and `LINK_PRICE_INR`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`

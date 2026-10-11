@@ -1,5 +1,6 @@
 "use client";
 import React, { useState } from "react";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 
 /** Copy / WhatsApp (and Download for MP4 shares) on the watch page. */
 export function ShareButtons({ title, videoPath, fileName }: { title: string; videoPath?: string; fileName?: string }) {
@@ -20,8 +21,8 @@ export function ShareButtons({ title, videoPath, fileName }: { title: string; vi
 
   return (
     <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
-      <button className="btn primary" onClick={whatsapp}>
-        Share on WhatsApp
+      <button className="btn wa" onClick={whatsapp}>
+        <WhatsAppIcon size={18} /> Share on WhatsApp
       </button>
       <button className="btn" onClick={copy}>
         {copied ? "Link copied" : "Copy link"}

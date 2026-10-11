@@ -6,7 +6,7 @@ import type { Orientation, Project } from "@/lib/types";
 import { LINK_PRICE_INR } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
 import { BRAND } from "@/lib/brand";
-import { ShareButtons } from "./ShareButtons";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 
 /* The guest's view of a live share: the same <Frame/> as the editor, driven by
    a rAF clock. It opens on a "tap to open" cover, because browsers only allow
@@ -142,7 +142,6 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
   const [o, setO] = useState<Orientation>(project.orientation);
   const [T, setT] = useState(0);
   const [muted, setMuted] = useState(false);
-  const [payMsg, setPayMsg] = useState<string | null>(null);
   const audio = useRef<HTMLAudioElement | null>(null);
   const wantMusic = useRef(false);
   const images = useRef<Promise<unknown> | null>(null);
@@ -322,42 +321,10 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
       ) : null}
 
       {phase === "ended" ? (
-        <div
-          style={{
-            position: "absolute",
-            left: 0,
-            right: 0,
-            bottom: 0,
-            padding: "40px 16px 22px",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            gap: 10,
-            background: "linear-gradient(180deg, transparent, rgba(0,0,0,.72) 45%)",
-          }}
-        >
+        <div className="end-shade">
           <button className="btn" onClick={toggle}>
             ↻ Watch again
           </button>
-          <ShareButtons title={title} />
-          {watermark && name ? (
-            <button
-              className="btn ghost sm"
-              disabled={payMsg === "Waiting for payment..."}
-              onClick={async () => {
-                setPayMsg("Waiting for payment...");
-                try {
-                  // Paid: the server already refreshed this page, so a reload shows it without the watermark.
-                  if ((await payToRemoveWatermark(name, title)) === "paid") window.location.reload();
-                  else setPayMsg(null);
-                } catch (e: any) {
-                  setPayMsg(e?.message || String(e));
-                }
-              }}
-            >
-              {payMsg ?? "Remove watermark · ₹" + LINK_PRICE_INR}
-            </button>
-          ) : null}
         </div>
       ) : null}
 
@@ -411,6 +378,53 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
           ) : null}
         </div>
       ) : null}
+
+      <GuestBar title={title} name={name} watermark={watermark} />
     </main>
+  );
+}
+
+/**
+ * Always-on actions at the bottom of the invite: share on WhatsApp, and on a free
+ * (watermarked) link, remove the watermark. Paying refreshes this same link for everyone.
+ */
+function GuestBar({ title, name, watermark }: { title: string; name?: string; watermark: boolean }) {
+  const [msg, setMsg] = useState<string | null>(null);
+  const busy = msg === "Opening payment...";
+  const whatsapp = () => {
+    const url = window.location.href.split("#")[0];
+    window.open("https://wa.me/?text=" + encodeURIComponent(title + " - you're invited!\n" + url), "_blank", "noopener");
+  };
+  const pay = async () => {
+    if (!name) return;
+    setMsg("Opening payment...");
+    try {
+      // Paid: the server already refreshed this page, so a reload shows it without the watermark.
+      if ((await payToRemoveWatermark(name, title)) === "paid") window.location.reload();
+      else setMsg(null);
+    } catch (e: any) {
+      setMsg(e?.message || String(e));
+    }
+  };
+  return (
+    <div className="guest-bar">
+      {watermark && name ? (
+        <div className="gb-pay">
+          <div className="gb-text">
+            <b>Preview link</b>
+            <span>{msg && !busy ? msg : "Guests see a watermark"}</span>
+          </div>
+          <button className="btn primary sm" onClick={pay} disabled={busy}>
+            {busy ? <span className="spin" aria-hidden /> : null}
+            Remove · ₹{LINK_PRICE_INR}
+          </button>
+        </div>
+      ) : (
+        <div style={{ flex: 1 }} />
+      )}
+      <button className="gb-wa" onClick={whatsapp} aria-label="Share on WhatsApp" title="Share on WhatsApp">
+        <WhatsAppIcon size={26} />
+      </button>
+    </div>
   );
 }

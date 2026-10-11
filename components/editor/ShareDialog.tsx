@@ -8,8 +8,9 @@ import { LINK_PRICE_INR, PAYMENTS, SHARE_STORE } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
 import { MEDIA_TYPES, allSrcs, mapDataUrls } from "@/lib/media";
 import { SLUG_RE, slugify } from "@/lib/slug";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 
-export type ShareResult = { url: string; lanUrl: string | null } | { error: string };
+export type ShareResult = { url: string; lanUrl: string | null; card?: string | null } | { error: string };
 type Check = { name: string; valid: boolean; available: boolean; suggestion: string | null };
 type Pay = "none" | "paying" | "paid" | { error: string };
 
@@ -18,6 +19,23 @@ const typing = (v: string) =>
   v.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/-{2,}/g, "-").replace(/^-/, "").slice(0, 50);
 
 const Spinner = () => <span className="spin" aria-hidden />;
+const inviteText = (title: string) => title + " - you're invited!";
+
+/** Payment trust line: who processes it and the ways to pay that Indian buyers look for. */
+function TrustRow() {
+  return (
+    <div className="trust-row">
+      <span className="lock">🔒 Secured by Razorpay</span>
+      <span className="pay-chips">
+        <i>UPI</i>
+        <i>GPay</i>
+        <i>PhonePe</i>
+        <i>Paytm</i>
+        <i>Cards</i>
+      </span>
+    </div>
+  );
+}
 
 /** "Share" in the top bar: publishes the project as a live web invitation at /e/<name> (no MP4 render). */
 export function ShareDialog({ project, onClose }: { project: Project; onClose: () => void }) {
@@ -96,7 +114,7 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
         return;
       }
       if (!res.ok) return setState({ error: r.error || "Could not create the link" });
-      setState({ url: r.url, lanUrl: r.lanUrl });
+      setState({ url: r.url, lanUrl: r.lanUrl, card: r.card });
       setCreated(r.token);
       if (withoutWatermark) await removeWatermark(r.token);
     } catch (e: any) {
@@ -120,14 +138,15 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   const premium = PAYMENTS && plan === "premium";
   const busy = state === "busy";
   const done = state !== "idle" && state !== "busy" && !("error" in state);
+  const live = !PAYMENTS || pay === "paid";
 
   return (
     <div className="backdrop-m" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className="modal share-modal" role="dialog" aria-label="Share invitation">
         <div className="share-head">
           <div>
-            <h3>Share your invitation</h3>
-            <p>Guests open the link and the invite plays in their browser, with music. Phones get 9:16, laptops and TVs get 16:9.</p>
+            <h3>{done ? "Your invitation link" : "Share your invitation"}</h3>
+            {done ? null : <p>Guests open the link and the invite plays in their browser, with music. Phones get 9:16, laptops and TVs get 16:9.</p>}
           </div>
           <button className="share-x" onClick={onClose} aria-label="Close">
             ✕
@@ -137,11 +156,20 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
         <div className="share-body">
           {done ? (
             <div className="share-done">
-              <div className="done-badge">✓</div>
-              <h4>{!PAYMENTS || pay === "paid" ? "Your invite is live" : "Your preview link is ready"}</h4>
-              <p>Send it on WhatsApp or copy the link.</p>
+              <div className="done-head">
+                <div className="done-badge">✓</div>
+                <div>
+                  <h4>{live ? "Your invite is live" : "Your preview link is ready"}</h4>
+                  <p>
+                    {live
+                      ? "Every guest sees the clean invite. Send it on WhatsApp or copy the link."
+                      : "Check it with family first. When you're happy, remove the watermark: the link stays the same."}
+                  </p>
+                </div>
+              </div>
               <SharePanel share={state} title={title} />
               {PAYMENTS && created ? <PlanStatus pay={pay} onPay={() => removeWatermark(created)} /> : null}
+              {"card" in state && state.card ? <WhatsAppPreview card={state.card} title={title} link={state.lanUrl ?? state.url} host={host} /> : null}
             </div>
           ) : (
             <>
@@ -180,13 +208,11 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                       <div className="pname">
                         <span className="radio" /> Preview
                       </div>
-                      <div className="price">
-                        Free
-                      </div>
+                      <div className="price">Free</div>
                       <ul>
                         <li className="no">{BRAND} watermark</li>
                         <li>Check it with family first</li>
-                        <li>Upgrade any time</li>
+                        <li>Remove it later, same link</li>
                       </ul>
                     </button>
                     <button className={"plan" + (plan === "premium" ? " on" : "")} onClick={() => setPlan("premium")} disabled={busy} role="radio" aria-checked={plan === "premium"}>
@@ -201,7 +227,7 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                       <ul>
                         <li>No watermark</li>
                         <li>Share with all your guests</li>
-                        <li>Photos, music, every screen</li>
+                        <li>Active instantly</li>
                       </ul>
                     </button>
                   </div>
@@ -221,7 +247,7 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                   "Create link"
                 )}
               </button>
-              {premium ? <div className="secure">🔒 Secure payment by Razorpay · UPI, cards, netbanking</div> : null}
+              {premium ? <TrustRow /> : null}
               {state !== "idle" && state !== "busy" && "error" in state ? (
                 <div className="err" style={{ fontSize: 12.5, marginTop: 10 }}>
                   {state.error}
@@ -239,34 +265,68 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   );
 }
 
-/** Under the created link: free preview (with the button to upgrade) or Premium. */
+/** How the link will look when it is sent in a WhatsApp chat: the real preview card, title and domain. */
+function WhatsAppPreview({ card, title, link, host }: { card: string; title: string; link: string; host: string }) {
+  const time = new Date().toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+  return (
+    <>
+      <div className="wa-label">How it looks on WhatsApp</div>
+      <div className="wa-chat">
+        <div className="wa-bubble">
+          <div className="wa-card">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={card} alt="" />
+            <div className="t">{title}</div>
+            <div className="d">You&apos;re invited! Tap to open the invitation.</div>
+            <div className="h">{host}</div>
+          </div>
+          <div className="wa-msg">
+            {inviteText(title)}
+            <br />
+            <span>{link}</span>
+          </div>
+          <div className="wa-time">{time} ✓✓</div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/** Under the created link: remove the watermark (free preview) or the paid confirmation. */
 function PlanStatus({ pay, onPay }: { pay: Pay; onPay: () => void }) {
   if (pay === "paid")
     return (
-      <div className="plan-status paid">
+      <div className="paid-card">
+        <div className="upsell-ico">✓</div>
         <div>
-          <b>✓ Premium: no watermark</b>
-          <span>Guests see the clean invite.</span>
+          <b>Premium · no watermark</b>
+          <span>Payment received. Every guest sees the clean invite.</span>
         </div>
       </div>
     );
   return (
-    <div className="plan-status free">
-      <div>
-        <b>Preview link</b>
-        <span>Guests see a {BRAND} watermark.</span>
+    <div className="upsell">
+      <div className="upsell-top">
+        <div className="upsell-ico">✦</div>
+        <div>
+          <b>Ready to send to all your guests?</b>
+          <span>Remove the {BRAND} watermark from this link. Same link, so there is nothing to resend.</span>
+        </div>
       </div>
-      <button className="btn sm primary" onClick={onPay} disabled={pay === "paying"}>
+      <button className="btn primary upsell-cta" onClick={onPay} disabled={pay === "paying"}>
         {pay === "paying" ? (
           <>
-            <Spinner /> Waiting for payment
+            <Spinner /> Waiting for payment...
           </>
         ) : (
-          "Upgrade · ₹" + LINK_PRICE_INR
+          <>
+            Remove watermark · ₹{LINK_PRICE_INR} <small>one-time</small>
+          </>
         )}
       </button>
+      <TrustRow />
       {typeof pay === "object" ? (
-        <div className="err" style={{ fontSize: 12, width: "100%" }}>
+        <div className="err" style={{ fontSize: 12, marginTop: 8 }}>
           {pay.error}
         </div>
       ) : null}
@@ -274,9 +334,11 @@ function PlanStatus({ pay, onPay }: { pay: Pay; onPay: () => void }) {
   );
 }
 
-/** The link a guest can open, with Copy / WhatsApp / Open. On localhost the Wi-Fi address is shown, because only that one works on a phone. */
+/** The link a guest can open, with Copy / WhatsApp / phone share sheet. On localhost the Wi-Fi address is shown, because only that one works on a phone. */
 export function SharePanel({ share, title }: { share: ShareResult; title: string }) {
   const [copied, setCopied] = useState(false);
+  const [canShare, setCanShare] = useState(false);
+  useEffect(() => setCanShare(typeof navigator !== "undefined" && !!navigator.share), []);
   if ("error" in share) return <div className="err" style={{ fontSize: 12, marginTop: 8 }}>{share.error}</div>;
   const link = share.lanUrl ?? share.url;
   const local = /\/\/(localhost|127\.0\.0\.1|\[::1\]|\d+\.\d+\.\d+\.\d+)[:/]/.test(link);
@@ -298,13 +360,26 @@ export function SharePanel({ share, title }: { share: ShareResult; title: string
         </button>
       </div>
       <div className="share-actions">
-        <a className="btn wa" href={"https://wa.me/?text=" + encodeURIComponent(title + " - you're invited!\n" + link)} target="_blank" rel="noreferrer">
-          Send on WhatsApp
+        <a className="btn wa" href={"https://wa.me/?text=" + encodeURIComponent(inviteText(title) + "\n" + link)} target="_blank" rel="noreferrer">
+          <WhatsAppIcon size={18} /> Send on WhatsApp
         </a>
-        <a className="btn" href={share.url} target="_blank" rel="noreferrer">
-          Open invite ↗
-        </a>
+        {canShare ? (
+          <button className="btn" onClick={() => navigator.share({ title, text: inviteText(title), url: link }).catch(() => {})}>
+            ↗ More apps
+          </button>
+        ) : (
+          <a className="btn" href={share.url} target="_blank" rel="noreferrer">
+            Open invite ↗
+          </a>
+        )}
       </div>
+      {canShare ? (
+        <div style={{ textAlign: "center" }}>
+          <a className="open-link" href={share.url} target="_blank" rel="noreferrer">
+            Open the invite ↗
+          </a>
+        </div>
+      ) : null}
       {local ? (
         <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 8, lineHeight: 1.45 }}>
           {share.lanUrl ? "Works on phones and PCs on the same Wi-Fi while this app is running." : "This link only works on this computer."} To share

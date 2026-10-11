@@ -33,5 +33,7 @@ export async function POST(req: Request) {
   // Names are guessable, so someone may have opened this one before it existed: drop any cached "not found".
   revalidatePath("/e/" + share.token);
   const lan = lanOrigin(origin);
-  return NextResponse.json({ token: share.token, url: origin + "/e/" + share.token, lanUrl: lan ? lan + "/e/" + share.token : null });
+  // card: the WhatsApp preview image, so the dialog can show how the link will look in a chat.
+  const card = share.kind === "live" ? "/e/" + share.token + "/card?v=" + share.createdAt : null;
+  return NextResponse.json({ token: share.token, url: origin + "/e/" + share.token, lanUrl: lan ? lan + "/e/" + share.token : null, card });
 }
