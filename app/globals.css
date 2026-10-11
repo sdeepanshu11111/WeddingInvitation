@@ -489,18 +489,38 @@ input[type="date"].input, input[type="time"].input { color-scheme: dark; }
 
 .trust-row { margin-top: 12px; gap: 8px 12px; }
 .trust-row .lock { gap: 6px; font-size: 12px; }
-.pay-icons { display: inline-flex; align-items: center; gap: 10px; height: 28px; padding: 0 11px; border-radius: 8px; background: #fff; box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2); }
-.pay-icons svg { display: block; }
-.pay-icons .upi { font: italic 800 11.5px/1 var(--ui); letter-spacing: 0.02em; color: #1b7a3f; }
 
-.wa-details { margin-top: 14px; }
-.wa-details > summary { list-style: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 7px; padding: 8px; border-radius: 10px; color: var(--muted); font-size: 12.5px; }
-.wa-details > summary::-webkit-details-marker { display: none; }
-.wa-details > summary:hover { color: var(--text); background: var(--panel-2); }
-.wa-details[open] > summary { margin-bottom: 8px; }
 
 /* guest page payment pill */
 .gb-ico { width: 30px; height: 30px; flex: none; border-radius: 9px; display: grid; place-items: center; background: rgba(217, 183, 124, 0.2); color: var(--gold-2); font-size: 14px; }
+
+/* share: wide two-column success screen, WhatsApp frame */
+.share-modal.wide { width: min(980px, 100%); }
+.share-done.split { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 28px; align-items: start; text-align: left; }
+.share-side .share-label { margin-bottom: 10px; }
+.wa-phone { border-radius: 18px; overflow: hidden; border: 1px solid #22313a; background: #0b141a; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45); }
+.wa-top { display: flex; gap: 10px; align-items: center; padding: 10px 12px; background: #1f2c34; text-align: left; }
+.wa-av { width: 34px; height: 34px; flex: none; border-radius: 50%; display: grid; place-items: center; background: #25d366; color: #fff; }
+.wa-top b { display: block; font-size: 13.5px; font-weight: 600; color: #e9edef; }
+.wa-top small { font-size: 11.5px; color: #8696a0; }
+.wa-phone .wa-chat { border: 0; border-radius: 0; min-height: 380px; padding: 14px 12px 18px; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.wa-day { align-self: center; font-size: 11px; color: #8696a0; background: #182229; padding: 4px 10px; border-radius: 7px; }
+.wa-phone .wa-bubble { width: 94%; }
+
+/* payment logos: quiet monochrome marks on the dark UI */
+.pay-icons { display: inline-flex; align-items: center; gap: 13px; }
+.pay-icons svg { display: block; }
+.pay-icons.mono { color: rgba(236, 232, 227, 0.6); }
+.pay-icons .upi { font: italic 800 13px/1 var(--ui); letter-spacing: 0.02em; color: inherit; }
+.pay-icons.color { height: 28px; padding: 0 11px; border-radius: 8px; background: #fff; }
+.pay-icons.color .upi { color: #1b7a3f; }
+.trust-row .lock { padding-right: 12px; border-right: 1px solid var(--line-2); }
+
+@media (max-width: 860px) {
+  .share-done.split { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .trust-row .lock { padding-right: 0; border-right: 0; }
+  .wa-phone .wa-chat { min-height: 0; }
+}
 
 /* ---------- phones: app layout with bottom tabs ---------- */
 @media (max-width: 860px) {

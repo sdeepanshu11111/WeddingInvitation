@@ -183,7 +183,7 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
 
   return (
     <div className="backdrop-m" onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal share-modal" role="dialog" aria-label="Share invitation">
+      <div className={"modal share-modal" + (done ? " wide" : "")} role="dialog" aria-label="Share invitation">
         <div className="share-head">
           <div>
             <h3>{done ? "Your invitation link" : "Share your invitation"}</h3>
@@ -196,7 +196,8 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
 
         <div className="share-body">
           {done ? (
-            <div className="share-done">
+            <div className={"share-done" + ("card" in state && state.card ? " split" : "")}>
+              <div className="share-main">
               <div className="done-head">
                 <div className="done-badge">✓</div>
                 <div>
@@ -206,7 +207,13 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
               </div>
               <SharePanel share={state} title={title} />
               {PAYMENTS && created ? <PlanStatus pay={pay} onPay={() => removeWatermark(created)} /> : null}
-              {"card" in state && state.card ? <WhatsAppPreview card={state.card} title={title} link={state.lanUrl ?? state.url} host={host} /> : null}
+              </div>
+              {"card" in state && state.card ? (
+                <aside className="share-side">
+                  <div className="share-label">How guests see it</div>
+                  <WhatsAppPreview card={state.card} title={title} link={state.lanUrl ?? state.url} host={host} />
+                </aside>
+              ) : null}
             </div>
           ) : (
             <>
@@ -317,15 +324,22 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   );
 }
 
-/** How the link will look in a WhatsApp chat (the real preview card), folded away until asked for. */
+/** How the link will look in a WhatsApp chat: the real preview card in a chat-style frame. */
 function WhatsAppPreview({ card, title, link, host }: { card: string; title: string; link: string; host: string }) {
   const time = new Date().toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
   return (
-    <details className="wa-details">
-      <summary>
-        <WhatsAppIcon size={15} /> See how it looks on WhatsApp
-      </summary>
+    <div className="wa-phone">
+      <div className="wa-top">
+        <span className="wa-av" aria-hidden>
+          <WhatsAppIcon size={16} />
+        </span>
+        <div>
+          <b>Family group</b>
+          <small>You, Mummy, Papa, Didi...</small>
+        </div>
+      </div>
       <div className="wa-chat">
+        <div className="wa-day">Today</div>
         <div className="wa-bubble">
           <div className="wa-card">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -342,7 +356,7 @@ function WhatsAppPreview({ card, title, link, host }: { card: string; title: str
           <div className="wa-time">{time} ✓✓</div>
         </div>
       </div>
-    </details>
+    </div>
   );
 }
 
