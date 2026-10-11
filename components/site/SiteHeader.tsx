@@ -37,10 +37,10 @@ export function SiteHeader() {
         <span>
           {PAYMENTS ? (
             <>
-              Preview free with your names. Remove the watermark for <b>₹{LINK_PRICE_INR}</b>.
+              Pehle dekho, phir bhejo: preview free, pay <b>₹{LINK_PRICE_INR}</b> only if you like it.
             </>
           ) : (
-            <>Make your video invitation free and share it on WhatsApp in minutes.</>
+            <>Pehle dekho, phir bhejo: see your invite free and share it on WhatsApp.</>
           )}
         </span>
         <Link href="/contact" className="promo-link">

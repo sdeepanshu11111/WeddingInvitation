@@ -14,9 +14,9 @@ import { TEMPLATES } from "@/lib/templates";
 const HOST = SITE_URL.replace(/^https?:\/\//, "");
 
 export const metadata: Metadata = {
-  title: BRAND + " · Wedding video invitations, ready in minutes",
+  title: BRAND + " · Pehle dekho, phir bhejo. Wedding video invitations",
   description:
-    "Animated video invitations for Indian weddings and every function. Pick a design, add your names and date, watch it play, and share the link on WhatsApp.",
+    "See your wedding video invitation free with your names, date and venue. Like it? Send one link to the whole family on WhatsApp.",
 };
 
 export default function Home() {
@@ -27,36 +27,42 @@ export default function Home() {
       {/* ---------- hero ---------- */}
       <section className="hero">
         <div className="hero-copy">
-          <span className="mono-label">Shaadi season · Video invitations</span>
+          <span className="mono-label">Shaadi ka card · ab video mein</span>
           <h1>
-            Your invite,
+            Pehle dekho.
             <br />
-            <em>in motion.</em>
+            <em>Phir bhejo.</em>
           </h1>
           <p className="lead">
-            Pick a design, type the names, date and venue, and watch your animated invitation play straight away. Send it as a link on WhatsApp:
-            {PAYMENTS ? " free to try, ₹" + LINK_PRICE_INR + " to remove the watermark." : " free to make and share."}
+            See your wedding invitation first, free, with your names, date and venue. Like it? Send one link to the whole family on WhatsApp,
+            from Dadi to the cousins abroad.
+            {PAYMENTS ? " Pay ₹" + LINK_PRICE_INR + " to remove the watermark only if you like it." : ""}
           </p>
           <div className="hero-ctas">
             <Link href="/templates" className="cta-btn lg">
-              Start yours →
+              See mine free →
             </Link>
             <Link href="#how" className="ghost-btn lg">
               How it works
             </Link>
           </div>
+          <p className="hero-note">
+            <span>✓ Free preview</span>
+            <span>✓ No app for guests</span>
+            <span>{PAYMENTS ? "✓ Pay only if you like it" : "✓ Free to share"}</span>
+          </p>
           <dl className="hero-facts">
             <div>
-              <dt>Designs</dt>
-              <dd>{TEMPLATES.length}</dd>
+              <dt>Preview</dt>
+              <dd>Free</dd>
             </div>
             <div>
-              <dt>Formats</dt>
-              <dd>9:16 · 16:9</dd>
+              <dt>For everyone</dt>
+              <dd>1 link</dd>
             </div>
             <div>
-              <dt>Ready in</dt>
-              <dd>~2 min</dd>
+              <dt>Printing</dt>
+              <dd>₹0</dd>
             </div>
           </dl>
         </div>
@@ -275,12 +281,12 @@ export default function Home() {
 
       {/* ---------- final call ---------- */}
       <section className="final">
-        <span className="mono-label">Ready when you are</span>
+        <span className="mono-label">Poore khandaan ke liye · for the whole family</span>
         <h2>
-          Your names, <em>moving,</em> in two minutes.
+          Pehle dekho. <em>Phir bhejo.</em>
         </h2>
         <Link href="/templates" className="cta-btn lg">
-          Start yours →
+          See mine free →
         </Link>
       </section>
 
