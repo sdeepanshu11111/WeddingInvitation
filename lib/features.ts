@@ -15,6 +15,8 @@ export const LINK_PRICE_INR = Number(process.env.NEXT_PUBLIC_LINK_PRICE_INR) || 
 
 /** Mixpanel project token, set only on the production deployment (or with MIXPANEL=1). Empty = analytics off. */
 export const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || "";
+/** Mixpanel ingestion host for the project's data residency (MIXPANEL_API_HOST; default US). */
+export const MIXPANEL_API_HOST = process.env.NEXT_PUBLIC_MIXPANEL_API_HOST || "https://api-js.mixpanel.com";
 
 /** Response for export endpoints while video export is switched off. */
 export const exportOff = () =>

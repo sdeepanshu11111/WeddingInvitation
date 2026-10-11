@@ -19,6 +19,9 @@ const nextConfig = {
     NEXT_PUBLIC_LINK_PRICE_INR: process.env.LINK_PRICE_INR || "99",
     // A Mixpanel project token is public by design (every visitor's browser sends it). Empty = analytics off.
     NEXT_PUBLIC_MIXPANEL_TOKEN: mixpanel ? process.env.MIXPANEL_TOKEN || "13677b55358039a8d5f3140dd6ae82c6" : "",
+    // Must match the project's data residency: US https://api-js.mixpanel.com, India https://api-in.mixpanel.com,
+    // EU https://api-eu.mixpanel.com. The wrong one answers status 1 and silently drops every event.
+    NEXT_PUBLIC_MIXPANEL_API_HOST: process.env.MIXPANEL_API_HOST || "https://api-js.mixpanel.com",
   },
   // Share links moved from /v/<token> to /e/<name>; links already sent keep working.
   async redirects() {

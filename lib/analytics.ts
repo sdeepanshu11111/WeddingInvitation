@@ -10,7 +10,7 @@
 
 import type { Mixpanel } from "mixpanel-browser";
 import type { Orientation } from "./types";
-import { MIXPANEL_TOKEN } from "./features";
+import { MIXPANEL_API_HOST, MIXPANEL_TOKEN } from "./features";
 
 /** The tracking plan. Names are snake_case and fixed: never build an event or property name at runtime. */
 type Events = {
@@ -53,7 +53,7 @@ export function startAnalytics(surface: "editor" | "guest_page", props: Super = 
     .then((m) => {
       const mp = (m as unknown as { default: Mixpanel }).default; // its typings drop the default export
       mp.init(MIXPANEL_TOKEN, {
-        api_host: "https://api-js.mixpanel.com", // project 4072400 has US data residency; api-in silently drops its events
+        api_host: MIXPANEL_API_HOST, // must match the project's data residency, or events are silently dropped
         persistence: "localStorage",
         debug: process.env.NODE_ENV !== "production",
         property_blacklist: surface === "guest_page" ? ["$current_url", "current_page_title", "current_url_path"] : [],
