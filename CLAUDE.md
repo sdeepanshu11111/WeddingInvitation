@@ -101,8 +101,8 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   "Soon" and every export API returns 501), `SHARE_STORE`, `PAYMENTS` and `LINK_PRICE_INR`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`
   holds `EXPORT_DIR` so share code does not import render.ts (that would pull Chrome/ffmpeg into its function bundle).
 - **Analytics** (Mixpanel, `lib/analytics.ts`; tracking plan and rules in `AGENTS.md`): typed `track()`, started only by the
-  editor and the guest page (never `/render`), production deploy only (`MIXPANEL=1` to test locally), India residency
-  (`api-in.mixpanel.com`), anonymous (no identify), no names: guest pages strip the URL/title and use a hashed `invite_id`.
+  editor and the guest page (never `/render`), production deploy only (`MIXPANEL=1` to test locally), US residency
+  (`api-js.mixpanel.com`; api-in silently drops this project's events), anonymous (no identify), no names: guest pages strip the URL/title and use a hashed `invite_id`.
 
 ## Templates (14), in `lib/templates/`, registered in `index.ts`
 

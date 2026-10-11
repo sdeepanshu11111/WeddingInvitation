@@ -25,7 +25,7 @@ library unless the owner asks for it. Project context and architecture are in `C
 | **Tracking method** | client-side only |
 | **CDP (if any)** | none |
 | **Consent required** | no (India only) |
-| **Data residency** | India: `api_host: "https://api-in.mixpanel.com"`. Any other host silently drops the events. |
+| **Data residency** | US (project 4072400): `api_host: "https://api-js.mixpanel.com"`. Sending to `api-in` returns status 1 but the events are dropped. |
 | **Project token location** | `next.config.mjs` → `NEXT_PUBLIC_MIXPANEL_TOKEN` → `MIXPANEL_TOKEN` in `lib/features.ts`. The token is public by design. |
 | **When it is on** | Production deployment only (`VERCEL_ENV=production`). Force with `MIXPANEL=1` / `MIXPANEL=0`; `MIXPANEL_TOKEN=<token>` points it at another project (e.g. a dev project). |
 
