@@ -175,13 +175,13 @@ exports folder, CLI render, snapshot QA script, production build passes. Hosted 
 Razorpay paid links (watermark removal), Mixpanel analytics, share success screen (iPhone mockups of the guest journey,
 WhatsApp chat preview, Preview link / After payment toggle).
 
-**In progress (as of 11 Oct 2026, committed on `main`, not pushed yet):** policy pages for Meta ads + Razorpay review: `app/(legal)/`
+**Live since 11 Oct 2026 (6fa69bc), still to finish:** policy pages for Meta ads + Razorpay review: `app/(legal)/`
 (privacy, terms, refunds, contact + layout), `lib/legal.ts`, `components/LegalLinks.tsx` (sidebar + phone ⋯ menu),
 `AgreeNote` consent line in ShareDialog, styles in `app/globals.css`. Typecheck passes. Still to do:
 1. Fill the empty `LEGAL` fields in `lib/legal.ts` (`entity`, `phone`, `address`, `city`, optionally `grievanceName`) with the
    owner's real details, identical to the Razorpay KYC / Meta Business account. Ask the owner; don't invent them.
-2. Check the pages on desktop and phone width (`npm run dev` → /privacy, /terms, /refunds, /contact), then push
-   to `main` (that deploys to Vercel).
+2. Check the pages on desktop and phone width (/privacy, /terms, /refunds, /contact), then commit and push
+   the filled-in details (push to `main` deploys to Vercel).
 3. Give the live URLs to Razorpay (website details) and Meta (privacy policy URL). If a Meta Pixel is added later, update `/privacy` first.
 
 Ideas (from README roadmap): Bengali / Marathi / Gujarati / Kerala-Christian / Parsi templates; optional functions list on every template;
