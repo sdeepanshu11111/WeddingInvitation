@@ -199,42 +199,77 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
 
         <div className="share-body">
           {done ? (
-            <div className={"share-done" + ("card" in state && state.card ? " split" : "")}>
-              {"card" in state && state.card ? (
-                <div className="share-phone">
-                  <div className="share-label">Your invite</div>
-                  {PAYMENTS && !live ? (
-                    <div className="seg phone-toggle" role="tablist">
-                      <button className={showClean ? "" : "on"} onClick={() => setShowClean(false)}>
-                        Preview link
-                      </button>
-                      <button className={showClean ? "on" : ""} onClick={() => setShowClean(true)}>
-                        After payment
-                      </button>
+            <div className="share-done">
+              {/* top: status, link and sharing on the left; removing the watermark on the right */}
+              <div className={"done-top" + (PAYMENTS && created ? " two" : "")}>
+                <div>
+                  <div className="done-head">
+                    <div className="done-badge">✓</div>
+                    <div>
+                      <h4>{live ? "Your invite is live" : "Your preview link is ready"}</h4>
+                      <p>{live ? "Every guest sees the clean invite." : "Share it with family to check. Remove the watermark whenever you're ready."}</p>
                     </div>
-                  ) : null}
-                  <InvitePhone project={project} watermarked={PAYMENTS && !live && !showClean} />
-                  <div className="phone-cap">
-                    {!PAYMENTS || live ? "What every guest sees" : showClean ? "✓ Clean invite, no watermark" : "With the " + BRAND + " watermark"}
+                  </div>
+                  <SharePanel share={state} title={title} />
+                </div>
+                {PAYMENTS && created ? <PlanStatus pay={pay} onPay={() => removeWatermark(created)} /> : null}
+              </div>
+
+              {/* the guest's journey, told with three phones */}
+              {"card" in state && state.card ? (
+                <div className="journey">
+                  <div className="share-label">Your guests&apos; journey</div>
+                  <div className="journey-steps">
+                    <div className="jstep">
+                      <div className="jhead">
+                        <span className="jnum">1</span>
+                        <div>
+                          <b>Arrives on WhatsApp</b>
+                          <small>A rich preview with your names</small>
+                        </div>
+                      </div>
+                      <PhoneShell screenClass="wa-screen">
+                        <WhatsAppPreview card={state.card} title={title} link={state.lanUrl ?? state.url} host={host} />
+                      </PhoneShell>
+                    </div>
+                    <div className="jarrow" aria-hidden>
+                      →
+                    </div>
+                    <div className="jstep">
+                      <div className="jhead">
+                        <span className="jnum">2</span>
+                        <div>
+                          <b>They tap to open</b>
+                          <small>Your names and date, music ready</small>
+                        </div>
+                      </div>
+                      <CoverPhone project={project} title={title} />
+                    </div>
+                    <div className="jarrow" aria-hidden>
+                      →
+                    </div>
+                    <div className="jstep">
+                      <div className="jhead">
+                        <span className="jnum">3</span>
+                        <div>
+                          <b>The invite plays</b>
+                          <small>{!PAYMENTS || live ? "Clean, on any phone or TV" : showClean ? "After payment: no watermark" : "Free link: with watermark"}</small>
+                        </div>
+                      </div>
+                      <InvitePhone project={project} watermarked={PAYMENTS && !live && !showClean} />
+                      {PAYMENTS && !live ? (
+                        <div className="seg phone-toggle" role="tablist">
+                          <button className={showClean ? "" : "on"} onClick={() => setShowClean(false)}>
+                            Free link
+                          </button>
+                          <button className={showClean ? "on" : ""} onClick={() => setShowClean(true)}>
+                            After payment
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
-              ) : null}
-              <div className="share-main">
-              <div className="done-head">
-                <div className="done-badge">✓</div>
-                <div>
-                  <h4>{live ? "Your invite is live" : "Your preview link is ready"}</h4>
-                  <p>{live ? "Every guest sees the clean invite." : "Share it with family to check. Remove the watermark whenever you're ready."}</p>
-                </div>
-              </div>
-              <SharePanel share={state} title={title} />
-              {PAYMENTS && created ? <PlanStatus pay={pay} onPay={() => removeWatermark(created)} /> : null}
-              </div>
-              {"card" in state && state.card ? (
-                <aside className="share-side">
-                  <div className="share-label">How guests see it</div>
-                  <WhatsAppPreview card={state.card} title={title} link={state.lanUrl ?? state.url} host={host} />
-                </aside>
               ) : null}
             </div>
           ) : (
@@ -346,6 +381,68 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   );
 }
 
+/** A modern iPhone: thin frame with side buttons, Dynamic Island, status bar and home indicator. */
+function PhoneShell({ children, screenClass = "", screenStyle }: { children: React.ReactNode; screenClass?: string; screenStyle?: React.CSSProperties }) {
+  return (
+    <div className="phone-frame">
+      <div className={"phone-screen " + screenClass} style={screenStyle}>
+        {children}
+        <div className="phone-status" aria-hidden>
+          <span>9:41</span>
+          <span className="ps-icons">
+            <svg width="15" height="10" viewBox="0 0 15 10" fill="currentColor">
+              <rect x="0" y="7" width="3" height="3" rx="0.7" />
+              <rect x="4" y="5" width="3" height="5" rx="0.7" />
+              <rect x="8" y="2.5" width="3" height="7.5" rx="0.7" />
+              <rect x="12" y="0" width="3" height="10" rx="0.7" />
+            </svg>
+            <svg width="13" height="10" viewBox="0 0 13 10" fill="currentColor">
+              <path d="M6.5 2.3c1.8 0 3.4.7 4.6 1.8l1-1A8 8 0 0 0 6.5.9 8 8 0 0 0 .9 3.1l1 1a6.5 6.5 0 0 1 4.6-1.8z" />
+              <path d="M6.5 5c1 0 2 .4 2.7 1.1l1-1A5.3 5.3 0 0 0 6.5 3.6 5.3 5.3 0 0 0 2.8 5.1l1 1C4.5 5.4 5.5 5 6.5 5z" />
+              <circle cx="6.5" cy="8.3" r="1.4" />
+            </svg>
+            <svg width="22" height="10" viewBox="0 0 22 10" fill="none">
+              <rect x="0.5" y="0.5" width="18" height="9" rx="2.6" stroke="currentColor" opacity="0.45" />
+              <rect x="2" y="2" width="15" height="6" rx="1.5" fill="currentColor" />
+              <rect x="19.6" y="3.2" width="1.6" height="3.6" rx="0.8" fill="currentColor" opacity="0.5" />
+            </svg>
+          </span>
+        </div>
+        <div className="phone-island" aria-hidden />
+        <div className="phone-home" aria-hidden />
+      </div>
+    </div>
+  );
+}
+
+/** The cover a guest lands on after tapping the link: names, date and the "Open invitation" button. */
+function CoverPhone({ project, title }: { project: Project; title: string }) {
+  const t = makeTheme(getTemplate(project.templateId), project.paletteId);
+  const date = inviteDate(project.data);
+  return (
+    <PhoneShell screenClass="cover-screen" screenStyle={{ background: "radial-gradient(ellipse at 50% 35%, " + t.bg + " 0%, " + t.bg2 + " 85%)", color: t.ink }}>
+        <div className="cv-kicker" style={{ color: t.accent }}>
+          YOU&apos;RE INVITED
+        </div>
+        <div className="cv-names">{title}</div>
+        <div className="cv-rule" style={{ color: t.accent }}>
+          <i />
+          <b />
+          <i />
+        </div>
+        {date ? (
+          <div className="cv-date" style={{ color: t.soft }}>
+            {date}
+          </div>
+        ) : null}
+        <div className="cv-btn" style={{ background: t.accent, color: t.bg2 }}>
+          ✉ Open invitation
+          <span className="cv-tap" aria-hidden />
+        </div>
+    </PhoneShell>
+  );
+}
+
 /** The invite itself, playing on a phone, with or without the free-link watermark (same overlay as the guest page). */
 function InvitePhone({ project, watermarked }: { project: Project; watermarked: boolean }) {
   const tl = useMemo(() => buildTimeline({ ...project, orientation: "vertical" }), [project]);
@@ -363,8 +460,8 @@ function InvitePhone({ project, watermarked }: { project: Project; watermarked: 
     return () => cancelAnimationFrame(raf);
   }, [tl, project.speed]);
   return (
-    <div className="phone-frame">
-      <div className="phone-screen">
+    // Taller than 9:16 like a real iPhone: the gaps take the invite's own background, as on the guest page.
+    <PhoneShell screenStyle={{ background: tl.theme.bg2 }}>
         <Stage W={1080} H={1920}>
           <Frame project={{ ...project, orientation: "vertical" }} template={tl.template} theme={tl.theme} scenes={tl.scenes} slots={tl.slots} total={tl.total} T={T} playing />
         </Stage>
@@ -373,8 +470,7 @@ function InvitePhone({ project, watermarked }: { project: Project; watermarked: 
             <Watermark />
           </div>
         ) : null}
-      </div>
-    </div>
+    </PhoneShell>
   );
 }
 
@@ -486,37 +582,43 @@ export function SharePanel({ share, title }: { share: ShareResult; title: string
   };
   return (
     <div style={{ textAlign: "left" }}>
-      <div className="link-card">
-        <span className="url" title={link}>
-          {hostPart.replace(/^www\./, "")}
-          <b>{path}</b>
+      <div className={"link-card" + (copied ? " copied" : "")}>
+        <span className="link-ico" aria-hidden>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M10 14a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5" /><path d="M14 10a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5" /></svg>
         </span>
-        <button className={"icon-btn" + (copied ? " copied" : "")} onClick={copy} aria-label="Copy link" title="Copy link">
-          {copied ? "✓" : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <rect x="9" y="9" width="12" height="12" rx="2" />
-              <path d="M5 15V5a2 2 0 0 1 2-2h10" />
-            </svg>
+        <span className="link-text" title={link}>
+          <small>Your link</small>
+          <span className="url">
+            <span className="host-part">{hostPart.replace(/^www\./, "")}</span>
+            <b>{path}</b>
+          </span>
+        </span>
+        <button className="copy-btn" onClick={copy} aria-label="Copy link">
+          {copied ? "✓ Copied" : (
+            <>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="9" y="9" width="12" height="12" rx="2.5" /><path d="M5 15V5a2 2 0 0 1 2-2h10" /></svg>
+              Copy
+            </>
           )}
         </button>
         <a className="icon-btn" href={share.url} target="_blank" rel="noreferrer" aria-label="Open the invite" title="Open the invite">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" />
-          </svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>
         </a>
       </div>
       <div className="share-actions">
         <a className="btn wa" href={"https://wa.me/?text=" + encodeURIComponent(inviteText(title) + "\n" + link)} target="_blank" rel="noreferrer" onClick={() => shared("whatsapp")}>
-          <WhatsAppIcon size={18} /> Send on WhatsApp
+          <WhatsAppIcon size={20} /> Send on WhatsApp
         </a>
         {canShare ? (
-          <button className="btn" onClick={() => navigator.share({ title, text: inviteText(title), url: link }).then(() => shared("native_share"), () => {})}>
-            ↗ More apps
+          <button className="btn more" onClick={() => navigator.share({ title, text: inviteText(title), url: link }).then(() => shared("native_share"), () => {})}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5" /><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7" /></svg>
+            More apps
           </button>
         ) : (
-          <button className="btn" onClick={copy}>
-            {copied ? "✓ Copied" : "Copy link"}
-          </button>
+          <a className="btn more" href={share.url} target="_blank" rel="noreferrer">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><path d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5" /></svg>
+            Open invite
+          </a>
         )}
       </div>
       {local ? (
