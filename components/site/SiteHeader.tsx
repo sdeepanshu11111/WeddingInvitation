@@ -37,10 +37,10 @@ export function SiteHeader() {
         <span>
           {PAYMENTS ? (
             <>
-              Pehle dekho, phir bhejo: preview free, pay <b>₹{LINK_PRICE_INR}</b> only if you like it.
+              Create your invitation and preview it free. Remove the watermark for <b>₹{LINK_PRICE_INR}</b> when you are ready.
             </>
           ) : (
-            <>Pehle dekho, phir bhejo: see your invite free and share it on WhatsApp.</>
+            <>Create your invitation free and share it on WhatsApp in minutes.</>
           )}
         </span>
         <Link href="/contact" className="promo-link">
@@ -77,7 +77,7 @@ export function SiteHeader() {
           Open studio
         </Link>
         <Link href="/templates" className="cta-btn sm">
-          Start yours →
+          Create invitation →
         </Link>
         <button className="burger" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
           <i />
@@ -102,7 +102,7 @@ export function SiteHeader() {
           <Link href="/#faq">FAQ</Link>
           <Link href="/create">Open studio</Link>
           <Link href="/templates" className="cta-btn block">
-            Start yours →
+            Create invitation →
           </Link>
         </div>
       ) : null}

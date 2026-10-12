@@ -7,16 +7,16 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { BRAND } from "@/lib/brand";
 import { CATEGORIES } from "@/lib/catalog";
-import { LINK_PRICE_INR, PAYMENTS, VIDEO_EXPORT } from "@/lib/features";
+import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
 import { SITE_URL } from "@/lib/site";
 import { TEMPLATES } from "@/lib/templates";
 
 const HOST = SITE_URL.replace(/^https?:\/\//, "");
 
 export const metadata: Metadata = {
-  title: BRAND + " · Pehle dekho, phir bhejo. Wedding video invitations",
+  title: BRAND + " · Create your wedding invitation and invitation page",
   description:
-    "See your wedding video invitation free with your names, date and venue. Like it? Send one link to the whole family on WhatsApp.",
+    "Create an animated wedding invitation with its own web page. Preview it free with your names, date and venue, then share one link on WhatsApp.",
 };
 
 export default function Home() {
@@ -27,20 +27,20 @@ export default function Home() {
       {/* ---------- hero ---------- */}
       <section className="hero">
         <div className="hero-copy">
-          <span className="mono-label">Shaadi ka card · ab video mein</span>
+          <span className="mono-label">Animated invitations · Invitation pages</span>
           <h1>
-            Pehle dekho.
+            Create your invitation.
             <br />
-            <em>Phir bhejo.</em>
+            <em>Share it in one link.</em>
           </h1>
           <p className="lead">
-            See your wedding invitation first, free, with your names, date and venue. Like it? Send one link to the whole family on WhatsApp,
-            from Dadi to the cousins abroad.
-            {PAYMENTS ? " Pay ₹" + LINK_PRICE_INR + " to remove the watermark only if you like it." : ""}
+            Choose a design, add your names, date and venue, and preview your animated invitation free. It comes with its own invitation page
+            that opens on any phone, ready to send to every guest on WhatsApp.
+            {PAYMENTS ? " Remove the watermark for ₹" + LINK_PRICE_INR + " once you are happy with it." : ""}
           </p>
           <div className="hero-ctas">
             <Link href="/templates" className="cta-btn lg">
-              See mine free →
+              Create your invitation →
             </Link>
             <Link href="#how" className="ghost-btn lg">
               How it works
@@ -48,8 +48,8 @@ export default function Home() {
           </div>
           <p className="hero-note">
             <span>✓ Free preview</span>
+            <span>✓ Your own invitation page</span>
             <span>✓ No app for guests</span>
-            <span>{PAYMENTS ? "✓ Pay only if you like it" : "✓ Free to share"}</span>
           </p>
           <dl className="hero-facts">
             <div>
@@ -57,12 +57,12 @@ export default function Home() {
               <dd>Free</dd>
             </div>
             <div>
-              <dt>For everyone</dt>
-              <dd>1 link</dd>
+              <dt>Invitation page</dt>
+              <dd>Included</dd>
             </div>
             <div>
-              <dt>Printing</dt>
-              <dd>₹0</dd>
+              <dt>Ready in</dt>
+              <dd>Minutes</dd>
             </div>
           </dl>
         </div>
@@ -142,7 +142,6 @@ export default function Home() {
                   <span className="mono-label">Share via</span>
                   <b>WhatsApp</b>
                   <b>Link</b>
-                  {VIDEO_EXPORT ? <b>MP4</b> : null}
                 </div>
               </div>
             </div>
@@ -165,18 +164,22 @@ export default function Home() {
       <section className="sec surface">
         <div className="guests">
           <div>
-            <SectionHead n="04" label="On their phone">
-              Made for the <em>family group.</em>
+            <SectionHead n="04" label="Your invitation page">
+              A page of <em>your own.</em>
             </SectionHead>
             <ol className="points">
               <li>
-                <b>Opens anywhere.</b> WhatsApp, SMS, email or Instagram DMs. No app and no download.
+                <b>Your names in the address.</b> Every invitation gets a page like <u>{HOST}/e/aarav-ananya</u>, with a preview card when it is
+                shared.
+              </li>
+              <li>
+                <b>Opens anywhere.</b> From WhatsApp, SMS, email or Instagram, in any browser. No app and no download.
               </li>
               <li>
                 <b>Fits the screen.</b> Upright on phones, widescreen on laptops and the living-room TV.
               </li>
               <li>
-                <b>Every function.</b> The All Functions design puts haldi, mehendi, sangeet, pheras and reception in one video, each with its date and venue.
+                <b>Every function.</b> The All Functions design puts haldi, mehendi, sangeet, pheras and reception in one invitation, each with its date and venue.
               </li>
               <li>
                 <b>Your music and photos.</b> Add a song and your favourite pictures; we handle the timing.
@@ -243,7 +246,7 @@ export default function Home() {
               <li>Every design and colour palette</li>
               <li>Names, dates, photos and music</li>
               <li>Share link for WhatsApp</li>
-              {PAYMENTS ? <li className="minus">Watermark on the video</li> : null}
+              {PAYMENTS ? <li className="minus">Watermark on the invitation</li> : null}
             </ul>
             <Link href="/templates" className="ghost-btn block">
               Browse designs
@@ -281,12 +284,12 @@ export default function Home() {
 
       {/* ---------- final call ---------- */}
       <section className="final">
-        <span className="mono-label">Poore khandaan ke liye · for the whole family</span>
+        <span className="mono-label">Free to preview · ready in minutes</span>
         <h2>
-          Pehle dekho. <em>Phir bhejo.</em>
+          Create your invitation <em>today.</em>
         </h2>
         <Link href="/templates" className="cta-btn lg">
-          See mine free →
+          Create your invitation →
         </Link>
       </section>
 

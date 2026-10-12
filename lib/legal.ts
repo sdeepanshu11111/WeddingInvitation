@@ -6,7 +6,7 @@ import { BRAND } from "./brand";
 
 export const LEGAL = {
   /** Business or proprietor name, exactly as on the Razorpay KYC. Not GST-registered (see /terms, Premium price). */
-  entity: "Deepanshu Sharma",
+  entity: "",
   /** Inbox people write to for support, refunds, privacy and deletion requests. */
   email: "neverhatespeople@gmail.com",
   phone: "+91 70117 09892",
