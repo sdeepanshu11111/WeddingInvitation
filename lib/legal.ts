@@ -5,19 +5,19 @@
 import { BRAND } from "./brand";
 
 export const LEGAL = {
-  /** Registered business or proprietor name (as on Razorpay KYC / GST), e.g. "Deepanshu Sharma (proprietor)". */
-  entity: "",
+  /** Business or proprietor name, exactly as on the Razorpay KYC. Not GST-registered (see /terms, Premium price). */
+  entity: "Deepanshu Sharma",
   /** Inbox people write to for support, refunds, privacy and deletion requests. */
-  email: "support@futureproof.co.in",
-  phone: "",
+  email: "neverhatespeople@gmail.com",
+  phone: "+91 70117 09892",
   /** Full postal address, one line. */
-  address: "",
+  address: "AIHP Signature, Udyog Vihar Phase 4, Gurugram, Haryana, India",
   /** City whose courts handle disputes (Terms, "Governing law"). */
-  city: "",
+  city: "Gurugram, Haryana",
   /** Grievance Officer (IT Rules 2021, DPDP Act 2023). Defaults to the support inbox when no name is set. */
   grievanceName: "",
   /** Date the current versions of the policies took effect. Change it whenever a policy changes. */
-  updated: "11 October 2026",
+  updated: "12 October 2026",
 };
 
 /** "FutureProof" or "FutureProof (operated by X)". */

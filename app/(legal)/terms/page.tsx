@@ -72,8 +72,8 @@ export default function Terms() {
       <h2>6. Premium plan and payment</h2>
       <ul>
         <li>
-          Premium costs ₹{LINK_PRICE_INR} (inclusive of applicable taxes) per invitation link, paid once. There is no subscription and nothing renews
-          automatically. The price is shown before you pay and may change for future purchases.
+          Premium costs ₹{LINK_PRICE_INR} per invitation link, paid once. That is the full price: we are not registered for GST, so no GST is
+          added. There is no subscription and nothing renews automatically. The price is shown before you pay and may change for future purchases.
         </li>
         <li>
           Payments are processed by Razorpay, using cards, UPI, net banking or wallets. Razorpay&rsquo;s terms also apply to the payment. We never see your

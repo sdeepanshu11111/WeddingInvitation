@@ -36,21 +36,21 @@ export default function Refunds() {
       </p>
 
       <h2>When we refund</h2>
-      <p>We give a full refund of ₹{LINK_PRICE_INR} if:</p>
+      <p>If you paid but did not get what you paid for, we refund the full ₹{LINK_PRICE_INR}. That is when:</p>
       <ul>
-        <li>money was deducted but the payment failed or the watermark was not removed, and we cannot fix it;</li>
-        <li>you were charged more than once for the same invitation link;</li>
-        <li>the invitation link does not work because of a fault on our side that we cannot fix within 48 hours of your report.</li>
+        <li>your invitation link was not created;</li>
+        <li>the watermark was not removed from your link and we cannot fix it within 48 hours of your email;</li>
+        <li>you were charged more than once for the same invitation link (we refund every extra payment).</li>
       </ul>
       <p>
-        Because the service is delivered in full as soon as you pay, we do not otherwise give refunds for a change of mind, a typo in your own
-        invitation, or an event that is postponed or cancelled. You can always create a new free link and check it before upgrading.
+        Once your link is live without the watermark, the service has been delivered in full, so we do not give refunds for a change of mind, a typo
+        in your own invitation, or an event that is postponed or cancelled. You can create a free preview link and check it before you pay.
       </p>
 
       <h2>How to ask for a refund</h2>
       <p>
-        Email {mail} within 7 days of the payment with your invitation link and the Razorpay payment ID (it starts with <i>pay_</i> and is on the
-        receipt Razorpay sends you). We reply within 2 business days. Approved refunds go back to the original payment method (card, UPI, bank account
+        Email {mail} within 7 days of the payment with the Razorpay payment ID (it starts with <i>pay_</i> and is on the receipt Razorpay sends
+        you) and your invitation link, if one was created. We reply within 2 business days. Approved refunds go back to the original payment method (card, UPI, bank account
         or wallet) through Razorpay and usually reach you within 5 to 7 business days, depending on your bank.
       </p>
       <p>
