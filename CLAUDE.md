@@ -62,7 +62,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 - `app/create/page.tsx`: the editor (sidebar categories, canvas, transport, form). It reads `?template&palette&o` once, then strips them
   from the URL. **Phones (≤ 860px)**: an app layout, not a stack:
   preview on top, one panel below chosen by bottom tabs (`.app[data-tab]` = design → `.left`, details → `.right`, preview =
-  full-height canvas) plus Share; sticky "Next" steps guide Design → Details → Share; the ⋯ menu holds Browse/Open/Export.
+  full-height canvas) plus Get link; sticky "Next" steps guide Design → Details → Get link; the ⋯ menu holds Browse/Open/Export.
   Use `desk-only` / `mob-only` classes for parts that differ; inputs are 16px on phones (iOS zooms below that); dialogs
   become bottom sheets. The editor autoplays on load. `app/render/page.tsx`: headless target exposing
   `window.__ready / __info / __seek(t) / __project`. Preview mode: `/render?template=<id>&orientation=horizontal&palette=<id>&demo=1`.
@@ -84,7 +84,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
     Next 14 does NOT invalidate cached route responses on revalidatePath (file-system-cache only checks `kind === "PAGE"`),
     so the card must live at a URL that only exists after creation. Blob reads use the SDK's `get(..., { useCache: false })`
     (bypasses the Blob CDN, and its undici fetch is outside Next's caching) for the same reason.
-  - **Live** (topbar "Share", `components/editor/ShareDialog.tsx`): `POST /api/share {project,title,card,name}` stores a snapshot.
+  - **Live** (topbar "Get invite link", `components/editor/ShareDialog.tsx`; one contact field with a WhatsApp/Email toggle, `typingPhone()` caps the number at 10 digits): `POST /api/share {project,title,card,name}` stores a snapshot.
     `card` (palette colours + date) is computed in the editor so server code never imports the templates.
     `app/e/[slug]/LiveInvite.tsx` plays it with `<Frame>` + rAF clock: tap-to-open cover (audio unlock on iOS), 9:16 on
     portrait screens and 16:9 on landscape, pause/mute/replay. Its `<Warmup>` lays out every scene hidden once, so only the

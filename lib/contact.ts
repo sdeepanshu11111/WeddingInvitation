@@ -1,10 +1,10 @@
-/* How we can reach the couple: a WhatsApp number or an email (at least one), asked for in the Share step
+/* How we can reach the couple: a WhatsApp number or an email (one of them), asked for in the "Get link" step
    (lead capture) and reused to pre-fill Razorpay Checkout. Shared by the editor and the server, so both
    accept exactly the same input. */
 
 /** Which notice the person saw when they gave their details (stored with the lead as proof of consent).
     Change it whenever the wording under the fields changes. */
-export const CONTACT_NOTICE = "share-contact-2026-10-12";
+export const CONTACT_NOTICE = "share-contact-2026-10-13";
 
 /**
  * "98765 43210", "098765-43210", "+91 98765 43210" or "919876543210" → "+919876543210".
@@ -22,6 +22,25 @@ export function normalizePhone(input: string): string | null {
   if (d.length === 12 && d.startsWith("91")) d = d.slice(2);
   else if (d.length === 11 && d.startsWith("0")) d = d.slice(1);
   return /^[6-9]\d{9}$/.test(d) ? "+91" + d : null; // Indian mobiles start with 6-9
+}
+
+/**
+ * Keeps the phone field to what can still become a valid number, as they type or paste. Next to the fixed
+ * "+91": 10 digits shown as "98765 43210" (11 with a leading 0, 12 with a leading 91, which is then dropped);
+ * a typed or pasted "+91" moves to that fixed prefix. Other countries: "+" and up to 15 digits.
+ */
+export function typingPhone(input: string): string {
+  let raw = input.trimStart().replace(/^00/, "+"); // trimStart: a space typed after "+1" has to stay
+  if (/^\+\s*9\s*1/.test(raw)) raw = raw.replace(/^\+\s*9\s*1/, "");
+  if (raw.startsWith("+")) {
+    let n = 0;
+    return "+" + raw.slice(1).replace(/[^\d ]/g, "").replace(/\d/g, (c) => (++n <= 15 ? c : "")).replace(/ {2,}/g, " ");
+  }
+  let d = raw.replace(/\D/g, "");
+  if (d.startsWith("0")) return d.slice(0, 11);
+  if (d.startsWith("91") && d.length > 10) return d.length >= 12 ? typingPhone(d.slice(2, 12)) : d;
+  d = d.slice(0, 10);
+  return d.length > 5 ? d.slice(0, 5) + " " + d.slice(5) : d;
 }
 
 /** "+919876543210" → "+91 98765 43210"; other countries as stored. */

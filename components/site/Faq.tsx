@@ -9,7 +9,7 @@ export function faqItems(): QA[] {
   const items: QA[] = [
     {
       q: "How long does it take?",
-      a: "About two minutes. Choose a design, type the names, date and venue, and the preview updates as you type. Your link is ready the moment you press Share.",
+      a: "About two minutes. Choose a design, type the names, date and venue, and the preview updates as you type. Your link is ready the moment you press Get link.",
     },
     {
       q: "Do guests need an app?",

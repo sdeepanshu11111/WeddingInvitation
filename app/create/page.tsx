@@ -253,7 +253,7 @@ export default function Editor() {
           </li>
           <li>
             <button onClick={openShare}>
-              <b>03</b> Share
+              <b>03</b> Get link
             </button>
           </li>
         </ol>
@@ -276,16 +276,16 @@ export default function Editor() {
         </label>
         {VIDEO_EXPORT ? (
           <>
-            <button className="btn desk-only" onClick={openShare} title="Send guests a link that plays the invitation in their browser">
-              Share
+            <button className="btn desk-only" onClick={openShare} title="A link that plays the invitation in your guests' browser">
+              Get link
             </button>
             <button className="btn primary desk-only" onClick={openExport}>
               Export MP4
             </button>
           </>
         ) : (
-          <button className="btn primary desk-only" onClick={openShare} title="Send guests a link that plays the invitation in their browser">
-            Share
+          <button className="btn primary desk-only" onClick={openShare} title="A link that plays the invitation in your guests' browser">
+            Get invite link
           </button>
         )}
         <div className="more mob-only">
@@ -464,7 +464,7 @@ export default function Editor() {
         </details>
         <div className="next-cta mob-only">
           <button className="btn primary" onClick={openShare}>
-            Next: share your invite →
+            Next: get your invite link →
           </button>
         </div>
       </aside>
@@ -487,9 +487,9 @@ export default function Editor() {
         ))}
         <button className="mtab share" onClick={openShare}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 3v12M7 8l5-5 5 5M5 14v5h14v-5" />
+            <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
           </svg>
-          Share
+          Get link
         </button>
       </nav>
 

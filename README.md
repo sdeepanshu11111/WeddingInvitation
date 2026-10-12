@@ -97,7 +97,7 @@ On Vercel you get the editor, **Share** links (the invitation plays in the guest
    Then set `ADMIN_PASSWORD` (see below). The Share step asks for the couple's WhatsApp number or email, and `/admin/leads`
    lists everyone who made a link.
 5. **Redeploy** after connecting Blob or a database or changing variables: the share and lead modes are fixed at build time.
-6. Check: open the editor → **Share** → **Create link** → open it on a phone, then paste it into WhatsApp to see the preview card.
+6. Check: open the editor → **Get invite link** → **Get my invite link** → open it on a phone, then paste it into WhatsApp to see the preview card.
    With lead capture on, open `/admin/leads`, sign in as `admin` (or `ADMIN_USER`) with `ADMIN_PASSWORD`, and find the link you made.
 
 | Variable | Set by | Purpose |

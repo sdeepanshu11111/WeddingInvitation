@@ -93,7 +93,7 @@ wrong property, so update that type first.
 |---|---|---|---|
 | `$mp_web_page_view` | A site page (each route), the editor or a guest page loaded | (super properties) | `lib/analytics.ts` |
 | `template_selected` | Couple picks a template (in the editor, or arrives from "Customize" on a template page with a different one) | `template_id`, `source` (`sidebar`/`gallery`/`template_page`) | `app/create/page.tsx` |
-| `share_dialog_opened` | Couple opens Share | `template_id` | `app/create/page.tsx` |
+| `share_dialog_opened` | Couple opens Get link (share dialog) | `template_id` | `app/create/page.tsx` |
 | `invite_link_created` ★ | Share link saved (value moment) | `invite_id`, `template_id`, `palette_id`, `orientation`, `plan` (`free`/`premium`, only with payments on), `is_custom_name`, `has_music`, `photo_count`, `has_video`, `duration_seconds` | `components/editor/ShareDialog.tsx` |
 | `video_export_clicked` | "Export MP4" clicked (only where export is on; the hosted site hides the button) | `is_available` | `app/create/page.tsx` |
 | `payment_started` | Pay ₹ clicked (editor or guest page) | `invite_id`, `amount_inr` | `lib/pay.ts` |

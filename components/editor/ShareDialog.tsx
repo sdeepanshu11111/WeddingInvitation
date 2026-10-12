@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { Watermark } from "@/app/e/[slug]/LiveInvite";
 import type { Project } from "@/lib/types";
@@ -7,7 +7,7 @@ import { buildTimeline, coupleTitle, inviteDate, makeTheme } from "@/lib/project
 import { getTemplate } from "@/lib/templates";
 import { BRAND } from "@/lib/brand";
 import { LEADS, LINK_PRICE_INR, PAYMENTS, SHARE_STORE } from "@/lib/features";
-import { normalizeEmail, normalizePhone, rememberContact, savedEmail, savedPhone } from "@/lib/contact";
+import { normalizeEmail, normalizePhone, rememberContact, savedEmail, savedPhone, typingPhone } from "@/lib/contact";
 import { payToRemoveWatermark } from "@/lib/pay";
 import { inviteId, track } from "@/lib/analytics";
 import { MEDIA_TYPES, allSrcs, mapDataUrls } from "@/lib/media";
@@ -34,10 +34,13 @@ const autoName = (title: string) => {
 };
 
 /** The number they gave last time on this device, as they would type it ("98765 43210" for India). */
-const lastPhone = () => {
-  const p = savedPhone();
-  return /^\+91\d{10}$/.test(p) ? p.slice(3, 8) + " " + p.slice(8) : p;
-};
+const lastPhone = () => typingPhone(savedPhone());
+const MailIcon = () => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m3 7 9 6 9-6" />
+  </svg>
+);
 
 const Spinner = () => <span className="spin" aria-hidden />;
 const inviteText = (title: string) => title + " - you're invited!";
@@ -69,13 +72,13 @@ function AgreeNote({ paying }: { paying?: boolean }) {
   );
   return (
     <p className="agree-note">
-      By {paying ? "paying" : "creating a link"} you agree to our {a("/terms", "Terms")}, {a("/privacy", "Privacy Policy")}
+      By {paying ? "paying" : "continuing"} you agree to our {a("/terms", "Terms")}, {a("/privacy", "Privacy Policy")}
       {paying ? <> and {a("/refunds", "Refund Policy")}</> : null}.
     </p>
   );
 }
 
-/** "Share" in the top bar: publishes the project as a live web invitation at /e/<name> (no MP4 render). */
+/** "Get invite link" in the top bar: publishes the project as a live web invitation at /e/<name> (no MP4 render). */
 export function ShareDialog({ project, onClose }: { project: Project; onClose: () => void }) {
   const [state, setState] = useState<"idle" | "busy" | ShareResult>("idle");
   const [step, setStep] = useState("Creating link...");
@@ -90,12 +93,35 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   const [pay, setPay] = useState<Pay>("none");
   const [showClean, setShowClean] = useState(true); // phone preview: the clean invite they get after paying
   const [created, setCreated] = useState<string | null>(null); // the name of the link once it exists
-  // Lead capture: a WhatsApp number or an email, at least one, to create a link (sent separately, never inside the published project).
+  // Lead capture: a WhatsApp number or an email to create a link (sent separately, never inside the published project).
+  // One field at a time, so it never looks like both are needed; WhatsApp first unless they gave only an email before.
+  const [via, setVia] = useState<"whatsapp" | "email">(() => (!savedPhone() && savedEmail() ? "email" : "whatsapp"));
   const [phone, setPhone] = useState(lastPhone);
   const [email, setEmail] = useState(savedEmail);
-  const [contactBad, setContactBad] = useState<"none" | "phone" | "email" | null>(null);
-  const phoneInput = useRef<HTMLInputElement>(null);
-  const emailInput = useRef<HTMLInputElement>(null);
+  const [contactBad, setContactBad] = useState<"empty" | "invalid" | null>(null);
+  const contactInput = useRef<HTMLInputElement>(null);
+  const switched = useRef(false); // focus the field after they pick WhatsApp / Email, not when the dialog opens
+  const caret = useRef<number | null>(null); // digits (and "+") before the caret, so reformatting "98765 43210" doesn't move it
+
+  const chooseVia = (v: "whatsapp" | "email") => {
+    switched.current = true;
+    setVia(v);
+    setContactBad(null);
+  };
+  const onPhone = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { value, selectionStart } = e.target;
+    caret.current = value.slice(0, selectionStart ?? value.length).replace(/[^\d+]/g, "").length;
+    setPhone(typingPhone(value));
+    setContactBad(null);
+  };
+  useLayoutEffect(() => {
+    const el = contactInput.current;
+    if (caret.current === null || el?.type !== "tel") return;
+    let i = 0;
+    for (let seen = 0; i < el.value.length && seen < caret.current; i++) if (/[\d+]/.test(el.value[i])) seen++;
+    el.setSelectionRange(i, i);
+    caret.current = null;
+  }, [phone]);
 
   // Is a typed name free? Asked as the user types (debounced); stale answers are ignored.
   useEffect(() => {
@@ -125,13 +151,13 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
 
   /** withoutWatermark: create the link, then go straight to payment (the free link stays if they cancel). */
   const create = async (withoutWatermark = false) => {
-    // Either one is enough, but whatever they typed has to be valid.
-    const whatsapp = LEADS && phone.trim() ? normalizePhone(phone) : null;
-    const mail = LEADS && email.trim() ? normalizeEmail(email) : null;
-    const bad = !LEADS ? null : phone.trim() && !whatsapp ? "phone" : email.trim() && !mail ? "email" : !whatsapp && !mail ? "none" : null;
+    // Only the field they can see is sent, even if they typed in the other one before switching.
+    const whatsapp = LEADS && via === "whatsapp" ? normalizePhone(phone) : null;
+    const mail = LEADS && via === "email" ? normalizeEmail(email) : null;
+    const bad = !LEADS || whatsapp || mail ? null : (via === "whatsapp" ? phone : email).trim() ? "invalid" : "empty";
     if (bad) {
       setContactBad(bad);
-      (bad === "email" ? emailInput : phoneInput).current?.focus();
+      contactInput.current?.focus();
       return;
     }
     rememberContact(whatsapp, mail); // also pre-fills Razorpay Checkout
@@ -221,13 +247,14 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   const busy = state === "busy";
   const done = state !== "idle" && state !== "busy" && !("error" in state);
   const live = !PAYMENTS || pay === "paid";
+  const reachOk = via === "whatsapp" ? !!normalizePhone(phone) : !!normalizeEmail(email);
 
   return (
     <div className="backdrop-m" onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div className={"modal share-modal" + (done ? " wide" : "")} role="dialog" aria-label="Share invitation">
         <div className="share-head">
           <div>
-            <h3>{done ? "Your invitation link" : "Share your invitation"}</h3>
+            <h3>{done ? "Your invitation link" : "Get your invitation link"}</h3>
             {done ? null : <p>Guests open the link and the invite plays in their browser, with music, on any phone or TV.</p>}
           </div>
           <button className="share-x" onClick={onClose} aria-label="Close">
@@ -388,57 +415,79 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
 
               {LEADS ? (
                 <>
-                  <div className="share-label" style={{ marginTop: 18 }}>
-                    Where can we reach you?
-                  </div>
-                  <div className="reach">
-                    <div className={"url-field phone" + (contactBad === "phone" || contactBad === "none" ? " bad" : "")}>
-                      {phone.trim().startsWith("+") ? null : <span className="host">+91</span>}
-                      <input
-                        ref={phoneInput}
-                        type="tel"
-                        inputMode="tel"
-                        autoComplete="tel-national"
-                        placeholder="WhatsApp number"
-                        value={phone}
-                        onChange={(e) => {
-                          setPhone(e.target.value);
-                          setContactBad(null);
-                        }}
-                        disabled={busy}
-                        aria-label="Your WhatsApp number"
-                        aria-invalid={contactBad === "phone"}
-                        aria-describedby="contact-note"
-                      />
+                  <div className="reach-head">
+                    <label className="share-label" htmlFor="reach-input">
+                      {via === "whatsapp" ? "Your WhatsApp number" : "Your email"}
+                    </label>
+                    <div className="seg" role="radiogroup" aria-label="How should we reach you?">
+                      <button className={via === "whatsapp" ? "on" : ""} onClick={() => chooseVia("whatsapp")} disabled={busy} role="radio" aria-checked={via === "whatsapp"}>
+                        <span className="seg-ico" aria-hidden>
+                          <WhatsAppIcon size={13} />
+                        </span>
+                        WhatsApp
+                      </button>
+                      <button className={via === "email" ? "on" : ""} onClick={() => chooseVia("email")} disabled={busy} role="radio" aria-checked={via === "email"}>
+                        <MailIcon /> Email
+                      </button>
                     </div>
-                    <span className="or">or</span>
-                    <div className={"url-field" + (contactBad === "email" || contactBad === "none" ? " bad" : "")}>
+                  </div>
+                  <div className={"url-field" + (via === "whatsapp" ? " phone" : "") + (contactBad ? " bad" : "")}>
+                    {via === "whatsapp" ? (
+                      <>
+                        {phone.startsWith("+") ? null : <span className="host">+91</span>}
+                        <input
+                          key="phone"
+                          id="reach-input"
+                          ref={contactInput}
+                          type="tel"
+                          inputMode="tel"
+                          autoComplete="tel-national"
+                          placeholder="10-digit mobile number"
+                          value={phone}
+                          onChange={onPhone}
+                          disabled={busy}
+                          autoFocus={switched.current}
+                          aria-invalid={!!contactBad}
+                          aria-describedby="contact-note"
+                        />
+                      </>
+                    ) : (
                       <input
-                        ref={emailInput}
+                        key="email"
+                        id="reach-input"
+                        ref={contactInput}
                         type="email"
                         inputMode="email"
                         autoComplete="email"
-                        placeholder="Email"
+                        placeholder="you@example.com"
+                        maxLength={254}
                         value={email}
                         onChange={(e) => {
                           setEmail(e.target.value);
                           setContactBad(null);
                         }}
                         disabled={busy}
-                        aria-label="Your email"
-                        aria-invalid={contactBad === "email"}
+                        autoFocus={switched.current}
+                        aria-invalid={!!contactBad}
                         aria-describedby="contact-note"
                       />
-                    </div>
+                    )}
+                    {reachOk ? (
+                      <span className="url-state ok" aria-hidden>
+                        ✓
+                      </span>
+                    ) : null}
                   </div>
                   <div className="url-hint" id="contact-note" style={contactBad ? { color: "var(--danger)" } : undefined}>
-                    {contactBad === "none"
-                      ? "Add a WhatsApp number or an email, so we can help you with this invite."
-                      : contactBad === "phone"
-                        ? "Enter a 10-digit mobile number. Outside India? Start with + and your country code."
-                        : contactBad === "email"
-                          ? "That email doesn't look right."
-                          : "Either one is enough. We only contact you about this invite, and we never sell or share your details."}
+                    {contactBad === "empty"
+                      ? via === "whatsapp"
+                        ? "Add your WhatsApp number, so we can help you with this invite."
+                        : "Add your email, so we can help you with this invite."
+                      : contactBad === "invalid"
+                        ? via === "whatsapp"
+                          ? "Enter a 10-digit mobile number. Outside India? Start with + and your country code."
+                          : "That email doesn't look right."
+                        : "We only contact you about this invite, and we never sell or share your details."}
                   </div>
                 </>
               ) : null}
@@ -450,12 +499,12 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                   </>
                 ) : premium ? (
                   <>
-                    <LockIcon /> Pay ₹{LINK_PRICE_INR} & create link
+                    <LockIcon /> Pay ₹{LINK_PRICE_INR} & get link
                   </>
                 ) : PAYMENTS ? (
-                  "Create free preview link"
+                  "Get free preview link"
                 ) : (
-                  "Create link"
+                  "Get my invite link"
                 )}
               </button>
               {premium ? <TrustRow /> : null}

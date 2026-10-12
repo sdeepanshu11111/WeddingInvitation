@@ -31,7 +31,7 @@ export default function Privacy() {
           you are editing, this stays in your own browser (saved automatically on your device) and is not sent to us.
         </li>
         <li>
-          <b>Shared invitations</b>: when you tap &ldquo;Share&rdquo; and create a link, we upload that invitation&rsquo;s content and media to our
+          <b>Shared invitations</b>: when you tap &ldquo;Get link&rdquo; and create a link, we upload that invitation&rsquo;s content and media to our
           servers so your guests can open it. The link name you choose (for example <i>/e/aarav-ananya</i>) is part of the web address.
         </li>
         {LEADS ? (
