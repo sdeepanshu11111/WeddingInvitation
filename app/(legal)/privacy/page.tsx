@@ -106,7 +106,12 @@ export default function Privacy() {
         <li>
           <b>Service providers</b> who process data for us under their own privacy and security terms: Vercel Inc. (website hosting and file storage,
           servers in the United States), Razorpay Software Pvt. Ltd. (payments, India), Mixpanel Inc. (analytics, United States)
-          {LEADS === "db" ? ", Neon Inc. (the private database for contact details)" : ""} and Meta Platforms, Inc. (advertising measurement).
+          {LEADS === "mongo"
+            ? ", MongoDB, Inc. (the private database for contact details, servers in India)"
+            : LEADS === "db"
+              ? ", Neon Inc. (the private database for contact details)"
+              : ""}{" "}
+          and Meta Platforms, Inc. (advertising measurement).
           {LEADS ? " When we contact you, WhatsApp or our email provider (Google) carries the message." : ""}
         </li>
         <li>

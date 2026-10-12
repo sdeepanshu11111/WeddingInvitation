@@ -116,9 +116,12 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   10-digit Indian mobile or `+`country code; remembered in localStorage, pre-fill Razorpay Checkout), with the promise that we never
   sell or share them. `POST /api/share {…, phone?, email?}` saves them with the link name and the notice version
   (`CONTACT_NOTICE`) after the link exists; payments save Razorpay's contact/email as `pay_phone`/`pay_email`
-  (verify + webhook). A failed lead write is logged and never fails the share or payment. Stored in Postgres (`LEADS=db`:
-  Neon from Vercel Storage sets `DATABASE_URL`; the table is created on first use) or `exports/leads.json` locally (`disk`);
-  on Vercel without a database it is off and nothing is asked. **Never put numbers or emails in Blob (public), the project JSON,
+  (verify + webhook). A failed lead write is logged and never fails the share or payment. Stored in MongoDB (`LEADS=mongo`:
+  `MONGODB_URI`, Atlas cluster in Mumbai, database `invite_studio` or `MONGODB_DB`, collection `leads` with `_id` = link name),
+  Postgres (`LEADS=db`: Neon from Vercel Storage sets `DATABASE_URL`; the table is created on first use) or `exports/leads.json`
+  locally (`disk`); on Vercel without a database it is off and nothing is asked. `MONGODB_URI` wins; while `DATABASE_URL` is also
+  set, the first connection copies the Postgres leads in once (`$setOnInsert`, marked done in `meta/postgres-import`, so deleted
+  leads never come back; `/admin/leads` shows the count). The connection string lives only in env vars, never in git. **Never put numbers or emails in Blob (public), the project JSON,
   Mixpanel, the Pixel or logs.** `/admin/leads` (HTTP Basic auth via `middleware.ts`: user `ADMIN_USER`, default `admin`, + `ADMIN_PASSWORD`; 404 on Vercel
   without it) lists leads with WhatsApp / Email buttons (wa.me or mailto + ready message, marks "Messaged"), "Replied STOP" (same number/email)
   and Delete. `/privacy` shows its lead paragraphs only while `LEADS` is on.

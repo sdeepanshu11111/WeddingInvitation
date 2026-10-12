@@ -17,7 +17,7 @@ export const LEGAL = {
   /** Grievance Officer (IT Rules 2021, DPDP Act 2023). Defaults to the support inbox when no name is set. */
   grievanceName: "",
   /** Date the current versions of the policies took effect. Change it whenever a policy changes. */
-  updated: "12 October 2026",
+  updated: "13 October 2026",
 };
 
 /** "FutureProof" or "FutureProof (operated by X)". */

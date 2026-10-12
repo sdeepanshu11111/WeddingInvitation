@@ -14,9 +14,10 @@ export const PAYMENTS = process.env.NEXT_PUBLIC_PAYMENTS === "1";
 export const LINK_PRICE_INR = Number(process.env.NEXT_PUBLIC_LINK_PRICE_INR) || 99;
 
 /** Lead capture (a WhatsApp number or email in the Share step, payers' contacts, /admin/leads), kept in lib/server/leads.ts:
-    "db" when a Postgres database is connected (Neon sets DATABASE_URL), "disk" locally, "" = off (nothing asked).
-    Force off with LEADS=0. */
-export const LEADS: "db" | "disk" | "" = process.env.NEXT_PUBLIC_LEADS === "db" ? "db" : process.env.NEXT_PUBLIC_LEADS === "disk" ? "disk" : "";
+    "mongo" when MONGODB_URI is set, "db" when a Postgres database is connected (Neon sets DATABASE_URL), "disk" locally,
+    "" = off (nothing asked). Force off with LEADS=0. */
+const leadsMode = process.env.NEXT_PUBLIC_LEADS;
+export const LEADS: "mongo" | "db" | "disk" | "" = leadsMode === "mongo" || leadsMode === "db" || leadsMode === "disk" ? leadsMode : "";
 
 /** Mixpanel project token, set only on the production deployment (or with MIXPANEL=1). Empty = analytics off. */
 export const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || "";

@@ -19,10 +19,19 @@ const nextConfig = {
     // Paid links (Razorpay). Only the on/off flag and the price reach the browser, never the keys.
     NEXT_PUBLIC_PAYMENTS: process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET ? "1" : "0",
     NEXT_PUBLIC_LINK_PRICE_INR: process.env.LINK_PRICE_INR || "99",
-    // Lead capture needs a private place for phone numbers and emails: Postgres on Vercel (connecting Neon sets DATABASE_URL),
-    // exports/leads.json locally. On Vercel without a database it stays off, so the Share step asks for nothing.
+    // Lead capture needs a private place for phone numbers and emails: MongoDB (MONGODB_URI, wins when set) or Postgres
+    // (connecting Neon sets DATABASE_URL), exports/leads.json locally. On Vercel without a database it stays off, so the
+    // Share step asks for nothing.
     NEXT_PUBLIC_LEADS:
-      process.env.LEADS === "0" ? "" : process.env.DATABASE_URL || process.env.POSTGRES_URL ? "db" : process.env.VERCEL ? "" : "disk",
+      process.env.LEADS === "0"
+        ? ""
+        : process.env.MONGODB_URI
+          ? "mongo"
+          : process.env.DATABASE_URL || process.env.POSTGRES_URL
+            ? "db"
+            : process.env.VERCEL
+              ? ""
+              : "disk",
     // A Mixpanel project token is public by design (every visitor's browser sends it). Empty = analytics off.
     NEXT_PUBLIC_MIXPANEL_TOKEN: mixpanel ? process.env.MIXPANEL_TOKEN || "13677b55358039a8d5f3140dd6ae82c6" : "",
     // Must match the project's data residency: US https://api-js.mixpanel.com, India https://api-in.mixpanel.com,
