@@ -7,7 +7,7 @@ import { PayIcons } from "@/components/PayIcons";
 import { TemplateCard } from "@/components/site/TemplateCard";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
 import { fmt } from "@/lib/anim";
-import { LINK_PRICE_INR, PAYMENTS, VIDEO_EXPORT } from "@/lib/features";
+import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
 import { SIZES } from "@/lib/project";
 import { TEMPLATES, getTemplate } from "@/lib/templates";
 import type { Orientation, TemplateDef } from "@/lib/types";
@@ -46,6 +46,9 @@ export function TemplateDetail({ id }: { id: string }) {
             {mounted ? <Player key={t.id + o + pal} t={t} orientation={o} paletteId={pal} /> : null}
           </div>
           <div className="player-opts">
+            <span className="mono-label pal-label">
+              Colours · <b>{p.name}</b>
+            </span>
             <div className="seg-o">
               <button className={o === "vertical" ? "on" : ""} onClick={() => setO("vertical")}>
                 9:16
@@ -54,19 +57,19 @@ export function TemplateDetail({ id }: { id: string }) {
                 16:9
               </button>
             </div>
-            <div className="swatches" role="radiogroup" aria-label="Colour palette">
-              {t.palettes.map((x) => (
-                <button
-                  key={x.id}
-                  role="radio"
-                  aria-checked={x.id === pal}
-                  title={x.name}
-                  className={x.id === pal ? "on" : ""}
-                  onClick={() => setPal(x.id)}
-                  style={{ background: "linear-gradient(135deg, " + x.bg + " 0 50%, " + x.accent + " 50% 100%)" }}
-                />
-              ))}
-            </div>
+          </div>
+          {/* Each palette's real colours (background, second background, accent, text) and its name, big enough to tap. */}
+          <div className="pal-opts" role="radiogroup" aria-label="Colours">
+            {t.palettes.map((x) => (
+              <button key={x.id} role="radio" aria-checked={x.id === pal} className={"pal-opt" + (x.id === pal ? " on" : "")} onClick={() => setPal(x.id)}>
+                <span className="pal-strip" aria-hidden>
+                  {[x.bg, x.bg2, x.accent, x.ink].map((c, i) => (
+                    <i key={i} style={{ background: c }} />
+                  ))}
+                </span>
+                <span className="pal-name">{x.name}</span>
+              </button>
+            ))}
           </div>
         </div>
 
@@ -109,7 +112,7 @@ export function TemplateDetail({ id }: { id: string }) {
           <dl className="spec">
             <div>
               <dt>Format</dt>
-              <dd>{VIDEO_EXPORT ? "Link · MP4" : "Share link"}</dd>
+              <dd>Share link</dd>
             </div>
             <div>
               <dt>Plays in</dt>

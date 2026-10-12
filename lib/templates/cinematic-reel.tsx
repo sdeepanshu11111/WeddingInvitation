@@ -8,7 +8,7 @@ import { Clip, Grain, Layer, Photo, Reveal, Typewriter, dateParts, prettyTime } 
 export const cinematicReel: TemplateDef = {
   id: "cinematic-reel",
   name: "Cinematic Reel",
-  tagline: "Film-trailer feel — your video clip, letterbox bars, grain, type-on titles",
+  tagline: "Film-trailer feel — your own clip, letterbox bars, grain, type-on titles",
   tags: ["Video", "Dark", "Modern"],
   categories: ["save-the-date", "wedding"],
   communities: ["modern"],

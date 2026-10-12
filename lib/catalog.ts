@@ -2,7 +2,7 @@ import type { CategoryId, CommunityId, TemplateDef } from "./types";
 
 export const CATEGORIES: { id: CategoryId; label: string; local: string; blurb: string }[] = [
   { id: "wedding", label: "Wedding", local: "शादी", blurb: "The main ceremony: pheras, nikah, anand karaj, muhurtham" },
-  { id: "multi-event", label: "All Functions", local: "सभी रस्में", blurb: "One video with every function and its date and venue" },
+  { id: "multi-event", label: "All Functions", local: "सभी रस्में", blurb: "One invitation with every function and its date and venue" },
   { id: "engagement", label: "Engagement", local: "सगाई", blurb: "Sagai, roka, ring ceremony" },
   { id: "haldi", label: "Haldi", local: "हल्दी", blurb: "Turmeric ceremony" },
   { id: "mehendi", label: "Mehendi", local: "मेहंदी", blurb: "Henna night" },

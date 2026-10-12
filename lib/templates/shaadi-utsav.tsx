@@ -33,7 +33,7 @@ function EventIcon({ name, t, theme, v }: { name: string; t: number; theme: Them
 export const shaadiUtsav: TemplateDef = {
   id: "shaadi-utsav",
   name: "Shaadi Utsav",
-  tagline: "All functions in one video: Haldi to Reception, each with its own date, time and venue",
+  tagline: "All functions in one invitation: Haldi to Reception, each with its own date, time and venue",
   tags: ["All functions", "Toran", "Kalash"],
   categories: ["multi-event", "wedding"],
   communities: ["hindu"],
