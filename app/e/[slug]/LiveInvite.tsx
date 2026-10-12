@@ -161,6 +161,8 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
   const date = useMemo(() => inviteDate(project.data), [project]);
   const playing = phase === "playing";
   const watched = useRef(false);
+  const [paidHere, setPaidHere] = useState(false); // paid on this page: drop the watermark now, no reload needed
+  const marked = watermark && !paidHere;
 
   useEffect(() => startAnalytics("guest_page", { invite_id: name && inviteId(name), template_id: project.templateId, is_watermarked: watermark }), [name, project, watermark]);
   useEffect(() => {
@@ -316,7 +318,7 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
         </div>
       ) : null}
 
-      {watermark ? <Watermark /> : null}
+      {marked ? <Watermark /> : null}
 
       {music && (phase === "playing" || phase === "paused") ? (
         <button aria-label={muted ? "Unmute" : "Mute"} onClick={() => setMuted((m) => !m)} style={{ ...round(42), position: "absolute", top: 14, right: 14, fontSize: 18 }}>
@@ -389,7 +391,7 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
         </div>
       ) : null}
 
-      <GuestBar title={title} name={name} watermark={watermark} />
+      <GuestBar title={title} name={name} watermark={marked} onPaid={() => setPaidHere(true)} />
     </main>
   );
 }
@@ -398,7 +400,7 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
  * Always-on actions at the bottom of the invite: share on WhatsApp, and on a free
  * (watermarked) link, remove the watermark. Paying refreshes this same link for everyone.
  */
-function GuestBar({ title, name, watermark }: { title: string; name?: string; watermark: boolean }) {
+function GuestBar({ title, name, watermark, onPaid }: { title: string; name?: string; watermark: boolean; onPaid: () => void }) {
   const [msg, setMsg] = useState<string | null>(null);
   const busy = msg === "Opening payment...";
   const whatsapp = () => {
@@ -410,9 +412,10 @@ function GuestBar({ title, name, watermark }: { title: string; name?: string; wa
     if (!name) return;
     setMsg("Opening payment...");
     try {
-      // Paid: the server already refreshed this page, so a reload shows it without the watermark.
-      if ((await payToRemoveWatermark(name, title)) === "paid") window.location.reload();
-      else setMsg(null);
+      // Paid: the server has refreshed this link for every guest. Here the watermark goes at once, without a
+      // reload that could still be answered by the old copy while the refresh spreads.
+      if ((await payToRemoveWatermark(name, title)) === "paid") onPaid();
+      setMsg(null);
     } catch (e: any) {
       setMsg(e?.message || String(e));
     }

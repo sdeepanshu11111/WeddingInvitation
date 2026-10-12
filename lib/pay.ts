@@ -60,17 +60,9 @@ async function checkout(name: string, title: string, invite_id: string): Promise
       prefill: { contact: savedPhone() || undefined, email: savedEmail() || undefined },
       handler: async (r: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
         try {
-          const v = await fetch("/api/pay/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ name, orderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature }),
-          });
-          const out = await v.json();
-          if (v.ok) {
-            track("payment_completed", { invite_id, amount_inr: order.amount / 100 }); // Razorpay amounts are in paise
-            resolve("paid");
-          }
-          else reject(new Error(out.error || "Payment received but not confirmed yet. It will update within a minute."));
+          await verify({ name, orderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature });
+          track("payment_completed", { invite_id, amount_inr: order.amount / 100 }); // Razorpay amounts are in paise
+          resolve("paid");
         } catch (e) {
           reject(e);
         }
@@ -80,4 +72,22 @@ async function checkout(name: string, title: string, invite_id: string): Promise
     });
     rzp.open();
   });
+}
+
+/**
+ * Asks the server to confirm the payment and remove the watermark. Retried for a few seconds when the network or
+ * the server fails (confirming twice is harmless), so a hiccup doesn't leave a paid link watermarked.
+ * A 4xx (bad signature, another link's order) is final.
+ */
+async function verify(body: { name: string; orderId: string; paymentId: string; signature: string }) {
+  let error = "Payment received but not confirmed yet. It will update within a minute.";
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    if (attempt > 1) await new Promise((r) => setTimeout(r, attempt * 1500));
+    const v = await fetch("/api/pay/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }).catch(() => null);
+    if (v?.ok) return;
+    const out = await v?.json().catch(() => null);
+    if (out?.error) error = out.error;
+    if (v && v.status < 500) break;
+  }
+  throw new Error(error);
 }

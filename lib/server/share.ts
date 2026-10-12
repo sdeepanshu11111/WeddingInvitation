@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createHash, randomBytes } from "node:crypto";
-import { get, head, put } from "@vercel/blob";
+import { BlobNotFoundError, get, head, put } from "@vercel/blob";
 import type { Project } from "../types";
 import { SHARE_STORE } from "../features";
 import { MEDIA_TYPES, allSrcs, mapDataUrls, mimeOfDataUrl } from "../media";
@@ -52,9 +52,11 @@ const store = {
   async readJSON<T>(key: string): Promise<T | null> {
     try {
       if (SHARE_STORE === "blob") {
-        // Straight from Blob storage, not its CDN: a guest who opened a name before it was taken must not be
-        // served a cached "not found". The SDK's own fetch also stays outside Next's page caching.
-        const r = await get("shares/" + key, { access: "public", useCache: false });
+        // A query string the Blob CDN has never seen, so it can't answer with a "not found" it cached before the file
+        // existed (it keeps one for up to a minute; useCache: false only bypasses it for private stores). A guest who
+        // opened a name before it was taken must not get a 404 page cached forever. The SDK's own fetch (undici) also
+        // stays outside Next's page caching.
+        const r = await get(blobBase() + "shares/" + key + "?fresh=" + Date.now(), { access: "public" });
         return r?.statusCode === 200 ? ((await new Response(r.stream).json()) as T) : null;
       }
       return JSON.parse(await fs.readFile(path.join(SHARE_DIR, key), "utf8")) as T;
@@ -223,8 +225,21 @@ export async function orderBelongsTo(name: string, orderId: string) {
   return ID.test(name) && ORDER_ID.test(orderId) && store.exists(name + "/order-" + orderId + ".json");
 }
 
-export async function getPaid(name: string): Promise<Paid | null> {
-  return ID.test(name) ? store.readJSON<Paid>(name + "/paid.json") : null;
+/**
+ * Asked from the Blob API (head), never the public URL: /api/pay/order checks this right before Checkout opens,
+ * the CDN keeps that "not found" for up to a minute, and a page re-rendered from it after payment would keep
+ * the watermark for good (it is cached forever). Throws if the check itself fails, for the same reason.
+ */
+export async function isPaid(name: string): Promise<boolean> {
+  if (!ID.test(name)) return false;
+  if (SHARE_STORE !== "blob") return store.exists(name + "/paid.json");
+  try {
+    await head("shares/" + name + "/paid.json");
+    return true;
+  } catch (e) {
+    if (e instanceof BlobNotFoundError) return false;
+    throw e;
+  }
 }
 
 /** Written once (no-overwrite): the first confirmed payment wins, a repeat (checkout + webhook) is a no-op. */

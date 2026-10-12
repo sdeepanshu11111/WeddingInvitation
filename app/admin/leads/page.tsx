@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { BRAND } from "@/lib/brand";
 import { LEADS, LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
 import { formatPhone } from "@/lib/contact";
-import { type Lead, listLeads, postgresImport } from "@/lib/server/leads";
+import { type Lead, listLeads } from "@/lib/server/leads";
 import { SITE_URL } from "@/lib/site";
 import { LeadActions } from "./LeadActions";
 
@@ -35,11 +35,10 @@ export default async function Leads({ searchParams }: { searchParams: { show?: s
     return (
       <main className="admin">
         <h1>Leads</h1>
-        <p className="admin-empty">Lead capture is off. Set MONGODB_URI (or connect Neon under Vercel → Storage), then redeploy.</p>
+        <p className="admin-empty">Lead capture is off. Set MONGODB_URI in Vercel, then redeploy.</p>
       </main>
     );
   const all = await listLeads();
-  const imported = await postgresImport();
   const show = searchParams.show === "paid" || searchParams.show === "unpaid" ? searchParams.show : "all";
   const leads = all.filter((l) => show === "all" || (show === "paid") === (l.paid_inr != null));
   const paid = all.filter((l) => l.paid_inr != null).length;
@@ -97,12 +96,6 @@ export default async function Leads({ searchParams }: { searchParams: { show?: s
           })}
         </ul>
       )}
-      {imported ? (
-        <p className="admin-empty">
-          Copied {imported.copied} of {imported.total} leads from Postgres into MongoDB on {when(imported.at)}. Once they are all here, Neon can be
-          disconnected.
-        </p>
-      ) : null}
     </main>
   );
 }

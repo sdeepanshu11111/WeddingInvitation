@@ -366,7 +366,8 @@
   .spec div:nth-child(2) { border-right: 0; }
   .spec div:nth-child(-n + 2) { border-bottom: 1px solid var(--line-2); }
   .player-bar { opacity: 1; }
-  .player.vertical .player-box { max-width: min(100%, 380px); }
+  /* Sized to the screen, so the colour options sit above the bottom "Customize" bar on the first screen. */
+  .player.vertical .player-box { max-width: min(100%, clamp(220px, calc((100svh - 380px) * 9 / 16), 300px)); min-width: 0; }
   .detail-ctas .cta-btn { width: 100%; }
   .foot-grid { grid-template-columns: 1fr 1fr; gap: 32px 20px; }
   .foot-brand { grid-column: 1 / -1; }
@@ -380,3 +381,31 @@
   .t-grid { gap: 10px; }
   .t-meta > div > span { font-size: 11.5px; }
 }
+
+/* ---------- phones: conversion ----------
+   Hero: headline, intro, the button, then the live invitation right under it (it used to start on the second
+   screen), "How it works" as a quiet link, and the three facts dropped (the ticks above them say the same).
+   .m-cta (components/site/MobileCta): the page's main action pinned to the bottom while its own buttons are off screen. */
+.m-cta, .m-cta-space { display: none; }
+@media (max-width: 860px) {
+  .hero { display: flex; flex-direction: column; align-items: stretch; gap: 0; min-height: 0; padding-top: 28px; padding-bottom: 40px; }
+  .hero-copy { display: contents; }
+  .hero h1 { margin-top: 14px; }
+  .hero .lead { order: 1; margin-top: 18px; font-size: 16px; }
+  .hero-ctas { order: 2; margin-top: 22px; flex-flow: column nowrap; align-items: stretch; gap: 4px; }
+  .hero-ctas .ghost-btn { border-color: transparent; background: transparent; min-height: 0; padding: 10px; font-size: 14px; text-decoration: underline; text-underline-offset: 3px; }
+  .hero-reel { order: 3; align-self: center; margin-top: 18px; max-width: min(300px, 80vw); }
+  .hero-note { order: 4; justify-content: center; margin-top: 22px; }
+  .hero-facts { display: none; }
+
+  /* Template page: colours in one row that scrolls sideways (two rows would sit under the bottom bar). */
+  .player .pal-opts { display: flex; overflow-x: auto; scrollbar-width: none; max-width: none; margin: 0 -16px; padding: 8px 16px 2px; }
+  .player .pal-opt { flex: 0 0 auto; min-width: 124px; }
+
+  .m-cta-space { display: block; height: calc(76px + env(safe-area-inset-bottom)); }
+  .m-cta { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; display: flex; align-items: center; gap: 12px; padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); border-top: 1px solid var(--line-2); background: var(--bg); box-shadow: 0 -12px 30px -18px rgba(31, 26, 20, 0.35); transform: translateY(110%); transition: transform 0.25s ease; }
+  .m-cta.on { transform: none; }
+  .m-cta .cta-btn { flex: 1; justify-content: center; min-height: 50px; }
+  .m-cta-note { max-width: 70px; color: var(--muted); font-family: var(--mono); font-size: 9.5px; letter-spacing: 0.14em; line-height: 1.35; text-transform: uppercase; }
+}
+@media (prefers-reduced-motion: reduce) { .m-cta { transition: none; } }

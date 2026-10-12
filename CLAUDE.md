@@ -83,8 +83,10 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   - **Names are guessable, so a 404 may be cached before a name exists.** `POST /api/share` calls `revalidatePath("/e/"+name)`
     (works for pages). The preview card is `/e/[slug]/card?v=<createdAt>` (next/og route), linked from the page metadata:
     Next 14 does NOT invalidate cached route responses on revalidatePath (file-system-cache only checks `kind === "PAGE"`),
-    so the card must live at a URL that only exists after creation. Blob reads use the SDK's `get(..., { useCache: false })`
-    (bypasses the Blob CDN, and its undici fetch is outside Next's caching) for the same reason.
+    so the card must live at a URL that only exists after creation. Same reason for Blob reads: the Blob CDN keeps a 404
+    for up to a minute after the file is written, and `get(..., { useCache: false })` only bypasses it for **private** stores
+    (ours is public). So `readJSON` adds a fresh `?fresh=<now>` query, and existence checks (`isPaid`, `nameTaken`) use
+    `head()`, which asks the Blob API. The SDK's undici fetch stays outside Next's caching.
   - **Live** (topbar "Get invite link", `components/editor/ShareDialog.tsx`; one contact field with a WhatsApp/Email toggle, `typingPhone()` caps the number at 10 digits): `POST /api/share {project,title,card,name}` stores a snapshot.
     `card` (palette colours + date) is computed in the editor so server code never imports the templates.
     `app/e/[slug]/LiveInvite.tsx` plays it with `<Frame>` + rAF clock: tap-to-open cover (audio unlock on iOS), 9:16 on
@@ -108,7 +110,12 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   `POST /api/pay/webhook` (event `order.paid`, `RAZORPAY_WEBHOOK_SECRET`) is the backup. The guest page has an always-on
   `<GuestBar>` (WhatsApp share; on free links also "Remove · ₹") from the cover on; the success screen shows the real
   WhatsApp card (`card` URL returned by POST /api/share). The page computes
-  `watermark = PAYMENTS && !getPaid(name)`. `shareFile()` refuses `.json`, so order/paid records are not served as media.
+  `watermark = PAYMENTS && !isPaid(name)`. **`isPaid` must ask the Blob API (`head`), never the public URL**: `/api/pay/order`
+  checks it just before Checkout opens, so the CDN still holds that 404 when the post-payment re-render happens, and that page
+  would keep the watermark forever (this was the "sometimes not removed after payment" bug). `/api/pay/order` on a paid link
+  revalidates the page, so pressing "Remove watermark" again fixes a stuck one without charging. With auto-capture, Razorpay may
+  capture between our GET and capture call; `confirmPayment` then re-reads the payment. The browser retries verify (idempotent)
+  and the guest page drops the watermark locally on success instead of reloading. `shareFile()` refuses `.json`, so order/paid records are not served as media.
 - **Policy pages** (for Meta ads and Razorpay review): `/privacy` (has `#delete`), `/terms`, `/refunds` (incl. delivery), `/contact`
   in `app/(legal)/`, business details in `lib/legal.ts` (empty values are left off the pages). Linked from the editor sidebar
   bottom, the phone ⋯ menu, and an "By paying you agree…" line under every create/pay button in ShareDialog. They describe
@@ -118,11 +125,9 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   sell or share them. `POST /api/share {…, phone?, email?}` saves them with the link name and the notice version
   (`CONTACT_NOTICE`) after the link exists; payments save Razorpay's contact/email as `pay_phone`/`pay_email`
   (verify + webhook). A failed lead write is logged and never fails the share or payment. Stored in MongoDB (`LEADS=mongo`:
-  `MONGODB_URI`, Atlas cluster in Mumbai, database `invite_studio` or `MONGODB_DB`, collection `leads` with `_id` = link name),
-  Postgres (`LEADS=db`: Neon from Vercel Storage sets `DATABASE_URL`; the table is created on first use) or `exports/leads.json`
-  locally (`disk`); on Vercel without a database it is off and nothing is asked. `MONGODB_URI` wins; while `DATABASE_URL` is also
-  set, the first connection copies the Postgres leads in once (`$setOnInsert`, marked done in `meta/postgres-import`, so deleted
-  leads never come back; `/admin/leads` shows the count). The connection string lives only in env vars, never in git. **Never put numbers or emails in Blob (public), the project JSON,
+  `MONGODB_URI`, Atlas cluster in Mumbai, database `invite_studio` or `MONGODB_DB`, collection `leads` with `_id` = link name)
+  or `exports/leads.json` locally (`disk`); on Vercel without `MONGODB_URI` it is off and nothing is asked. (Neon/Postgres was
+  used briefly and removed on 2026-10-13.) The connection string lives only in env vars, never in git. **Never put numbers or emails in Blob (public), the project JSON,
   Mixpanel, the Pixel or logs.** `/admin/leads` (HTTP Basic auth via `middleware.ts`: user `ADMIN_USER`, default `admin`, + `ADMIN_PASSWORD`; 404 on Vercel
   without it) lists leads with WhatsApp / Email buttons (wa.me or mailto + ready message, marks "Messaged"), "Replied STOP" (same number/email)
   and Delete. `/privacy` shows its lead paragraphs only while `LEADS` is on.

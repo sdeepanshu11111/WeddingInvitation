@@ -43,7 +43,12 @@ export function createOrder(name: string) {
 export async function confirmPayment(orderId: string, paymentId: string): Promise<RzpPayment> {
   let p = await api<RzpPayment>("GET", "/payments/" + encodeURIComponent(paymentId));
   if (p.order_id !== orderId) throw new Error("Payment does not belong to this order");
-  if (p.status === "authorized") p = await api<RzpPayment>("POST", "/payments/" + encodeURIComponent(paymentId) + "/capture", { amount: p.amount, currency: p.currency });
+  if (p.status === "authorized") {
+    // With automatic capture Razorpay may capture it between these two calls; then ours fails, so look again.
+    p = await api<RzpPayment>("POST", "/payments/" + encodeURIComponent(paymentId) + "/capture", { amount: p.amount, currency: p.currency }).catch(() =>
+      api<RzpPayment>("GET", "/payments/" + encodeURIComponent(paymentId)),
+    );
+  }
   if (p.status !== "captured") throw new Error("Payment is " + p.status);
   return p;
 }

@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { useDemoTimeline } from "@/components/LivePreview";
 import { PalettePicker } from "@/components/PalettePicker";
+import { MobileCta } from "@/components/site/MobileCta";
 import { PayIcons } from "@/components/PayIcons";
 import { TemplateCard } from "@/components/site/TemplateCard";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
@@ -179,6 +180,8 @@ export function TemplateDetail({ id }: { id: string }) {
           ))}
         </div>
       </section>
+      {/* Phones: the preview fills the first screen, so "Customize" waits at the bottom until the real button shows. */}
+      <MobileCta href={create} label="Customize this design →" note="Free preview" watch=".detail-ctas" />
     </main>
   );
 }

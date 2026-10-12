@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PAYMENTS } from "@/lib/features";
-import { getLiveProject, getPaid, getShare } from "@/lib/server/share";
+import { getLiveProject, getShare, isPaid } from "@/lib/server/share";
 import { SITE_URL } from "@/lib/site";
 import { LiveInvite } from "./LiveInvite";
 import { BRAND } from "@/lib/brand";
@@ -50,7 +50,7 @@ export default async function WatchPage({ params }: { params: { slug: string } }
     const project = await getLiveProject(s.token).catch(() => null);
     if (!project) notFound();
     // Free links carry a watermark while paid links are on; paying revalidates this page (api/pay/verify).
-    const watermark = PAYMENTS && !(await getPaid(s.token));
+    const watermark = PAYMENTS && !(await isPaid(s.token));
     return <LiveInvite project={project} title={s.title} name={s.token} watermark={watermark} />;
   }
 

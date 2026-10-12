@@ -3,6 +3,7 @@ import Link from "next/link";
 import { PayIcons } from "@/components/PayIcons";
 import { Faq, SectionHead, faqItems } from "@/components/site/Faq";
 import { DesignStack, HeroReel, Showcase } from "@/components/site/Landing";
+import { MobileCta } from "@/components/site/MobileCta";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { BRAND } from "@/lib/brand";
@@ -294,6 +295,8 @@ export default function Home() {
       </section>
 
       <SiteFooter />
+      {/* Phones: "Create" stays in thumb reach while none of the page's own buttons are on screen. */}
+      <MobileCta href="/templates" label="Create your invitation →" note="Free preview" watch=".hero-ctas, .price-card .ghost-btn, .final .cta-btn" />
     </div>
   );
 }
