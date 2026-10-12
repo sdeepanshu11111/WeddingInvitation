@@ -119,7 +119,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   (verify + webhook). A failed lead write is logged and never fails the share or payment. Stored in Postgres (`LEADS=db`:
   Neon from Vercel Storage sets `DATABASE_URL`; the table is created on first use) or `exports/leads.json` locally (`disk`);
   on Vercel without a database it is off and nothing is asked. **Never put numbers or emails in Blob (public), the project JSON,
-  Mixpanel, the Pixel or logs.** `/admin/leads` (HTTP Basic auth via `middleware.ts`, `ADMIN_PASSWORD`; 404 on Vercel
+  Mixpanel, the Pixel or logs.** `/admin/leads` (HTTP Basic auth via `middleware.ts`: user `ADMIN_USER`, default `admin`, + `ADMIN_PASSWORD`; 404 on Vercel
   without it) lists leads with WhatsApp / Email buttons (wa.me or mailto + ready message, marks "Messaged"), "Replied STOP" (same number/email)
   and Delete. `/privacy` shows its lead paragraphs only while `LEADS` is on.
 - Feature flags (`lib/features.ts`, set in `next.config.mjs` at build time): `VIDEO_EXPORT` (off on Vercel: the Export MP4 button is hidden, since the site promotes the free invitation page and never mentions

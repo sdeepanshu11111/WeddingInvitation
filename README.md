@@ -94,7 +94,7 @@ On Vercel you get the editor, **Share** links (the invitation plays in the guest
    The Share step then asks for the couple's WhatsApp number or email, and `/admin/leads` lists everyone who made a link.
 5. **Redeploy** after connecting Blob or Neon or changing variables: the share and lead modes are fixed at build time.
 6. Check: open the editor → **Share** → **Create link** → open it on a phone, then paste it into WhatsApp to see the preview card.
-   With Neon connected, open `/admin/leads`, sign in with any user name and `ADMIN_PASSWORD`, and find the link you made.
+   With Neon connected, open `/admin/leads`, sign in as `admin` (or `ADMIN_USER`) with `ADMIN_PASSWORD`, and find the link you made.
 
 | Variable | Set by | Purpose |
 |---|---|---|
@@ -105,7 +105,8 @@ On Vercel you get the editor, **Share** links (the invitation plays in the guest
 | `RAZORPAY_WEBHOOK_SECRET` | you (Razorpay → Webhooks) | Backup confirmation if the buyer closes the tab mid-payment. Webhook URL `<site>/api/pay/webhook`, event **order.paid**, same secret |
 | `LINK_PRICE_INR` | you (optional) | Price of a link without watermark, default `99` |
 | `DATABASE_URL` (or `POSTGRES_URL`) | Vercel, when Neon is connected | Turns on lead capture: WhatsApp number or email in the Share step, payers' contacts, `/admin/leads` |
-| `ADMIN_PASSWORD` | you | Password for `/admin/leads` (any user name). Without it `/admin` is a 404 on Vercel |
+| `ADMIN_PASSWORD` | you | Password for `/admin/leads`. Without it `/admin` is a 404 on Vercel |
+| `ADMIN_USER` | you (optional) | User name for `/admin/leads`, default `admin` |
 | `LEADS` | you (optional) | `0` turns lead capture off even with a database |
 
 Paid links: the Share dialog offers **Free preview link** (watermarked) and **Without watermark · ₹99** (Razorpay Checkout: UPI, cards, netbanking). The server checks the Checkout signature, that the order was made for that link, and with Razorpay that the payment was captured, then writes `paid.json` and revalidates `/e/<name>`. Keys only ever live in Vercel env vars; changing them or the price needs a redeploy.
