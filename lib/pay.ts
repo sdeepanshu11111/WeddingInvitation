@@ -4,7 +4,7 @@
 import { BRAND } from "./brand";
 import { LINK_PRICE_INR } from "./features";
 import { inviteId, track } from "./analytics";
-import { savedPhone } from "./phone";
+import { savedEmail, savedPhone } from "./contact";
 
 let checkoutScript: Promise<void> | null = null;
 
@@ -56,8 +56,8 @@ async function checkout(name: string, title: string, invite_id: string): Promise
       name: BRAND,
       description: "Premium invite link (no watermark): " + title,
       theme: { color: "#d9b77c" },
-      // The WhatsApp number from the Share step, if they gave one on this device: one thing less to type.
-      prefill: savedPhone() ? { contact: savedPhone() } : undefined,
+      // What they gave in the Share step on this device: less to type.
+      prefill: { contact: savedPhone() || undefined, email: savedEmail() || undefined },
       handler: async (r: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
         try {
           const v = await fetch("/api/pay/verify", {

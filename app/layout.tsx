@@ -12,8 +12,8 @@ import "./studio.css";
 import "./site.css";
 
 export const metadata: Metadata = {
-  title: BRAND + " · Wedding video invitations",
-  description: "Animated video invitations for Indian weddings and every function. Preview free with your names and share on WhatsApp.",
+  title: BRAND + " · Wedding invitation pages",
+  description: "Animated invitations for Indian weddings and every function, each with its own page. Preview free with your names and share one link on WhatsApp.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

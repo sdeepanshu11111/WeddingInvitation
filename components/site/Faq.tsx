@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LINK_PRICE_INR, PAYMENTS, VIDEO_EXPORT } from "@/lib/features";
+import { LEADS, LINK_PRICE_INR, PAYMENTS, VIDEO_EXPORT } from "@/lib/features";
 
 export type QA = { q: string; a: ReactNode };
 
@@ -23,10 +23,14 @@ export function faqItems(): QA[] {
       q: "Which communities and languages?",
       a: "Hindu, South Indian (Tamil, Telugu, Malayalam, Kannada), Muslim, Sikh and modern designs, with Devanagari, Gurmukhi, Arabic and South Indian scripts where they belong. Everything you type stays in your own words.",
     },
-    VIDEO_EXPORT
-      ? { q: "Can I download an MP4?", a: "Yes. Export a real MP4 in 9:16 for Reels and WhatsApp Status or 16:9 for YouTube and TV, at 720p, 1080p or 4K." }
-      : { q: "Can I download an MP4?", a: "Not yet. MP4 download for WhatsApp Status and YouTube is coming soon. Today you share a link, which plays with music on any phone." },
   ];
+  if (VIDEO_EXPORT)
+    items.push({ q: "Can I download an MP4?", a: "Yes. Export a real MP4 in 9:16 for Reels and WhatsApp Status or 16:9 for YouTube and TV, at 720p, 1080p or 4K." });
+  if (LEADS)
+    items.push({
+      q: "Why do you ask for my WhatsApp number or email?",
+      a: "So we can help you with your invitation and remind you about it. One of the two is enough. We only contact you about your invite, never sell or share your details, and stop as soon as you reply STOP.",
+    });
   if (PAYMENTS)
     items.push({
       q: "What does Premium include, and can I get a refund?",

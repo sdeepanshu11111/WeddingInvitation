@@ -36,9 +36,10 @@ export default function Privacy() {
         </li>
         {LEADS ? (
           <li>
-            <b>Your WhatsApp number</b>: when you create a link, we ask for your WhatsApp number. We keep it privately with the name of that link (it is
-            never part of the invitation your guests see) and use it only to message you about that invitation, for example to help you or to remind
-            you while it still has the watermark. Reply STOP at any time and we will not message you again.
+            <b>Your WhatsApp number or email</b>: when you create a link, we ask for a WhatsApp number or an email address (one is enough). We keep it
+            privately with the name of that link (it is never part of the invitation your guests see) and use it only to contact you about that
+            invitation, for example to help you or to remind you while it still has the watermark. We never sell it or share it for anyone else&rsquo;s
+            use. Reply STOP at any time and we will not contact you again.
           </li>
         ) : null}
         <li>
@@ -82,7 +83,9 @@ export default function Privacy() {
         <li>To build, save and show your invitation, and to publish it at the link you create.</li>
         <li>To process payments, remove the watermark from paid invitations, issue refunds and keep records required by law.</li>
         <li>To answer your questions, support requests and complaints.</li>
-        {LEADS ? <li>To message you on WhatsApp about your invitation, if you gave us your number (help, and a reminder while it has the watermark).</li> : null}
+        {LEADS ? (
+          <li>To contact you on WhatsApp or by email about your invitation, using what you gave us (help, and a reminder while it has the watermark).</li>
+        ) : null}
         <li>To understand usage, fix problems, prevent fraud and abuse, and improve the product.</li>
         <li>To measure and improve our advertising.</li>
       </ul>
@@ -103,8 +106,8 @@ export default function Privacy() {
         <li>
           <b>Service providers</b> who process data for us under their own privacy and security terms: Vercel Inc. (website hosting and file storage,
           servers in the United States), Razorpay Software Pvt. Ltd. (payments, India), Mixpanel Inc. (analytics, United States)
-          {LEADS === "db" ? ", Neon Inc. (the private database for contact details)" : ""} and Meta Platforms, Inc. (advertising measurement
-          {LEADS ? ", and WhatsApp, which carries our messages to you" : ""}).
+          {LEADS === "db" ? ", Neon Inc. (the private database for contact details)" : ""} and Meta Platforms, Inc. (advertising measurement).
+          {LEADS ? " When we contact you, WhatsApp or our email provider (Google) carries the message." : ""}
         </li>
         <li>
           <b>Authorities</b>, when Indian law, a court order or a lawful government request requires it, or to protect the rights and safety of our
@@ -116,7 +119,7 @@ export default function Privacy() {
       <h2>5. Cookies and your choices</h2>
       <p>
         We use your browser&rsquo;s storage to autosave the invitation you are editing and to keep the anonymous analytics ID
-        {LEADS ? " and the WhatsApp number you last entered, so you don't have to type it again" : ""}. Advertising tools such as
+        {LEADS ? " and the WhatsApp number or email you last entered, so you don't have to type it again" : ""}. Advertising tools such as
         the Meta Pixel may set cookies. You can clear or block cookies and site data in your browser settings at any time; the editor still works, but
         an unsaved draft on that device will be lost. You can control how Meta uses information for ads in your{" "}
         <a href="https://www.facebook.com/adpreferences" target="_blank" rel="noopener noreferrer">
@@ -139,8 +142,8 @@ export default function Privacy() {
         <li>Shared invitations and their media are kept for as long as the link is live, so it keeps working for your guests, or until you ask us to delete them.</li>
         {LEADS ? (
           <li>
-            Your WhatsApp number, and the phone and email from a payment, are kept with your invitation until you ask us to delete them. If you reply
-            STOP, we stop messaging you.
+            Your WhatsApp number or email, and the phone and email from a payment, are kept with your invitation until you ask us to delete them. If
+            you reply STOP, we stop contacting you.
           </li>
         ) : null}
         <li>Payment records are kept for 8 years, as Indian tax and accounting laws require, even if the invitation is deleted.</li>

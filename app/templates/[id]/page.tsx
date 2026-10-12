@@ -13,7 +13,7 @@ export const generateStaticParams = () => TEMPLATES.map((t) => ({ id: t.id }));
 export function generateMetadata({ params }: { params: { id: string } }): Metadata {
   const t = TEMPLATES.find((x) => x.id === params.id);
   if (!t) return {};
-  return { title: t.name + " invitation video · " + BRAND, description: t.tagline + ". Preview it free with your names, then share it on WhatsApp." };
+  return { title: t.name + " invitation · " + BRAND, description: t.tagline + ". Preview it free with your names, then share it on WhatsApp." };
 }
 
 export default function TemplatePage({ params }: { params: { id: string } }) {

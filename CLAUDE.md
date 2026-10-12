@@ -112,17 +112,18 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   in `app/(legal)/`, business details in `lib/legal.ts` (empty values are left off the pages). Linked from the editor sidebar
   bottom, the phone ⋯ menu, and an "By paying you agree…" line under every create/pay button in ShareDialog. They describe
   what the app really does: **adding a tracker (Meta Pixel), processor or stored field means updating `/privacy`**.
-- **Leads** (`lib/server/leads.ts`, flag `LEADS`): the Share step requires a WhatsApp number (`lib/phone.ts`: 10-digit Indian
-  mobile or `+`country code; remembered in localStorage, pre-fills Razorpay Checkout). `POST /api/share {…, phone}` saves it
-  with the link name and the notice version (`PHONE_NOTICE`) after the link exists; payments save Razorpay's contact/email
+- **Leads** (`lib/server/leads.ts`, flag `LEADS`): the Share step requires a WhatsApp number or an email, at least one (`lib/contact.ts`:
+  10-digit Indian mobile or `+`country code; remembered in localStorage, pre-fill Razorpay Checkout), with the promise that we never
+  sell or share them. `POST /api/share {…, phone?, email?}` saves them with the link name and the notice version
+  (`CONTACT_NOTICE`) after the link exists; payments save Razorpay's contact/email as `pay_phone`/`pay_email`
   (verify + webhook). A failed lead write is logged and never fails the share or payment. Stored in Postgres (`LEADS=db`:
   Neon from Vercel Storage sets `DATABASE_URL`; the table is created on first use) or `exports/leads.json` locally (`disk`);
-  on Vercel without a database it is off and no number is asked. **Never put numbers in Blob (public), the project JSON,
+  on Vercel without a database it is off and nothing is asked. **Never put numbers or emails in Blob (public), the project JSON,
   Mixpanel, the Pixel or logs.** `/admin/leads` (HTTP Basic auth via `middleware.ts`, `ADMIN_PASSWORD`; 404 on Vercel
-  without it) lists leads with a WhatsApp button (wa.me + ready message, marks "Messaged"), "Replied STOP" (whole number)
+  without it) lists leads with WhatsApp / Email buttons (wa.me or mailto + ready message, marks "Messaged"), "Replied STOP" (same number/email)
   and Delete. `/privacy` shows its lead paragraphs only while `LEADS` is on.
-- Feature flags (`lib/features.ts`, set in `next.config.mjs` at build time): `VIDEO_EXPORT` (off on Vercel: Export MP4 shows
-  "Soon" and every export API returns 501), `SHARE_STORE`, `PAYMENTS`, `LINK_PRICE_INR` and `LEADS`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`
+- Feature flags (`lib/features.ts`, set in `next.config.mjs` at build time): `VIDEO_EXPORT` (off on Vercel: the Export MP4 button is hidden, since the site promotes the free invitation page and never mentions
+  video, and every export API returns 501), `SHARE_STORE`, `PAYMENTS`, `LINK_PRICE_INR` and `LEADS`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`
   holds `EXPORT_DIR` so share code does not import render.ts (that would pull Chrome/ffmpeg into its function bundle).
 - **Analytics** (Mixpanel, `lib/analytics.ts`; tracking plan and rules in `AGENTS.md`): typed `track()`, started on site pages
   (`<SiteAnalytics>`, surface `site`, keeps an ad's `utm_*` tags), the editor and the guest page (never `/render`, `/admin`), production deploy only (`MIXPANEL=1` to test locally), US residency

@@ -1,14 +1,15 @@
 import type { Metadata } from "next";
 import { BRAND } from "@/lib/brand";
 import { LEADS, LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
-import { formatPhone } from "@/lib/phone";
+import { formatPhone } from "@/lib/contact";
 import { type Lead, listLeads } from "@/lib/server/leads";
 import { SITE_URL } from "@/lib/site";
 import { LeadActions } from "./LeadActions";
 
 /* The owner's follow-up list (behind ADMIN_PASSWORD, see middleware.ts): who made a link, their WhatsApp
-   number, whether they paid, and a button that opens WhatsApp with a ready message. Sent from the owner's
-   own WhatsApp, so it costs nothing; the owner can edit the message before sending. */
+   number and/or email, whether they paid, and buttons that open WhatsApp or the mail app with a ready
+   message. Sent from the owner's own WhatsApp or mailbox, so it costs nothing; the message can be edited
+   before sending. */
 
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { title: "Leads · " + BRAND, robots: { index: false, follow: false } };
@@ -16,7 +17,7 @@ export const metadata: Metadata = { title: "Leads · " + BRAND, robots: { index:
 const when = (iso: string) =>
   new Date(iso).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
-/** The message the WhatsApp button starts with. */
+/** The message the WhatsApp and Email buttons start with. */
 function message(l: Lead, url: string) {
   const invite = l.title ? `invitation "${l.title}"` : "invitation";
   if (l.paid_inr != null)
@@ -59,13 +60,17 @@ export default async function Leads({ searchParams }: { searchParams: { show?: s
         ) : null}
       </header>
       {leads.length === 0 ? (
-        <p className="admin-empty">{all.length ? "Nobody here yet." : "No leads yet. Everyone who creates a link shows up here with their WhatsApp number."}</p>
+        <p className="admin-empty">{all.length ? "Nobody here yet." : "No leads yet. Everyone who creates a link shows up here with their WhatsApp number or email."}</p>
       ) : (
         <ul className="admin-list">
           {leads.map((l) => {
             const url = SITE_URL + "/e/" + l.link;
             const num = l.phone ?? l.pay_phone;
-            const wa = num && !l.opted_out ? "https://wa.me/" + num.replace(/\D/g, "") + "?text=" + encodeURIComponent(message(l, url)) : null;
+            const mail = l.email ?? l.pay_email;
+            const text = message(l, url);
+            const wa = num && !l.opted_out ? "https://wa.me/" + num.replace(/\D/g, "") + "?text=" + encodeURIComponent(text) : null;
+            const subject = "Your " + BRAND + " invitation" + (l.title ? ": " + l.title : "");
+            const mailto = mail && !l.opted_out ? "mailto:" + mail + "?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(text) : null;
             return (
               <li key={l.link} className={"lead" + (l.opted_out ? " out" : "")}>
                 <div className="lead-top">
@@ -76,14 +81,16 @@ export default async function Leads({ searchParams }: { searchParams: { show?: s
                   /e/{l.link}
                 </a>
                 <div className="lead-meta">
-                  {num ? <span>{formatPhone(num)}</span> : <span className="dim">No number</span>}
+                  {num ? <span>{formatPhone(num)}</span> : null}
+                  {mail ? <span>{mail}</span> : null}
+                  {!num && !mail ? <span className="dim">No contact details</span> : null}
                   {l.phone && l.pay_phone && l.pay_phone !== l.phone ? <span>Paid from {formatPhone(l.pay_phone)}</span> : null}
-                  {l.email ? <span>{l.email}</span> : null}
+                  {l.email && l.pay_email && l.pay_email !== l.email ? <span>Paid as {l.pay_email}</span> : null}
                   <span className="dim">Created {when(l.created_at)}</span>
                   {l.contacted_at ? <span className="dim">Messaged {when(l.contacted_at)}</span> : null}
                   {l.opted_out ? <span className="stop">Replied STOP</span> : null}
                 </div>
-                <LeadActions link={l.link} whatsapp={wa} optedOut={l.opted_out} />
+                <LeadActions link={l.link} whatsapp={wa} mailto={mailto} optedOut={l.opted_out} />
               </li>
             );
           })}

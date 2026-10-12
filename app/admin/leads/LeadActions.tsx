@@ -4,8 +4,8 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import type { LeadAction } from "@/lib/server/leads";
 
-/** WhatsApp (opens the chat with a ready message and notes the time), Replied STOP, Delete. */
-export function LeadActions({ link, whatsapp, optedOut }: { link: string; whatsapp: string | null; optedOut: boolean }) {
+/** WhatsApp / Email (opens the chat or a draft with a ready message and notes the time), Replied STOP, Delete. */
+export function LeadActions({ link, whatsapp, mailto, optedOut }: { link: string; whatsapp: string | null; mailto: string | null; optedOut: boolean }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const act = async (action: LeadAction, question?: string) => {
@@ -27,8 +27,13 @@ export function LeadActions({ link, whatsapp, optedOut }: { link: string; whatsa
           WhatsApp
         </a>
       ) : null}
+      {mailto ? (
+        <a className={"btn sm" + (whatsapp ? "" : " primary")} href={mailto} onClick={() => act("contacted")}>
+          Email
+        </a>
+      ) : null}
       {optedOut ? null : (
-        <button className="btn sm" disabled={busy} onClick={() => act("optout", "Mark this number as replied STOP? Its WhatsApp button goes away for good.")}>
+        <button className="btn sm" disabled={busy} onClick={() => act("optout", "Mark as replied STOP? Their WhatsApp and Email buttons go away for good.")}>
           Replied STOP
         </button>
       )}

@@ -248,7 +248,7 @@ function ShareRow({ name }: { name: string }) {
   return (
     <div className="share-row">
       <span className="mono-label">Share</span>
-      <button onClick={() => window.open("https://wa.me/?text=" + encodeURIComponent(name + " invitation video: " + url()), "_blank", "noopener")}>WhatsApp</button>
+      <button onClick={() => window.open("https://wa.me/?text=" + encodeURIComponent(name + " invitation: " + url()), "_blank", "noopener")}>WhatsApp</button>
       <span aria-hidden>|</span>
       <button
         onClick={() =>

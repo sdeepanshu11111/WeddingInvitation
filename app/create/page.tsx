@@ -178,14 +178,13 @@ export default function Editor() {
     setSharing(true);
   };
 
-  /** "Export MP4": the dialog where video export runs, else the "coming soon" note. */
+  /** "Export MP4": the dialog where video export runs. The button only exists while VIDEO_EXPORT is on: the hosted
+      site promotes the free invitation page and link, so it doesn't mention video at all. */
   const openExport = () => {
     track("video_export_clicked", { is_available: VIDEO_EXPORT });
     setMenu(false);
-    if (VIDEO_EXPORT) {
-      setPlaying(false);
-      setExporting(true);
-    } else say("MP4 export is coming soon. Use Share to send guests a link for now.");
+    setPlaying(false);
+    setExporting(true);
   };
 
   /** Phone tabs. Preview fills the screen and starts playing. */
@@ -286,14 +285,9 @@ export default function Editor() {
             </button>
           </>
         ) : (
-          <>
-            <button className="btn ghost desk-only" onClick={openExport} title="Coming soon">
-              Export MP4 <span className="soon">Soon</span>
-            </button>
-            <button className="btn primary desk-only" onClick={openShare} title="Send guests a link that plays the invitation in their browser">
-              Share
-            </button>
-          </>
+          <button className="btn primary desk-only" onClick={openShare} title="Send guests a link that plays the invitation in their browser">
+            Share
+          </button>
         )}
         <div className="more mob-only">
           <button className="btn ghost more-btn" onClick={() => setMenu((m) => !m)} aria-label="More" aria-expanded={menu}>
@@ -310,9 +304,11 @@ export default function Editor() {
                   <input type="file" accept="application/json" hidden onChange={(e) => { setMenu(false); if (e.target.files?.[0]) importJSON(e.target.files[0]); }} />
                   ⇪ Open a saved project
                 </label>
-                <button role="menuitem" onClick={openExport}>
-                  ⬇ Export MP4 {VIDEO_EXPORT ? null : <span className="soon">Soon</span>}
-                </button>
+                {VIDEO_EXPORT ? (
+                  <button role="menuitem" onClick={openExport}>
+                    ⬇ Export MP4
+                  </button>
+                ) : null}
                 <LegalLinks className="menu-legal" />
               </div>
             </>

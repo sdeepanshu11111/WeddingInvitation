@@ -9,7 +9,7 @@ export function SiteFooter() {
       <div className="foot-grid">
         <div className="foot-brand">
           <Logo />
-          <p>Animated video invitations for every Indian function: wedding, engagement, haldi, mehendi, sangeet and reception.</p>
+          <p>Animated invitations with their own page, for every Indian function: wedding, engagement, haldi, mehendi, sangeet and reception.</p>
           <a href={"mailto:" + LEGAL.email}>{LEGAL.email}</a>
           {LEGAL.phone ? <a href={"tel:" + LEGAL.phone.replace(/\s/g, "")}>{LEGAL.phone}</a> : null}
         </div>

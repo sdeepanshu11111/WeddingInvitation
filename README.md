@@ -91,7 +91,7 @@ On Vercel you get the editor, **Share** links (the invitation plays in the guest
 3. **Settings → Environment Variables** → `SITE_URL` = the domain guests should see, e.g. `https://invitestudio.in`. Set it if your production domain isn't live yet: without it, link previews point at the production domain.
 4. **Lead capture** (optional): **Storage → Create → Neon** (Postgres, free plan), region nearest India, **Connect** it to the
    project. This adds `DATABASE_URL`; the `leads` table creates itself on first use. Then set `ADMIN_PASSWORD` (see below).
-   The Share step then asks for the couple's WhatsApp number, and `/admin/leads` lists everyone who made a link.
+   The Share step then asks for the couple's WhatsApp number or email, and `/admin/leads` lists everyone who made a link.
 5. **Redeploy** after connecting Blob or Neon or changing variables: the share and lead modes are fixed at build time.
 6. Check: open the editor → **Share** → **Create link** → open it on a phone, then paste it into WhatsApp to see the preview card.
    With Neon connected, open `/admin/leads`, sign in with any user name and `ADMIN_PASSWORD`, and find the link you made.
@@ -104,7 +104,7 @@ On Vercel you get the editor, **Share** links (the invitation plays in the guest
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | you (Razorpay → Account & Settings → API Keys) | Turns on paid links: free links get a "Preview" watermark, removing it costs `LINK_PRICE_INR` |
 | `RAZORPAY_WEBHOOK_SECRET` | you (Razorpay → Webhooks) | Backup confirmation if the buyer closes the tab mid-payment. Webhook URL `<site>/api/pay/webhook`, event **order.paid**, same secret |
 | `LINK_PRICE_INR` | you (optional) | Price of a link without watermark, default `99` |
-| `DATABASE_URL` (or `POSTGRES_URL`) | Vercel, when Neon is connected | Turns on lead capture: WhatsApp number in the Share step, payers' contacts, `/admin/leads` |
+| `DATABASE_URL` (or `POSTGRES_URL`) | Vercel, when Neon is connected | Turns on lead capture: WhatsApp number or email in the Share step, payers' contacts, `/admin/leads` |
 | `ADMIN_PASSWORD` | you | Password for `/admin/leads` (any user name). Without it `/admin` is a 404 on Vercel |
 | `LEADS` | you (optional) | `0` turns lead capture off even with a database |
 

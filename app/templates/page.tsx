@@ -14,10 +14,10 @@ const pickCommunity = (v?: string) => (COMMUNITIES.some((c) => c.id === v) ? (v 
 export function generateMetadata({ searchParams }: { searchParams: Search }): Metadata {
   const c = CATEGORIES.find((x) => x.id === searchParams.category);
   return {
-    title: (c ? c.label + " invitation video templates" : "Video invitation templates") + " · " + BRAND,
+    title: (c ? c.label + " invitation templates" : "Invitation templates") + " · " + BRAND,
     description: c
-      ? c.blurb + ". Animated " + c.label.toLowerCase() + " invitation videos: preview free with your names, share on WhatsApp."
-      : "Animated invitation videos for weddings, engagement, haldi, mehendi, sangeet and reception. Preview free with your names.",
+      ? c.blurb + ". Animated " + c.label.toLowerCase() + " invitations with their own page: preview free with your names, share on WhatsApp."
+      : "Animated invitations for weddings, engagement, haldi, mehendi, sangeet and reception, each with its own page. Preview free with your names.",
   };
 }
 

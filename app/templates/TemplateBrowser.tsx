@@ -34,11 +34,11 @@ export function TemplateBrowser({ initial }: { initial: Partial<Filter> }) {
         <h1>
           {cat ? (
             <>
-              {cat.label} <em>invitation</em> videos
+              {cat.label} <em>invitations</em>
             </>
           ) : (
             <>
-              Every <em>invitation</em> video
+              Every <em>invitation</em> design
             </>
           )}
         </h1>

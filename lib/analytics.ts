@@ -35,7 +35,7 @@ type Events = {
     has_video: boolean;
     duration_seconds: number;
   };
-  /** "Export MP4", while it is still "Soon" on the hosted site: how many people want video. */
+  /** "Export MP4" (only where export is on: the hosted site hides it and doesn't mention video). */
   video_export_clicked: { is_available: boolean };
   payment_started: { invite_id: string; amount_inr: number };
   payment_completed: { invite_id: string; amount_inr: number };
