@@ -3,6 +3,7 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { useDemoTimeline } from "@/components/LivePreview";
+import { PalettePicker } from "@/components/PalettePicker";
 import { PayIcons } from "@/components/PayIcons";
 import { TemplateCard } from "@/components/site/TemplateCard";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
@@ -58,19 +59,7 @@ export function TemplateDetail({ id }: { id: string }) {
               </button>
             </div>
           </div>
-          {/* Each palette's real colours (background, second background, accent, text) and its name, big enough to tap. */}
-          <div className="pal-opts" role="radiogroup" aria-label="Colours">
-            {t.palettes.map((x) => (
-              <button key={x.id} role="radio" aria-checked={x.id === pal} className={"pal-opt" + (x.id === pal ? " on" : "")} onClick={() => setPal(x.id)}>
-                <span className="pal-strip" aria-hidden>
-                  {[x.bg, x.bg2, x.accent, x.ink].map((c, i) => (
-                    <i key={i} style={{ background: c }} />
-                  ))}
-                </span>
-                <span className="pal-name">{x.name}</span>
-              </button>
-            ))}
-          </div>
+          <PalettePicker palettes={t.palettes} value={pal} onChange={setPal} />
         </div>
 
         <div className="detail-copy">

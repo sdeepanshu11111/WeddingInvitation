@@ -12,6 +12,7 @@ import { SIZES, buildTimeline, defaultProject, idbGet, idbSet } from "@/lib/proj
 import { TEMPLATES } from "@/lib/templates";
 import { VIDEO_EXPORT } from "@/lib/features";
 import { LegalLinks } from "@/components/LegalLinks";
+import { PalettePicker } from "@/components/PalettePicker";
 import { Logo } from "@/components/site/SiteHeader";
 import { startAnalytics, track } from "@/lib/analytics";
 import type { CategoryId, Orientation, Project } from "@/lib/types";
@@ -212,6 +213,9 @@ export default function Editor() {
   }
 
   const tpl = main.template;
+  // Colours sit right under the preview: on the canvas on desktop, at the top of the Design panel on phones.
+  const palNow = tpl.palettes.find((p) => p.id === project.paletteId) ?? tpl.palettes[0];
+  const colours = <PalettePicker palettes={tpl.palettes} value={palNow.id} onChange={(id) => update({ paletteId: id })} />;
   const showBoth = view === "both" && !narrow; // side by side needs a wide screen
   const activeScene = [...main.slots].reverse().find((s) => T >= s.start) ?? main.slots[0];
 
@@ -315,8 +319,14 @@ export default function Editor() {
         </div>
       </header>
 
-      {/* ---------------- left: templates + palette ---------------- */}
+      {/* ---------------- left: templates (phones: colours first, the Design panel sits right under the preview) ---------------- */}
       <aside className="left">
+        <div className="looks-m mob-only">
+          <div className="section-title">
+            Colours · <b>{palNow.name}</b>
+          </div>
+          {colours}
+        </div>
         <button className="btn browse" onClick={() => { setPlaying(false); setGallery(true); }}>
           ▦ Browse all {TEMPLATES.length} templates
         </button>
@@ -351,22 +361,6 @@ export default function Editor() {
           ))}
         </div>
 
-        <div className="section-title" style={{ marginTop: 24 }}>
-          Colour palette
-        </div>
-        <div className="palettes">
-          {tpl.palettes.map((p) => (
-            <button key={p.id} className={"pal" + (p.id === project.paletteId ? " on" : "")} onClick={() => update({ paletteId: p.id })}>
-              <div className="sw">
-                <i style={{ background: p.bg }} />
-                <i style={{ background: p.bg2 }} />
-                <i style={{ background: p.accent }} />
-                <i style={{ background: p.ink }} />
-              </div>
-              {p.name}
-            </button>
-          ))}
-        </div>
         <LegalLinks />
         <div className="next-cta mob-only">
           <button className="btn primary" onClick={() => goTab("details")}>
@@ -377,21 +371,29 @@ export default function Editor() {
 
       {/* ---------------- centre: canvas + transport ---------------- */}
       <main className="center">
-        <div className={"canvas" + (showBoth ? " compare" : "")}>
-          {showBoth ? (
-            <>
-              <div>
-                <span className="canvas-label">9:16 · 1080×1920</span>
-                {renderStage("vertical")}
-              </div>
-              <div>
-                <span className="canvas-label">16:9 · 1920×1080</span>
-                {renderStage("horizontal")}
-              </div>
-            </>
-          ) : (
-            renderStage(project.orientation)
-          )}
+        <div className="canvas">
+          <div className={"canvas-stage" + (showBoth ? " compare" : "")}>
+            {showBoth ? (
+              <>
+                <div>
+                  <span className="canvas-label">9:16 · 1080×1920</span>
+                  {renderStage("vertical")}
+                </div>
+                <div>
+                  <span className="canvas-label">16:9 · 1920×1080</span>
+                  {renderStage("horizontal")}
+                </div>
+              </>
+            ) : (
+              renderStage(project.orientation)
+            )}
+          </div>
+          <div className="looks desk-only">
+            <span className="looks-label">
+              Colours · <b>{palNow.name}</b>
+            </span>
+            {colours}
+          </div>
         </div>
 
         <div className="transport">
