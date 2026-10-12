@@ -1,7 +1,8 @@
 /* Product analytics (Mixpanel), browser only.
 
-   Started by the two pages people use: the editor and a guest's invite (/e/<name>). Never by /render or
-   /client-render, which headless Chrome screenshots during an export. The SDK (core build, no session
+   Started on the public site pages (<SiteAnalytics> in the root layout, see sitePage()), by the editor and by a
+   guest's invite (/e/<name>). Never by /render or /client-render, which headless Chrome screenshots during an
+   export, or by /admin. The SDK (core build, no session
    replay) loads after the page, so it never slows the invite down; calls made before it arrives are
    queued in order. Off unless MIXPANEL_TOKEN is set (production deploys, see next.config.mjs).
 
@@ -47,28 +48,50 @@ type Events = {
   invite_shared: { channel: "whatsapp" | "native_share" | "copy"; invite_id?: string };
 };
 
+type Surface = "site" | "editor" | "guest_page";
 /** Registered on every event of the page: which page it came from and, on a guest page, which invite. */
 type Super = { invite_id?: string; template_id?: string; is_watermarked?: boolean };
+const PAGE_KEYS = ["invite_id", "template_id", "is_watermarked"] as const;
+/** Tags on the link that brought the visitor, e.g. a Meta ad's utm_source=meta&utm_campaign=... */
+const UTM = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
+/** A guest page's URL and title carry the couple's names. */
+const blacklist = (surface: Surface) => (surface === "guest_page" ? ["$current_url", "current_page_title", "current_url_path"] : []);
 
 let sdk: Promise<Mixpanel | null> | null = null;
 
-export function startAnalytics(surface: "editor" | "guest_page", props: Super = {}) {
-  if (!MIXPANEL_TOKEN || sdk) return;
-  sdk = import("mixpanel-browser/src/loaders/loader-module-core")
+/**
+ * Loads Mixpanel once and records a page view. Called again after a client-side navigation to another kind
+ * of page (site → editor), it switches the super properties over to the new page.
+ */
+export function startAnalytics(surface: Surface, props: Super = {}) {
+  if (!MIXPANEL_TOKEN) return;
+  // Read now: the editor strips its query string right after this call (its effect runs first).
+  const q = new URLSearchParams(location.search);
+  sdk ??= import("mixpanel-browser/src/loaders/loader-module-core")
     .then((m) => {
       const mp = (m as unknown as { default: Mixpanel }).default; // its typings drop the default export
       mp.init(MIXPANEL_TOKEN, {
         api_host: MIXPANEL_API_HOST, // must match the project's data residency, or events are silently dropped
         persistence: "localStorage",
         debug: process.env.NODE_ENV !== "production",
-        property_blacklist: surface === "guest_page" ? ["$current_url", "current_page_title", "current_url_path"] : [],
+        property_blacklist: blacklist(surface),
       });
-      mp.register(present({ surface, ...props }));
-      mp.track_pageview(); // after register, so the page view carries the super properties too
       return mp;
     })
     .catch(() => null); // blocked or offline: the app works the same without it
+  sdk.then((mp) => {
+    if (!mp) return;
+    mp.set_config({ property_blacklist: blacklist(surface) });
+    for (const k of PAGE_KEYS) if (props[k] === undefined) mp.unregister(k);
+    // An ad's tags stay on every later event (editor, payment) and visit, until a link with other tags arrives.
+    if (UTM.some((k) => q.get(k))) for (const k of UTM) q.get(k) ? mp.register({ [k]: q.get(k) }) : mp.unregister(k);
+    mp.register(present({ surface, ...props }));
+    mp.track_pageview(); // after register, so the page view carries the super properties too
+  });
 }
+
+/** The public site pages: not the editor, a guest's invite, the headless export pages or /admin. */
+export const sitePage = (path: string) => !/^\/(create|e|v|render|client-render|admin)(\/|$)/.test(path);
 
 export function track<E extends keyof Events>(event: E, ...props: {} extends Events[E] ? [Events[E]?] : [Events[E]]) {
   sdk?.then((mp) => mp?.track(event, present(props[0] ?? {})));
@@ -98,9 +121,9 @@ const META: { [E in keyof Events]?: (p: Events[E]) => MetaEvent | null } = {
 type Fbq = ((...args: unknown[]) => void) & Record<string, any>;
 const fbq = () => (typeof window === "undefined" ? undefined : ((window as any).fbq as Fbq | undefined));
 
-/** Pages the pixel may see: not a guest's invite (names in the URL), not the headless export pages. */
+/** Pages the pixel may see: not a guest's invite (names in the URL), not the headless export pages, not /admin. */
 export const pixelAllowed = (path = typeof location === "undefined" ? "" : location.pathname) =>
-  !!META_PIXEL_ID && !/^\/(e|v|render|client-render)(\/|$)/.test(path);
+  !!META_PIXEL_ID && !/^\/(e|v|render|client-render|admin)(\/|$)/.test(path);
 
 /** Loads Meta's fbevents.js once (their base code, unminified) and sends a PageView. Call on every route change. */
 export function pixelPageView() {

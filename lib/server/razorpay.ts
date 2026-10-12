@@ -27,7 +27,8 @@ async function api<T>(method: "GET" | "POST", path: string, body?: unknown): Pro
 }
 
 export type RzpOrder = { id: string; amount: number; amount_paid: number; currency: string; status: string; notes?: Record<string, string> };
-export type RzpPayment = { id: string; order_id: string; amount: number; currency: string; status: string };
+/** contact and email: what the buyer typed into Checkout (kept as a lead, see lib/server/leads.ts). */
+export type RzpPayment = { id: string; order_id: string; amount: number; currency: string; status: string; contact?: string; email?: string };
 
 /** An order for removing the watermark from one share. notes.share ties the money to that link. */
 export function createOrder(name: string) {

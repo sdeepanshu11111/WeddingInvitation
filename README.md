@@ -89,8 +89,12 @@ On Vercel you get the editor, **Share** links (the invitation plays in the guest
 1. Push the repo to GitHub and import it in Vercel (**Add New → Project**). Next.js is detected; no build settings needed.
 2. **Storage → Create → Blob**: choose a **public** store in the region nearest India, then **Connect** it to the project (all environments). This adds `BLOB_STORE_ID` (new stores sign in with Vercel's OIDC token, no secret needed) or, on older stores, `BLOB_READ_WRITE_TOKEN`. Free on Hobby within the monthly limits (1 GB storage, 10 GB transfer); Hobby is never billed, Blob just pauses if a limit is hit.
 3. **Settings → Environment Variables** → `SITE_URL` = the domain guests should see, e.g. `https://invitestudio.in`. Set it if your production domain isn't live yet: without it, link previews point at the production domain.
-4. **Redeploy** after connecting Blob or changing variables: the share mode is fixed at build time.
-5. Check: open the editor → **Share** → **Create link** → open it on a phone, then paste it into WhatsApp to see the preview card.
+4. **Lead capture** (optional): **Storage → Create → Neon** (Postgres, free plan), region nearest India, **Connect** it to the
+   project. This adds `DATABASE_URL`; the `leads` table creates itself on first use. Then set `ADMIN_PASSWORD` (see below).
+   The Share step then asks for the couple's WhatsApp number, and `/admin/leads` lists everyone who made a link.
+5. **Redeploy** after connecting Blob or Neon or changing variables: the share and lead modes are fixed at build time.
+6. Check: open the editor → **Share** → **Create link** → open it on a phone, then paste it into WhatsApp to see the preview card.
+   With Neon connected, open `/admin/leads`, sign in with any user name and `ADMIN_PASSWORD`, and find the link you made.
 
 | Variable | Set by | Purpose |
 |---|---|---|
@@ -100,6 +104,9 @@ On Vercel you get the editor, **Share** links (the invitation plays in the guest
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | you (Razorpay → Account & Settings → API Keys) | Turns on paid links: free links get a "Preview" watermark, removing it costs `LINK_PRICE_INR` |
 | `RAZORPAY_WEBHOOK_SECRET` | you (Razorpay → Webhooks) | Backup confirmation if the buyer closes the tab mid-payment. Webhook URL `<site>/api/pay/webhook`, event **order.paid**, same secret |
 | `LINK_PRICE_INR` | you (optional) | Price of a link without watermark, default `99` |
+| `DATABASE_URL` (or `POSTGRES_URL`) | Vercel, when Neon is connected | Turns on lead capture: WhatsApp number in the Share step, payers' contacts, `/admin/leads` |
+| `ADMIN_PASSWORD` | you | Password for `/admin/leads` (any user name). Without it `/admin` is a 404 on Vercel |
+| `LEADS` | you (optional) | `0` turns lead capture off even with a database |
 
 Paid links: the Share dialog offers **Free preview link** (watermarked) and **Without watermark · ₹99** (Razorpay Checkout: UPI, cards, netbanking). The server checks the Checkout signature, that the order was made for that link, and with Razorpay that the payment was captured, then writes `paid.json` and revalidates `/e/<name>`. Keys only ever live in Vercel env vars; changing them or the price needs a redeploy.
 

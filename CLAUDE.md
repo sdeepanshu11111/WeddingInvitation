@@ -58,7 +58,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   `faqItems()` that follows the feature flags, Landing) and `components/LivePreview.tsx` (demo timeline, loop clock, `LazyPreview` mounts
   only near the viewport). Styles: `app/site.css`; the studio restyle is `app/studio.css`, loaded after `globals.css`. The guest page wraps
   itself in `.guest-ui`, which restores the old dark/gold tokens, because it frames the couple's invitation, not our brand. Public pages
-  don't track analytics yet. Copy is our own: no invented reviews, ratings or claims, and answers stay true to `PAYMENTS` / `VIDEO_EXPORT`.
+  send Mixpanel page views with surface `site` (see Analytics). Copy is our own: no invented reviews, ratings or claims, and answers stay true to `PAYMENTS` / `VIDEO_EXPORT`.
 - `app/create/page.tsx`: the editor (sidebar categories, canvas, transport, form). It reads `?template&palette&o` once, then strips them
   from the URL. **Phones (≤ 860px)**: an app layout, not a stack:
   preview on top, one panel below chosen by bottom tabs (`.app[data-tab]` = design → `.left`, details → `.right`, preview =
@@ -112,14 +112,23 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   in `app/(legal)/`, business details in `lib/legal.ts` (empty values are left off the pages). Linked from the editor sidebar
   bottom, the phone ⋯ menu, and an "By paying you agree…" line under every create/pay button in ShareDialog. They describe
   what the app really does: **adding a tracker (Meta Pixel), processor or stored field means updating `/privacy`**.
+- **Leads** (`lib/server/leads.ts`, flag `LEADS`): the Share step requires a WhatsApp number (`lib/phone.ts`: 10-digit Indian
+  mobile or `+`country code; remembered in localStorage, pre-fills Razorpay Checkout). `POST /api/share {…, phone}` saves it
+  with the link name and the notice version (`PHONE_NOTICE`) after the link exists; payments save Razorpay's contact/email
+  (verify + webhook). A failed lead write is logged and never fails the share or payment. Stored in Postgres (`LEADS=db`:
+  Neon from Vercel Storage sets `DATABASE_URL`; the table is created on first use) or `exports/leads.json` locally (`disk`);
+  on Vercel without a database it is off and no number is asked. **Never put numbers in Blob (public), the project JSON,
+  Mixpanel, the Pixel or logs.** `/admin/leads` (HTTP Basic auth via `middleware.ts`, `ADMIN_PASSWORD`; 404 on Vercel
+  without it) lists leads with a WhatsApp button (wa.me + ready message, marks "Messaged"), "Replied STOP" (whole number)
+  and Delete. `/privacy` shows its lead paragraphs only while `LEADS` is on.
 - Feature flags (`lib/features.ts`, set in `next.config.mjs` at build time): `VIDEO_EXPORT` (off on Vercel: Export MP4 shows
-  "Soon" and every export API returns 501), `SHARE_STORE`, `PAYMENTS` and `LINK_PRICE_INR`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`
+  "Soon" and every export API returns 501), `SHARE_STORE`, `PAYMENTS`, `LINK_PRICE_INR` and `LEADS`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`
   holds `EXPORT_DIR` so share code does not import render.ts (that would pull Chrome/ffmpeg into its function bundle).
-- **Analytics** (Mixpanel, `lib/analytics.ts`; tracking plan and rules in `AGENTS.md`): typed `track()`, started only by the
-  editor and the guest page (never `/render`), production deploy only (`MIXPANEL=1` to test locally), US residency
+- **Analytics** (Mixpanel, `lib/analytics.ts`; tracking plan and rules in `AGENTS.md`): typed `track()`, started on site pages
+  (`<SiteAnalytics>`, surface `site`, keeps an ad's `utm_*` tags), the editor and the guest page (never `/render`, `/admin`), production deploy only (`MIXPANEL=1` to test locally), US residency
   (`api-js.mixpanel.com`; api-in silently drops this project's events), anonymous (no identify), no names: guest pages strip the URL/title and use a hashed `invite_id`.
 - **Meta Pixel** (ads, pixel `1116330824214375`; details in `AGENTS.md`): `<MetaPixel>` in the root layout sends PageView on
-  site pages only (never `/e/`, `/render`, `/client-render`), production only (`META_PIXEL=1` to test). `track()` maps
+  site pages only (never `/e/`, `/render`, `/client-render`, `/admin`), production only (`META_PIXEL=1` to test). `track()` maps
   template_selected → ViewContent, share_dialog_opened → AddToCart, payment_started → InitiateCheckout, payment_completed →
   Purchase (eventID `purchase-<invite_id>`), free invite_link_created → Lead. Automatic events off. Headless Chrome only
   sends events when `navigator.webdriver` is hidden, so check by hand or with that override.

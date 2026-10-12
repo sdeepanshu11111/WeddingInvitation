@@ -13,6 +13,11 @@ export const SHARE_STORE: "blob" | "disk" = process.env.NEXT_PUBLIC_SHARE_STORE 
 export const PAYMENTS = process.env.NEXT_PUBLIC_PAYMENTS === "1";
 export const LINK_PRICE_INR = Number(process.env.NEXT_PUBLIC_LINK_PRICE_INR) || 99;
 
+/** Lead capture (a WhatsApp number in the Share step, payers' contacts, /admin/leads), kept in lib/server/leads.ts:
+    "db" when a Postgres database is connected (Neon sets DATABASE_URL), "disk" locally, "" = off (no number asked).
+    Force off with LEADS=0. */
+export const LEADS: "db" | "disk" | "" = process.env.NEXT_PUBLIC_LEADS === "db" ? "db" : process.env.NEXT_PUBLIC_LEADS === "disk" ? "disk" : "";
+
 /** Mixpanel project token, set only on the production deployment (or with MIXPANEL=1). Empty = analytics off. */
 export const MIXPANEL_TOKEN = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN || "";
 /** Mixpanel ingestion host for the project's data residency (MIXPANEL_API_HOST; default US). */

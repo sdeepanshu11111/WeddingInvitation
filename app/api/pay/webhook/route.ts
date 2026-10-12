@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { LEADS } from "@/lib/features";
+import { savePaymentLead } from "@/lib/server/leads";
 import { webhookSignatureValid } from "@/lib/server/razorpay";
 import { markPaid, orderBelongsTo } from "@/lib/server/share";
 
@@ -24,6 +26,7 @@ export async function POST(req: Request) {
   const name = order?.notes?.share;
   if (typeof name !== "string" || !(await orderBelongsTo(name, order.id))) return NextResponse.json({ ignored: "unknown order" });
   await markPaid(name, { orderId: order.id, paymentId: payment?.id ?? "", amount: order.amount_paid ?? 0, paidAt: Date.now() });
+  if (LEADS) await savePaymentLead(name, { contact: payment?.contact, email: payment?.email, amount: order.amount_paid ?? 0 }).catch((e) => console.error("Lead not saved:", e?.message));
   revalidatePath("/e/" + name);
   return NextResponse.json({ ok: true });
 }

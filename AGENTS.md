@@ -34,17 +34,22 @@ library unless the owner asks for it. Project context and architecture are in `C
 
 ## Mixpanel Initialization
 
-**File:** `lib/analytics.ts`, function `startAnalytics(surface, superProps)`. It is called by exactly two pages:
+**File:** `lib/analytics.ts`, function `startAnalytics(surface, superProps)`. Three callers:
 
-- `app/create/page.tsx` (the editor): `startAnalytics("editor")`. The public pages (`/`, `/templates`, `/templates/<id>`) don't start Mixpanel yet (the Meta Pixel PageView from the root layout does cover them).
+- `components/SiteAnalytics.tsx` in the root layout: `startAnalytics("site")` on every route change of a public page
+  (`/`, `/templates`, `/templates/<id>`, the policy pages). `sitePage(path)` decides, and skips `/create`, `/e/`, `/v/`,
+  `/render`, `/client-render` and `/admin`.
+- `app/create/page.tsx` (the editor): `startAnalytics("editor")`
 - `app/e/[slug]/LiveInvite.tsx` (the guest page): `startAnalytics("guest_page", { invite_id, template_id, is_watermarked })`
 
-It loads the SDK with a dynamic `import()` after the page loads, so it never slows the invite down. `track()` calls
-made before the SDK arrives are queued in order. It registers the super properties, then calls `track_pageview()`.
+It loads the SDK once, with a dynamic `import()` after the page loads, so it never slows the invite down. `track()`
+calls made before the SDK arrives are queued in order. Each call sets the guest-page blacklist on or off, swaps the
+super properties for the new page (a client-side move from the landing page to the editor is one SDK, two surfaces),
+registers the page's `utm_*` tags if its URL has any, then calls `track_pageview()`.
 
 **Do not:**
-- Start analytics in `app/layout.tsx` or on `/render` and `/client-render`. Headless Chrome screenshots those pages
-  for every exported frame, so tracking there would flood the project with fake page views.
+- Start analytics on `/render` and `/client-render` (headless Chrome screenshots them for every exported frame, so
+  tracking there would flood the project with fake page views) or on `/admin`. Keep `sitePage()` excluding them.
 - Turn on `autocapture`, `record_sessions_percent` or heatmaps. They would capture the couple's names, photos and
   venue text from the screen.
 - Remove `property_blacklist` on guest pages. `$current_url`, `current_page_title` and `current_url_path` contain the
@@ -78,14 +83,15 @@ wrong property, so update that type first.
 
 | Property | Where | Values |
 |---|---|---|
-| `surface` | all | `editor`, `guest_page` |
+| `surface` | all | `site`, `editor`, `guest_page` |
 | `invite_id`, `template_id`, `is_watermarked` | guest page | which invite the guest is looking at |
+| `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` | after a visit from a tagged link (an ad) | the link's tags; kept on later events and visits until a link with other tags arrives (last touch) |
 
 ### Current Mixpanel events
 
 | Event | Trigger | Key properties | File |
 |---|---|---|---|
-| `$mp_web_page_view` | Editor or guest page loaded | (super properties) | `lib/analytics.ts` |
+| `$mp_web_page_view` | A site page (each route), the editor or a guest page loaded | (super properties) | `lib/analytics.ts` |
 | `template_selected` | Couple picks a template (in the editor, or arrives from "Customize" on a template page with a different one) | `template_id`, `source` (`sidebar`/`gallery`/`template_page`) | `app/create/page.tsx` |
 | `share_dialog_opened` | Couple opens Share | `template_id` | `app/create/page.tsx` |
 | `invite_link_created` ★ | Share link saved (value moment) | `invite_id`, `template_id`, `palette_id`, `orientation`, `plan` (`free`/`premium`, only with payments on), `is_custom_name`, `has_music`, `photo_count`, `has_video`, `duration_seconds` | `components/editor/ShareDialog.tsx` |
@@ -109,7 +115,7 @@ Pixel "FutureProof Wedding Web", ID `1116330824214375`, in the Futureproof 2 bus
 |---|---|
 | **Code** | `lib/analytics.ts` (`pixelPageView`, `pixelAllowed`, the `META` map), `components/MetaPixel.tsx` in `app/layout.tsx` |
 | **When it is on** | Production deployment only. Force with `META_PIXEL=1` / `0`; `META_PIXEL_ID` points it at another pixel (`next.config.mjs`). |
-| **Pages** | Site pages only: `/`, `/templates…`, `/create`, the policy pages. **Never** `/e/…` or `/v/…` (the URL has the couple's names, and `/privacy` promises guests' pages are untracked) and never `/render`, `/client-render`. `/e/*` also sends `Referrer-Policy: origin` so a guest clicking through to the site doesn't hand Meta the invite URL. |
+| **Pages** | Site pages only: `/`, `/templates…`, `/create`, the policy pages. **Never** `/e/…` or `/v/…` (the URL has the couple's names, and `/privacy` promises guests' pages are untracked) and never `/render`, `/client-render` or `/admin`. `/e/*` also sends `Referrer-Policy: origin` so a guest clicking through to the site doesn't hand Meta the invite URL. |
 | **PageView** | Fired by `<MetaPixel>` on every route change; Meta's own history listener is off (`disablePushState`). |
 | **Automatic events** | Off (`autoConfig false`): they read button text and page content, which in the editor holds the couple's names. |
 

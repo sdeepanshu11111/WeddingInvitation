@@ -1,21 +1,27 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
-import { VIDEO_EXPORT, exportOff } from "@/lib/features";
+import { LEADS, VIDEO_EXPORT, exportOff } from "@/lib/features";
+import { PHONE_NOTICE, normalizePhone } from "@/lib/phone";
 import { slugify } from "@/lib/slug";
+import { saveShareLead } from "@/lib/server/leads";
 import { ShareError, createLiveShare, createVideoShare, lanOrigin, suggestName } from "@/lib/server/share";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * POST { project, title, card, name? }  -> live invitation at /e/<name> (default: from the couple's names)
- * POST { file, title }                  -> link to a finished MP4 in ./exports
+ * POST { project, title, card, name?, phone? } -> live invitation at /e/<name> (default: from the couple's names).
+ *      phone: the couple's WhatsApp number (lead capture), stored privately, never in the published project
+ * POST { file, title }                         -> link to a finished MP4 in ./exports
  * Both return { token, url, lanUrl }. A taken name gives 409 { error, suggestion }.
  */
 export async function POST(req: Request) {
   const body = await req.json().catch(() => null);
   const title = typeof body?.title === "string" && body.title.trim() ? body.title.trim() : "Wedding invitation";
   const origin = new URL(req.url).origin;
+  // Kept out of the project on purpose: the project is published, the number is not.
+  const phone = LEADS && typeof body?.phone === "string" && body.phone ? normalizePhone(body.phone) : null;
+  if (LEADS && body?.phone && !phone) return NextResponse.json({ error: "Please enter a valid WhatsApp number" }, { status: 400 });
   let share;
   try {
     if (body?.project?.templateId) {
@@ -30,6 +36,8 @@ export async function POST(req: Request) {
     const missing = e?.code === "ENOENT" || e?.message === "Bad file name";
     return NextResponse.json({ error: missing ? "That video is no longer in the exports folder" : "Could not create the link: " + (e?.message || e) }, { status: missing ? 404 : 500 });
   }
+  // Losing a lead must never cost the couple their link, so a database error is only logged (without the number).
+  if (phone && share.kind === "live") await saveShareLead(share.token, title, phone, PHONE_NOTICE).catch((e) => console.error("Lead not saved:", e?.message));
   // Names are guessable, so someone may have opened this one before it existed: drop any cached "not found".
   revalidatePath("/e/" + share.token);
   const lan = lanOrigin(origin);

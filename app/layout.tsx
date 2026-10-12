@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 // when it actually appears on screen. Templates use the --f-* variables defined there.
 import { BRAND } from "@/lib/brand";
 import { MetaPixel } from "@/components/MetaPixel";
+import { SiteAnalytics } from "@/components/SiteAnalytics";
 import "./fonts.css";
 import "./globals.css";
 import "./studio.css";
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         {children}
         <MetaPixel />
+        <SiteAnalytics />
       </body>
     </html>
   );

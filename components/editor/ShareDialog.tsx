@@ -6,7 +6,8 @@ import type { Project } from "@/lib/types";
 import { buildTimeline, coupleTitle, inviteDate, makeTheme } from "@/lib/project";
 import { getTemplate } from "@/lib/templates";
 import { BRAND } from "@/lib/brand";
-import { LINK_PRICE_INR, PAYMENTS, SHARE_STORE } from "@/lib/features";
+import { LEADS, LINK_PRICE_INR, PAYMENTS, SHARE_STORE } from "@/lib/features";
+import { normalizePhone, rememberPhone, savedPhone } from "@/lib/phone";
 import { payToRemoveWatermark } from "@/lib/pay";
 import { inviteId, track } from "@/lib/analytics";
 import { MEDIA_TYPES, allSrcs, mapDataUrls } from "@/lib/media";
@@ -30,6 +31,12 @@ const typing = (v: string) =>
 const autoName = (title: string) => {
   const stamp = Math.floor(Date.now() / 1000).toString(36);
   return (slugify(title).slice(0, 40).replace(/-+$/, "") || "invite") + "-" + stamp;
+};
+
+/** The number they gave last time on this device, as they would type it ("98765 43210" for India). */
+const lastPhone = () => {
+  const p = savedPhone();
+  return /^\+91\d{10}$/.test(p) ? p.slice(3, 8) + " " + p.slice(8) : p;
 };
 
 const Spinner = () => <span className="spin" aria-hidden />;
@@ -83,6 +90,10 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   const [pay, setPay] = useState<Pay>("none");
   const [showClean, setShowClean] = useState(true); // phone preview: the clean invite they get after paying
   const [created, setCreated] = useState<string | null>(null); // the name of the link once it exists
+  // Lead capture: their WhatsApp number, required to create a link (sent separately, never inside the published project).
+  const [phone, setPhone] = useState(lastPhone);
+  const [phoneBad, setPhoneBad] = useState(false);
+  const phoneInput = useRef<HTMLInputElement>(null);
 
   // Is a typed name free? Asked as the user types (debounced); stale answers are ignored.
   useEffect(() => {
@@ -112,6 +123,13 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
 
   /** withoutWatermark: create the link, then go straight to payment (the free link stays if they cancel). */
   const create = async (withoutWatermark = false) => {
+    const whatsapp = LEADS ? normalizePhone(phone) : null;
+    if (LEADS && !whatsapp) {
+      setPhoneBad(true);
+      phoneInput.current?.focus();
+      return;
+    }
+    if (whatsapp) rememberPhone(whatsapp); // also pre-fills Razorpay Checkout
     setState("busy");
     try {
       let shared = uploaded.current ?? project;
@@ -139,7 +157,7 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
       const t = makeTheme(getTemplate(project.templateId), project.paletteId);
       const card = { bg: t.bg, bg2: t.bg2, ink: t.ink, soft: t.soft, accent: t.accent, line: t.line, date: inviteDate(project.data) };
       const post = (n: string) =>
-        fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: shared, title, card, name: n }) });
+        fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: shared, title, card, name: n, phone: whatsapp ?? undefined }) });
       let finalName = name;
       let res = await post(finalName);
       let r = await res.json();
@@ -359,6 +377,40 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                         <li>Active instantly</li>
                       </ul>
                     </button>
+                  </div>
+                </>
+              ) : null}
+
+              {LEADS ? (
+                <>
+                  <div className="share-label" style={{ marginTop: 18 }}>
+                    Your WhatsApp number
+                  </div>
+                  <div className={"url-field phone" + (phoneBad ? " bad" : "")}>
+                    {phone.trim().startsWith("+") ? null : <span className="host">+91</span>}
+                    <input
+                      ref={phoneInput}
+                      type="tel"
+                      inputMode="tel"
+                      autoComplete="tel-national"
+                      placeholder="98765 43210"
+                      value={phone}
+                      onChange={(e) => {
+                        setPhone(e.target.value);
+                        setPhoneBad(false);
+                      }}
+                      disabled={busy}
+                      aria-label="Your WhatsApp number"
+                      aria-invalid={phoneBad}
+                      aria-describedby="phone-note"
+                    />
+                  </div>
+                  <div className="url-hint" id="phone-note" style={phoneBad ? { color: "var(--danger)" } : undefined}>
+                    {phoneBad
+                      ? "Enter a 10-digit mobile number. Outside India? Start with + and your country code."
+                      : PAYMENTS
+                        ? "Only for messages about this invite, like help or a reminder while it has the watermark. Reply STOP anytime."
+                        : "Only for messages about this invite, like help if something goes wrong. Reply STOP anytime."}
                   </div>
                 </>
               ) : null}

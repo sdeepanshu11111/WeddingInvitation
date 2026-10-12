@@ -1,13 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
+import { LEADS } from "@/lib/features";
 import { LEGAL, OPERATOR } from "@/lib/legal";
 
 export const metadata: Metadata = { title: "Privacy Policy · " + BRAND, description: `How ${BRAND} collects, uses and protects your information.` };
 
 /* Keep this in step with what the app really does: Blob storage for share links (lib/server/share.ts),
    Razorpay (lib/server/razorpay.ts), Mixpanel (lib/analytics.ts, AGENTS.md), local autosave (lib/project.ts).
-   Meta Pixel (lib/analytics.ts, AGENTS.md). Adding a tracker or a new processor means updating sections 2, 4 and 5. */
+   Meta Pixel (lib/analytics.ts, AGENTS.md). WhatsApp numbers and payers' contacts (lib/server/leads.ts) only
+   while LEADS is on. Adding a tracker or a new processor means updating sections 2, 4 and 5. */
 export default function Privacy() {
   const mail = <a href={"mailto:" + LEGAL.email}>{LEGAL.email}</a>;
   return (
@@ -32,10 +34,20 @@ export default function Privacy() {
           <b>Shared invitations</b>: when you tap &ldquo;Share&rdquo; and create a link, we upload that invitation&rsquo;s content and media to our
           servers so your guests can open it. The link name you choose (for example <i>/e/aarav-ananya</i>) is part of the web address.
         </li>
+        {LEADS ? (
+          <li>
+            <b>Your WhatsApp number</b>: when you create a link, we ask for your WhatsApp number. We keep it privately with the name of that link (it is
+            never part of the invitation your guests see) and use it only to message you about that invitation, for example to help you or to remind
+            you while it still has the watermark. Reply STOP at any time and we will not message you again.
+          </li>
+        ) : null}
         <li>
           <b>Payments</b>: if you buy the Premium plan, payment is handled by Razorpay. You enter your card, UPI, net-banking or wallet details, phone
-          number and email on Razorpay&rsquo;s secure checkout, not on our site. We receive and keep only the order ID, payment ID, amount, time and the
-          invitation the payment was for. We never see or store your full card or bank details.
+          number and email on Razorpay&rsquo;s secure checkout, not on our site.{" "}
+          {LEADS
+            ? "We receive and keep the order ID, payment ID, amount, time, the invitation the payment was for, and the phone number and email you gave Razorpay, so we can help you with your purchase."
+            : "We receive and keep only the order ID, payment ID, amount, time and the invitation the payment was for."}{" "}
+          We never see or store your full card or bank details.
         </li>
         <li>
           <b>Messages to us</b>: if you email us, we keep your email address and what you write so we can reply.
@@ -70,6 +82,7 @@ export default function Privacy() {
         <li>To build, save and show your invitation, and to publish it at the link you create.</li>
         <li>To process payments, remove the watermark from paid invitations, issue refunds and keep records required by law.</li>
         <li>To answer your questions, support requests and complaints.</li>
+        {LEADS ? <li>To message you on WhatsApp about your invitation, if you gave us your number (help, and a reminder while it has the watermark).</li> : null}
         <li>To understand usage, fix problems, prevent fraud and abuse, and improve the product.</li>
         <li>To measure and improve our advertising.</li>
       </ul>
@@ -89,8 +102,9 @@ export default function Privacy() {
         </li>
         <li>
           <b>Service providers</b> who process data for us under their own privacy and security terms: Vercel Inc. (website hosting and file storage,
-          servers in the United States), Razorpay Software Pvt. Ltd. (payments, India), Mixpanel Inc. (analytics, United States) and Meta Platforms,
-          Inc. (advertising measurement).
+          servers in the United States), Razorpay Software Pvt. Ltd. (payments, India), Mixpanel Inc. (analytics, United States)
+          {LEADS === "db" ? ", Neon Inc. (the private database for contact details)" : ""} and Meta Platforms, Inc. (advertising measurement
+          {LEADS ? ", and WhatsApp, which carries our messages to you" : ""}).
         </li>
         <li>
           <b>Authorities</b>, when Indian law, a court order or a lawful government request requires it, or to protect the rights and safety of our
@@ -101,7 +115,8 @@ export default function Privacy() {
 
       <h2>5. Cookies and your choices</h2>
       <p>
-        We use your browser&rsquo;s storage to autosave the invitation you are editing and to keep the anonymous analytics ID. Advertising tools such as
+        We use your browser&rsquo;s storage to autosave the invitation you are editing and to keep the anonymous analytics ID
+        {LEADS ? " and the WhatsApp number you last entered, so you don't have to type it again" : ""}. Advertising tools such as
         the Meta Pixel may set cookies. You can clear or block cookies and site data in your browser settings at any time; the editor still works, but
         an unsaved draft on that device will be lost. You can control how Meta uses information for ads in your{" "}
         <a href="https://www.facebook.com/adpreferences" target="_blank" rel="noopener noreferrer">
@@ -122,6 +137,12 @@ export default function Privacy() {
       <ul>
         <li>Drafts stay in your browser until you clear them; we never receive them.</li>
         <li>Shared invitations and their media are kept for as long as the link is live, so it keeps working for your guests, or until you ask us to delete them.</li>
+        {LEADS ? (
+          <li>
+            Your WhatsApp number, and the phone and email from a payment, are kept with your invitation until you ask us to delete them. If you reply
+            STOP, we stop messaging you.
+          </li>
+        ) : null}
         <li>Payment records are kept for 8 years, as Indian tax and accounting laws require, even if the invitation is deleted.</li>
         <li>Analytics events are kept for up to 2 years and emails for as long as needed to resolve your request.</li>
       </ul>
@@ -129,7 +150,8 @@ export default function Privacy() {
       <h2 id="delete">7. Your rights and deleting your data</h2>
       <p>
         You can ask us to access, correct or delete your personal information, to withdraw your consent, or to nominate someone to act for you. To delete
-        a shared invitation and all its photos, videos and music, email {mail} from any address with the full link (the address ending in
+        a shared invitation and all its photos, videos and music{LEADS ? ", and the contact details we keep with it" : ""}, email {mail} from any
+        address with the full link (the address ending in
         <i> /e/your-link-name</i>) and, if you paid, the Razorpay payment ID from your receipt so we can confirm it is yours. We delete
         it within 7 days and confirm by email. To delete a draft, clear this site&rsquo;s data in your browser.
       </p>
