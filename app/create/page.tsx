@@ -12,6 +12,7 @@ import { SIZES, buildTimeline, defaultProject, idbGet, idbSet } from "@/lib/proj
 import { TEMPLATES } from "@/lib/templates";
 import { VIDEO_EXPORT } from "@/lib/features";
 import { LegalLinks } from "@/components/LegalLinks";
+import { Logo } from "@/components/site/SiteHeader";
 import { startAnalytics, track } from "@/lib/analytics";
 import type { CategoryId, Orientation, Project } from "@/lib/types";
 
@@ -238,9 +239,7 @@ export default function Editor() {
       {/* ---------------- top bar ---------------- */}
       <header className="topbar">
         <div className="brand">
-          <Link href="/" className="logo">
-            Future<i>Proof</i>
-          </Link>
+          <Logo />
           <span className="crumb">
             <Link href="/templates">Templates</Link> / {tpl.name}
           </span>

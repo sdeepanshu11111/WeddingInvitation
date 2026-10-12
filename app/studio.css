@@ -6,8 +6,6 @@
 body { font-family: var(--ui); }
 ::selection { background: rgba(183, 71, 42, 0.22); }
 
-.logo { font-family: var(--display); font-weight: 800; font-size: 22px; letter-spacing: -0.02em; color: var(--text); text-decoration: none; line-height: 1; white-space: nowrap; }
-.logo i { font-style: italic; font-weight: 500; color: var(--accent); }
 .mono-label { font-family: var(--mono); font-size: 10.5px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); }
 .mono-label.accent { color: var(--accent); }
 
@@ -22,6 +20,7 @@ body { font-family: var(--ui); }
 /* top bar */
 .topbar { background: rgba(251, 247, 238, 0.9); border-bottom-color: var(--line-2); gap: 12px; }
 .brand { align-items: center; gap: 14px; min-width: 0; }
+.topbar .logo-mark { height: 44px; }
 .brand .crumb { font-family: var(--mono); font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 14px; border-left: 1px solid var(--line-2); }
 .brand .crumb a { color: var(--muted); text-decoration: none; }
 .brand .crumb a:hover { color: var(--accent); }
@@ -112,7 +111,7 @@ body { font-family: var(--ui); }
 
 @media (max-width: 860px) {
   .brand .crumb { display: none; }
-  .logo { font-size: 20px; }
+  .topbar .logo-mark { height: 40px; }
   .mtab.on { color: var(--accent); background: rgba(183, 71, 42, 0.08); }
   .mtab.share { background: var(--accent); color: var(--on-accent); }
   .modal { border-radius: 14px 14px 0 0; }

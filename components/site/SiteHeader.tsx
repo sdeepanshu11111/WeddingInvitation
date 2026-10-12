@@ -1,21 +1,28 @@
 "use client";
 import Link from "next/link";
-import React, { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
+import React, { useEffect, useRef, useState } from "react";
 import { CATEGORIES } from "@/lib/catalog";
 import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
 
+/** The Mangalam lockup (public/brand/mangalam-logo.png, 546×290, transparent). Its height comes from CSS. */
 export function Logo() {
   return (
-    <Link href="/" className="logo" aria-label="Home">
-      Future<i>Proof</i>
+    <Link href="/" className="logo-mark">
+      <img src="/brand/mangalam-logo.png" width={546} height={290} alt="Mangalam by Futureproof" />
     </Link>
   );
 }
 
-/** Promo strip + sticky header for the public pages (home, templates, policies). Phones get a slide-down menu. */
+/** Promo strip + sticky header for the public pages (home, templates, policies): nav · centred logo · actions.
+ *  Phones get burger · logo · Create, and a menu that opens right under the header. */
 export function SiteHeader() {
+  const pathname = usePathname() || "/";
+  const head = useRef<HTMLElement>(null);
   const [open, setOpen] = useState(false);
+  const [menuTop, setMenuTop] = useState(64);
   const [scrolled, setScrolled] = useState(false);
+  const inTemplates = pathname === "/templates" || pathname.startsWith("/templates/");
 
   useEffect(() => {
     const on = () => setScrolled(window.scrollY > 24);
@@ -26,15 +33,25 @@ export function SiteHeader() {
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
+    if (!open) return;
+    const esc = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", esc);
     return () => {
       document.body.style.overflow = "";
+      window.removeEventListener("keydown", esc);
     };
   }, [open]);
+
+  // The promo strip scrolls away, so the header's bottom edge moves: measure it when the menu opens.
+  const toggle = () => {
+    setMenuTop(Math.round(head.current?.getBoundingClientRect().bottom ?? 64));
+    setOpen((o) => !o);
+  };
 
   return (
     <>
       <div className="promo">
-        <span>
+        <span className="promo-long">
           {PAYMENTS ? (
             <>
               Create your invitation and preview it free. Remove the watermark for <b>₹{LINK_PRICE_INR}</b> when you are ready.
@@ -43,15 +60,28 @@ export function SiteHeader() {
             <>Create your invitation free and share it on WhatsApp in minutes.</>
           )}
         </span>
+        <span className="promo-short">
+          {PAYMENTS ? (
+            <>
+              Preview free · remove the watermark for <b>₹{LINK_PRICE_INR}</b>
+            </>
+          ) : (
+            <>Create free · share on WhatsApp</>
+          )}
+        </span>
         <Link href="/contact" className="promo-link">
           Contact
         </Link>
       </div>
-      <header className={"site-head" + (scrolled ? " scrolled" : "")}>
-        <Logo />
+      <header ref={head} className={"site-head" + (scrolled ? " scrolled" : "") + (open ? " open" : "")}>
+        <button className="burger" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} aria-controls="site-menu" onClick={toggle}>
+          <i />
+          <i />
+          <i />
+        </button>
         <nav className="site-nav" aria-label="Main">
           <div className="nav-drop">
-            <Link href="/templates">
+            <Link href="/templates" className={inTemplates ? "on" : undefined} aria-current={pathname === "/templates" ? "page" : undefined}>
               Templates <Caret />
             </Link>
             <div className="drop-panel">
@@ -73,20 +103,19 @@ export function SiteHeader() {
           <Link href="/#pricing">Pricing</Link>
           <Link href="/#faq">FAQ</Link>
         </nav>
-        <Link href="/create" className="nav-studio desk">
-          Open studio
-        </Link>
-        <Link href="/templates" className="cta-btn sm">
-          Create invitation →
-        </Link>
-        <button className="burger" aria-label="Menu" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-          <i />
-          <i />
-          <i />
-        </button>
+        <Logo />
+        <div className="head-end">
+          <Link href="/create" className="nav-studio">
+            Open studio
+          </Link>
+          <Link href="/templates" className="cta-btn sm">
+            <span className="desk-txt">Create invitation →</span>
+            <span className="mob-txt">Create →</span>
+          </Link>
+        </div>
       </header>
       {open ? (
-        <div className="m-menu" onClick={(e) => (e.target as HTMLElement).closest("a") && setOpen(false)}>
+        <div id="site-menu" className="m-menu" style={{ top: menuTop }} onClick={(e) => (e.target as HTMLElement).closest("a") && setOpen(false)}>
           <span className="mono-label">Templates</span>
           {CATEGORIES.map((c) => (
             <Link key={c.id} href={"/templates?category=" + c.id} className="m-cat">
@@ -101,6 +130,7 @@ export function SiteHeader() {
           <Link href="/#pricing">Pricing</Link>
           <Link href="/#faq">FAQ</Link>
           <Link href="/create">Open studio</Link>
+          <Link href="/contact">Contact</Link>
           <Link href="/templates" className="cta-btn block">
             Create invitation →
           </Link>
