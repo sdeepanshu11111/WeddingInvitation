@@ -752,3 +752,6 @@ input[type="date"].input, input[type="time"].input { color-scheme: light; }
 .looks-m { margin-bottom: 18px; }
 .looks-m .pal-opts { margin: 0 -14px; padding: 8px 14px 2px; }
 @media (max-width: 860px) { .looks { display: none; } }
+
+/* Studio form: says that tapping a field shows it in the preview */
+.field-hint { margin: 0; padding: 12px 16px 2px; color: var(--muted); font-size: 12.5px; }

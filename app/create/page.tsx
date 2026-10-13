@@ -10,6 +10,7 @@ import { CATEGORIES, countIn } from "@/lib/catalog";
 import { fmt } from "@/lib/anim";
 import { SIZES, buildTimeline, defaultProject, idbGet, idbSet } from "@/lib/project";
 import { TEMPLATES } from "@/lib/templates";
+import { sceneForField } from "@/lib/fieldScene";
 import { VIDEO_EXPORT } from "@/lib/features";
 import { LegalLinks } from "@/components/LegalLinks";
 import { PalettePicker } from "@/components/PalettePicker";
@@ -62,6 +63,7 @@ export default function Editor() {
           const pal = want.palettes.find((x) => x.id === q.get("palette"));
           const o = q.get("o");
           proj = { ...proj, paletteId: pal?.id ?? proj.paletteId, orientation: o === "horizontal" || o === "vertical" ? o : proj.orientation };
+          setTab("details"); // they just chose the design on its page: phones go straight to their names
         }
         setProject(proj);
         setView(proj.orientation);
@@ -136,6 +138,15 @@ export default function Editor() {
     if (!playing && T >= total - 1) setT(0);
     setPlaying((p) => !p);
   }, [playing, T, total]);
+
+  /** Tapping a field shows the scene it appears in, held still, so they watch their own words go in as they type. */
+  const showField = (target: EventTarget) => {
+    const key = (target as HTMLElement).closest?.("[data-field]")?.getAttribute("data-field");
+    const i = key && main ? sceneForField(key, main.scenes) : -1;
+    if (!main || i < 0) return;
+    setPlaying(false);
+    seek(main.slots[i].start + main.scenes[i].duration * 0.55);
+  };
 
   const seek = (t: number) => {
     setT(Math.max(0, Math.min(total, t)));
@@ -323,7 +334,7 @@ export default function Editor() {
       <aside className="left">
         <div className="looks-m mob-only">
           <div className="section-title">
-            Colours · <b>{palNow.name}</b>
+            Colours
           </div>
           {colours}
         </div>
@@ -364,7 +375,7 @@ export default function Editor() {
         <LegalLinks />
         <div className="next-cta mob-only">
           <button className="btn primary" onClick={() => goTab("details")}>
-            Next: add your details →
+            Next: add your names →
           </button>
         </div>
       </aside>
@@ -390,7 +401,7 @@ export default function Editor() {
           </div>
           <div className="looks desk-only">
             <span className="looks-label">
-              Colours · <b>{palNow.name}</b>
+              Colours
             </span>
             {colours}
           </div>
@@ -425,7 +436,8 @@ export default function Editor() {
       </main>
 
       {/* ---------------- right: content ---------------- */}
-      <aside className="right">
+      <aside className="right" onFocus={(e) => showField(e.target)}>
+        <p className="field-hint">Tap a field and the preview jumps to where it appears.</p>
         <FieldGroups groups={tpl.groups} data={project.data} set={setField} onError={say} />
 
         <details className="group" open={!!project.music}>

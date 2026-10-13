@@ -60,7 +60,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   itself in `.guest-ui`, which restores the old dark/gold tokens, because it frames the couple's invitation, not our brand. Public pages
   send Mixpanel page views with surface `site` (see Analytics). Copy is our own: no invented reviews, ratings or claims, and answers stay true to `PAYMENTS` / `VIDEO_EXPORT`.
 - `app/create/page.tsx`: the editor (sidebar categories, canvas, transport, form). Colours sit right under the preview: a row on the
-  canvas on desktop, the top of the Design panel on phones (`components/PalettePicker.tsx`, shared with `/templates/<id>`). It reads `?template&palette&o` once, then strips them
+  canvas on desktop, the top of the Design panel on phones (`components/PalettePicker.tsx`, shared with `/templates/<id>`). Tapping a form field jumps the preview to the scene that shows it and pauses there (`lib/fieldScene.ts` maps field keys to scene ids/labels; fields carry `data-field`). Arriving with `?template` opens the Details tab on phones. It reads `?template&palette&o` once, then strips them
   from the URL. **Phones (≤ 860px)**: an app layout, not a stack:
   preview on top, one panel below chosen by bottom tabs (`.app[data-tab]` = design → `.left`, details → `.right`, preview =
   full-height canvas) plus Get link; sticky "Next" steps guide Design → Details → Get link; the ⋯ menu holds Browse/Open/Export.

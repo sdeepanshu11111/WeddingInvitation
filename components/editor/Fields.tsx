@@ -26,7 +26,9 @@ export function FieldGroups({
           <summary>{g.title}</summary>
           <div className="group-body">
             {g.fields.map((f) => (
-              <FieldInput key={f.key} field={f} value={data[f.key]} set={set} onError={onError} />
+              <div key={f.key} data-field={f.key} style={{ display: "contents" }}>
+                <FieldInput field={f} value={data[f.key]} set={set} onError={onError} />
+              </div>
             ))}
           </div>
         </details>

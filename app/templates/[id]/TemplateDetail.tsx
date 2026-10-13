@@ -49,7 +49,7 @@ export function TemplateDetail({ id }: { id: string }) {
           </div>
           <div className="player-opts">
             <span className="mono-label pal-label">
-              Colours · <b>{p.name}</b>
+              Colours
             </span>
             <div className="seg-o">
               <button className={o === "vertical" ? "on" : ""} onClick={() => setO("vertical")}>
