@@ -24,13 +24,22 @@ const typing = (v: string) =>
   v.toLowerCase().replace(/\s+/g, "-").replace(/[^a-z0-9-]/g, "").replace(/-{2,}/g, "-").replace(/^-/, "").slice(0, 50);
 
 /**
- * A link name nobody has to think about: the couple's names plus a short
- * timestamp (seconds, base 36), e.g. aarav-ananya-t3k2x9. Unique in practice,
- * so the couple never has to pick again because a name is taken.
+ * A short link name nobody has to think about: a 3-character random code, then each person's first name,
+ * e.g. k7x-aarav-ananya ("Harpreet Singh & Simran Kaur" → k7x-harpreet-simran). The code avoids look-alike
+ * characters (0/o, 1/l/i) so it can be read out or typed. The rare clash is caught by POST /api/share (409),
+ * and create() then takes the server's suggestion without asking.
  */
+const CODE_CHARS = "abcdefghjkmnpqrstuvwxyz23456789";
+const HONORIFICS = new Set(["dr", "mr", "mrs", "ms", "miss", "shri", "sri", "smt", "chi", "sow", "er", "capt", "lt"]);
 const autoName = (title: string) => {
-  const stamp = Math.floor(Date.now() / 1000).toString(36);
-  return (slugify(title).slice(0, 40).replace(/-+$/, "") || "invite") + "-" + stamp;
+  const r = crypto.getRandomValues(new Uint8Array(3));
+  const code = Array.from(r, (n) => CODE_CHARS[n % CODE_CHARS.length]).join("");
+  const firsts = title
+    .split("&")
+    .map((part) => slugify(part).split("-").find((w) => w && !HONORIFICS.has(w)) ?? "")
+    .filter(Boolean)
+    .join("-");
+  return code + "-" + (firsts.slice(0, 40).replace(/-+$/, "") || "invite");
 };
 
 /** The number they gave last time on this device, as they would type it ("98765 43210" for India). */
@@ -93,12 +102,12 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
   const [pay, setPay] = useState<Pay>("none");
   const [showClean, setShowClean] = useState(true); // phone preview: the clean invite they get after paying
   const [created, setCreated] = useState<string | null>(null); // the name of the link once it exists
-  // Lead capture: a WhatsApp number or an email to create a link (sent separately, never inside the published project).
+  // Lead capture, optional: a WhatsApp number or an email (sent separately, never inside the published project).
   // One field at a time, so it never looks like both are needed; WhatsApp first unless they gave only an email before.
   const [via, setVia] = useState<"whatsapp" | "email">(() => (!savedPhone() && savedEmail() ? "email" : "whatsapp"));
   const [phone, setPhone] = useState(lastPhone);
   const [email, setEmail] = useState(savedEmail);
-  const [contactBad, setContactBad] = useState<"empty" | "invalid" | null>(null);
+  const [contactBad, setContactBad] = useState<"invalid" | null>(null);
   const contactInput = useRef<HTMLInputElement>(null);
   const switched = useRef(false); // focus the field after they pick WhatsApp / Email, not when the dialog opens
   const caret = useRef<number | null>(null); // digits (and "+") before the caret, so reformatting "98765 43210" doesn't move it
@@ -151,12 +160,13 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
 
   /** withoutWatermark: create the link, then go straight to payment (the free link stays if they cancel). */
   const create = async (withoutWatermark = false) => {
-    // Only the field they can see is sent, even if they typed in the other one before switching.
+    // Only the field they can see is sent, even if they typed in the other one before switching. The field is optional
+    // (fewer steps to the link); it only stops them when something was typed that isn't a valid number or email.
     const whatsapp = LEADS && via === "whatsapp" ? normalizePhone(phone) : null;
     const mail = LEADS && via === "email" ? normalizeEmail(email) : null;
-    const bad = !LEADS || whatsapp || mail ? null : (via === "whatsapp" ? phone : email).trim() ? "invalid" : "empty";
-    if (bad) {
-      setContactBad(bad);
+    const typed = (via === "whatsapp" ? phone : email).trim();
+    if (LEADS && typed && !whatsapp && !mail) {
+      setContactBad("invalid");
       contactInput.current?.focus();
       return;
     }
@@ -417,7 +427,7 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                 <>
                   <div className="reach-head">
                     <label className="share-label" htmlFor="reach-input">
-                      {via === "whatsapp" ? "Your WhatsApp number" : "Your email"}
+                      {via === "whatsapp" ? "Your WhatsApp number" : "Your email"} <span className="optional">(optional)</span>
                     </label>
                     <div className="seg" role="radiogroup" aria-label="How should we reach you?">
                       <button className={via === "whatsapp" ? "on" : ""} onClick={() => chooseVia("whatsapp")} disabled={busy} role="radio" aria-checked={via === "whatsapp"}>
@@ -479,15 +489,11 @@ export function ShareDialog({ project, onClose }: { project: Project; onClose: (
                     ) : null}
                   </div>
                   <div className="url-hint" id="contact-note" style={contactBad ? { color: "var(--danger)" } : undefined}>
-                    {contactBad === "empty"
+                    {contactBad === "invalid"
                       ? via === "whatsapp"
-                        ? "Add your WhatsApp number, so we can help you with this invite."
-                        : "Add your email, so we can help you with this invite."
-                      : contactBad === "invalid"
-                        ? via === "whatsapp"
-                          ? "Enter a 10-digit mobile number. Outside India? Start with + and your country code."
-                          : "That email doesn't look right."
-                        : "We only contact you about this invite, and we never sell or share your details."}
+                        ? "Enter a 10-digit mobile number, or leave it empty. Outside India? Start with + and your country code."
+                        : "That email doesn't look right. Fix it, or leave it empty."
+                      : "Optional: only if you'd like help with this invite. We never sell or share your details."}
                   </div>
                 </>
               ) : null}

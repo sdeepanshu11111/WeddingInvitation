@@ -28,7 +28,7 @@ export function TemplateBrowser({ initial }: { initial: Partial<Filter> }) {
     <main className="browse-page">
       <section className="page-head">
         <nav className="crumbs mono-label" aria-label="Breadcrumb">
-          <Link href="/">Home</Link> / <Link href="/templates">Templates</Link>
+          <Link href="/">Home</Link> / <Link href="/templates">Designs</Link>
           {cat ? <> / {cat.label}</> : null}
         </nav>
         <h1>
@@ -38,20 +38,20 @@ export function TemplateBrowser({ initial }: { initial: Partial<Filter> }) {
             </>
           ) : (
             <>
-              Every <em>invitation</em> design
+              Choose your <em>design</em>
             </>
           )}
         </h1>
         <p className="lead">
           {cat
-            ? cat.blurb + ". Play any design, then make it yours with your names, date and venue."
-            : "Animated designs for the wedding and every function around it. Open any design to watch it play and make it yours."}
+            ? cat.blurb + ". Tap a design to watch it with your names."
+            : "Animated invitations for the wedding and every function around it. Tap a design to watch it with your names."}
         </p>
         <div className="facts">
-          <span>▶ Preview free</span>
-          <span>▭ 9:16 and 16:9</span>
+          <span>✓ Preview free</span>
+          <span>✓ Phone and TV</span>
           <span>✓ Ready in minutes</span>
-          {PAYMENTS ? <span>₹ {LINK_PRICE_INR} to remove the watermark</span> : null}
+          {PAYMENTS ? <span>₹{LINK_PRICE_INR} one time to remove the watermark</span> : null}
         </div>
       </section>
 
@@ -63,7 +63,7 @@ export function TemplateBrowser({ initial }: { initial: Partial<Filter> }) {
               <circle cx="11" cy="11" r="7" />
               <path d="m20 20-3.5-3.5" />
             </svg>
-            <input placeholder="Search: haldi, nikah, gold…" value={f.q} onChange={(e) => set({ q: e.target.value })} aria-label="Search templates" />
+            <input placeholder="Search: haldi, nikah, gold…" value={f.q} onChange={(e) => set({ q: e.target.value })} aria-label="Search designs" />
           </label>
 
           <span className="mono-label r-title">Function</span>

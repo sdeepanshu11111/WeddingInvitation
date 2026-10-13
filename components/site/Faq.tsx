@@ -28,8 +28,8 @@ export function faqItems(): QA[] {
     items.push({ q: "Can I download an MP4?", a: "Yes. Export a real MP4 in 9:16 for Reels and WhatsApp Status or 16:9 for YouTube and TV, at 720p, 1080p or 4K." });
   if (LEADS)
     items.push({
-      q: "Why do you ask for my WhatsApp number or email?",
-      a: "So we can help you with your invitation and remind you about it. One of the two is enough. We only contact you about your invite, never sell or share your details, and stop as soon as you reply STOP.",
+      q: "Do I have to give my WhatsApp number or email?",
+      a: "It is optional: your link works without it. If you add one, we use it only to help you with your invitation and remind you about it. We never sell or share your details, and we stop as soon as you reply STOP.",
     });
   if (PAYMENTS)
     items.push({
@@ -47,10 +47,9 @@ export function faqItems(): QA[] {
 export function Faq({ items }: { items: QA[] }) {
   return (
     <div className="faq">
-      {items.map((x, i) => (
+      {items.map((x) => (
         <details key={x.q} className="faq-item">
           <summary>
-            <span className="mono-label">Q.{String(i + 1).padStart(2, "0")}</span>
             <h3>{x.q}</h3>
             <i aria-hidden>+</i>
           </summary>
@@ -61,13 +60,11 @@ export function Faq({ items }: { items: QA[] }) {
   );
 }
 
-/** "§02 — How it works" + a big display headline (wrap the accent word in <em>). */
-export function SectionHead({ n, label, children, center }: { n: string; label: string; children: ReactNode; center?: boolean }) {
+/** A short kicker ("How it works") + a display headline (wrap the accent words in <em>). */
+export function SectionHead({ label, children, center }: { label: string; children: ReactNode; center?: boolean }) {
   return (
-    <div className={"sec-head" + (center ? " center" : "")}>
-      <span className="mono-label accent">
-        §{n} — {label}
-      </span>
+    <div className={"sec-head" + (center ? " centered" : "")}>
+      <span className="kicker">{label}</span>
       <h2>{children}</h2>
     </div>
   );

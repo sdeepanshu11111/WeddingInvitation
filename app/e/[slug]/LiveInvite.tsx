@@ -337,6 +337,13 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
           <button className="btn" onClick={toggle}>
             ↻ Watch again
           </button>
+          {/* Free links only (they already carry our name): guests planning a function of their own find the maker.
+              Paid links stay clean. The utm tags attribute the visit (lib/analytics keeps them); no invite details go along. */}
+          {marked ? (
+            <a className="end-make" href={"/templates/" + project.templateId + "?utm_source=invite&utm_medium=guest_page"}>
+              Make your own invitation →
+            </a>
+          ) : null}
         </div>
       ) : null}
 

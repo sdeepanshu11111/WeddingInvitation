@@ -1,9 +1,8 @@
 "use client";
 import Link from "next/link";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { LazyPreview } from "@/components/LivePreview";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
-import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
 import type { Orientation, TemplateDef } from "@/lib/types";
 
 /** "Wedding · Hindu / North Indian": the card's subtitle. */
@@ -13,34 +12,46 @@ export function templateKind(t: TemplateDef) {
   return [cat, com].filter(Boolean).join(" · ");
 }
 
-/** Gallery card: the real template playing with demo content while hovered or focused. */
-export function TemplateCard({ t, orientation = "vertical" }: { t: TemplateDef; orientation?: Orientation }) {
+/** True while the element sits in the middle band of a touch screen, where there is no hover to start a preview.
+    Only the row in the middle plays, so a phone never runs a whole grid of animations at once. */
+function useCentred<T extends Element>() {
+  const ref = useRef<T | null>(null);
   const [on, setOn] = useState(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !window.matchMedia("(hover: none)").matches) return;
+    const io = new IntersectionObserver(([e]) => setOn(e.isIntersecting), { rootMargin: "-38% 0px -38% 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return [ref, on] as const;
+}
+
+/** Gallery card: the real template playing with demo content while hovered or focused (on phones: while centred). */
+export function TemplateCard({ t, orientation = "vertical" }: { t: TemplateDef; orientation?: Orientation }) {
+  const [hover, setHover] = useState(false);
+  const [ref, centred] = useCentred<HTMLAnchorElement>();
+  const on = hover || centred;
   return (
     <Link
+      ref={ref}
       href={"/templates/" + t.id}
-      className="t-card"
-      onMouseEnter={() => setOn(true)}
-      onMouseLeave={() => setOn(false)}
-      onFocus={() => setOn(true)}
-      onBlur={() => setOn(false)}
+      className={"t-card" + (on ? " playing" : "")}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      onFocus={() => setHover(true)}
+      onBlur={() => setHover(false)}
     >
       <div className={"t-prev " + orientation}>
         <LazyPreview t={t} orientation={orientation} active={on} />
-        <span className="t-pill">
-          <PlayGlyph /> {on ? "Playing" : "Preview free"}
-        </span>
         {t.isNew ? <span className="t-new">New</span> : null}
+        <span className="t-use">
+          Use this design
+        </span>
       </div>
       <div className="t-meta">
-        <div>
-          <b>{t.name}</b>
-          <span>{templateKind(t)}</span>
-        </div>
-        <div className="t-price">
-          <em>{PAYMENTS ? "Free · Premium ₹" + LINK_PRICE_INR : "Free"}</em>
-          <span>View →</span>
-        </div>
+        <b>{t.name}</b>
+        <span>{templateKind(t)}</span>
       </div>
     </Link>
   );

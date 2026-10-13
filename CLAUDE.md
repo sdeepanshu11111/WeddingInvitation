@@ -49,12 +49,23 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   EventCard, EventsOverview, `lines()`.
 - `components/editor/`: `Fields.tsx` (schema-driven form incl. EventsField + MusicPanel), `ExportDialog.tsx`, `TemplateGallery.tsx`
   (category tabs, community filter, search, live previews that play on hover).
-- **Public site**, an editorial look modelled on wishnwed.com: cream paper (`--bg #f5f0e6`), ink (`--text #1f1a14`), terracotta
-  (`--accent #b7472a`), Fraunces `--display` headlines with the accent word in `<em>` (italic, terracotta), Inter Tight `--ui`, JetBrains Mono
-  `--mono` for `.mono-label` kickers ("§02 — How it works"), square CTAs (`.cta-btn`, `.ghost-btn`).
-  `/` is the landing page (`app/page.tsx`: hero `HeroReel` playing real templates, how it works, showcase, guests, pricing, FAQ, footer);
-  `/templates` is the browser (`?category=`, Refine sidebar, chips on phones); `/templates/<id>` has a big player, palettes, and
-  "Customize →" = `/create?template=&palette=&o=`. Shared parts: `components/site/` (SiteHeader, SiteFooter, TemplateCard, Faq with
+- **Public site**, "Ivory & sindoor", redesigned for conversion and **built phone first** (most visitors are on phones; `app/site.css` base
+  rules are the phone layout, `@media (min-width: 861px)` adds desktop): ivory (`--bg #fcf8f2`), plum ink (`--text #241316`), one maroon
+  (`--accent #a01d38`) reserved for actions and the chosen state, gold `--gilt` only as ornament. Fraunces `--display` headlines with the
+  accent words in `<em>`, Inter Tight `--ui`, `.kicker` labels, pill CTAs (`.cta-btn`, `.ghost-btn`, min 48px tall). Don't name a site class
+  `.center` / `.lead`-style generic names without checking `globals.css` (the studio's `.center` and admin's `li.lead` collided once).
+  `/` (`app/page.tsx`): the hero (`Hero` in `components/site/Landing.tsx`) lets visitors **type their names and watch them in a real playing
+  template** (held on the names scene while typing; phones show the phone and the name boxes side by side so both stay above the keyboard;
+  "Pick a design" cards use each template's `thumb()` art, the playing one ringed, plus a "+N more" card), headline "Your wedding invite as an
+  animated website.",
+  then proof strip, function tiles, how it works, showcase, guests, "why a link" comparison, pricing, FAQ, final CTA.
+  **Names travel to the studio through sessionStorage (`lib/start.ts`), never the URL** (/create's URL reaches Mixpanel and the Pixel);
+  `useStartNames`/`NamesForm` (components/site/NamesForm.tsx) save as they type, the studio's `takeStart()` applies them once via
+  `withNames()` (lib/project.ts: bride → brideName/nameA, groom → groomName/nameB). Template cards play on hover, and on touch screens while
+  in the middle band of the screen. `/templates` is the browser (`?category=`, Refine sidebar, sticky chips on phones); `/templates/<id>`
+  has a big player with the visitor's names, palettes, and "Customize this design" = `/create?template=&palette=&o=`. Pinned bottom CTA on
+  phones: `MobileCta` (`spacer={false}` when rendered mid-page). Free guest invites show "Make your own invitation" on the end screen
+  (`/templates/<id>?utm_source=invite&utm_medium=guest_page`); paid ones don't. Shared parts: `components/site/` (SiteHeader, SiteFooter, TemplateCard, Faq with
   `faqItems()` that follows the feature flags, Landing) and `components/LivePreview.tsx` (demo timeline, loop clock, `LazyPreview` mounts
   only near the viewport). Styles: `app/site.css`; the studio restyle is `app/studio.css`, loaded after `globals.css`. The guest page wraps
   itself in `.guest-ui`, which restores the old dark/gold tokens, because it frames the couple's invitation, not our brand. Public pages
@@ -75,7 +86,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   308-redirect there via next.config). Server-rendered, so link previews work; on-demand ISR (`generateStaticParams` → `[]`,
   `revalidate = false`): rendered on first visit, then cached. Don't read headers/cookies there or it turns dynamic; absolute
   URLs come from `SITE_URL` (`lib/site.ts`). Caching only shows in a production build, not `next dev`.
-  - Names default to couple names + a base-36 seconds timestamp (`autoName` in ShareDialog, e.g. aarav-ananya-t3k2x9) so nobody
+  - Names default to a short code + the couple's first names (`autoName` in ShareDialog, e.g. k7x-aarav-ananya: 3 random look-alike-free characters + each first name, honorifics skipped) so nobody
     has to pick again; "Edit" lets them type one, and an auto name that collides retries with the server suggestion.
     Payment logos (`components/PayIcons.tsx`) are Simple Icons 16.32.0 paths (CC0); UPI is a text badge.
   - Names (`lib/slug.ts`: 3–50 of a-z 0-9 single hyphens) are claimed by writing `project.json` with no-overwrite (Blob
@@ -120,7 +131,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   in `app/(legal)/`, business details in `lib/legal.ts` (empty values are left off the pages). Linked from the editor sidebar
   bottom, the phone ⋯ menu, and an "By paying you agree…" line under every create/pay button in ShareDialog. They describe
   what the app really does: **adding a tracker (Meta Pixel), processor or stored field means updating `/privacy`**.
-- **Leads** (`lib/server/leads.ts`, flag `LEADS`): the Share step requires a WhatsApp number or an email, at least one (`lib/contact.ts`:
+- **Leads** (`lib/server/leads.ts`, flag `LEADS`): the Share step asks for a WhatsApp number or an email, **optional** since 2026-10-13 (a typed but invalid one blocks; empty is fine) (`lib/contact.ts`:
   10-digit Indian mobile or `+`country code; remembered in localStorage, pre-fill Razorpay Checkout), with the promise that we never
   sell or share them. `POST /api/share {…, phone?, email?}` saves them with the link name and the notice version
   (`CONTACT_NOTICE`) after the link exists; payments save Razorpay's contact/email as `pay_phone`/`pay_email`

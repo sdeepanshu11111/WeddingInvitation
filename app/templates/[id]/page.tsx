@@ -23,7 +23,7 @@ export default function TemplatePage({ params }: { params: { id: string } }) {
       <SiteHeader />
       <TemplateDetail id={params.id} />
       <section className="sec surface">
-        <SectionHead n="04" label="Questions">
+        <SectionHead label="Questions" center>
           Frequently <em>asked.</em>
         </SectionHead>
         <Faq items={faqItems()} />

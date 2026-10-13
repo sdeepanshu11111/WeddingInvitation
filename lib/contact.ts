@@ -4,7 +4,7 @@
 
 /** Which notice the person saw when they gave their details (stored with the lead as proof of consent).
     Change it whenever the wording under the fields changes. */
-export const CONTACT_NOTICE = "share-contact-2026-10-13";
+export const CONTACT_NOTICE = "share-contact-optional-2026-10-13";
 
 /**
  * "98765 43210", "098765-43210", "+91 98765 43210" or "919876543210" → "+919876543210".

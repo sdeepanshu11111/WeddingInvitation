@@ -8,8 +8,9 @@ import { FieldGroups, MusicPanel } from "@/components/editor/Fields";
 import { TemplateGallery } from "@/components/editor/TemplateGallery";
 import { CATEGORIES, countIn } from "@/lib/catalog";
 import { fmt } from "@/lib/anim";
-import { SIZES, buildTimeline, defaultProject, idbGet, idbSet } from "@/lib/project";
-import { TEMPLATES } from "@/lib/templates";
+import { SIZES, buildTimeline, defaultProject, idbGet, idbSet, withNames } from "@/lib/project";
+import { takeStart } from "@/lib/start";
+import { TEMPLATES, getTemplate } from "@/lib/templates";
 import { sceneForField } from "@/lib/fieldScene";
 import { VIDEO_EXPORT } from "@/lib/features";
 import { LegalLinks } from "@/components/LegalLinks";
@@ -64,6 +65,12 @@ export default function Editor() {
           const o = q.get("o");
           proj = { ...proj, paletteId: pal?.id ?? proj.paletteId, orientation: o === "horizontal" || o === "vertical" ? o : proj.orientation };
           setTab("details"); // they just chose the design on its page: phones go straight to their names
+        }
+        // Names typed in the home hero or on the template page: they see them in the invite from the first frame.
+        const names = takeStart();
+        if (names) {
+          proj = { ...proj, data: withNames(getTemplate(proj.templateId), proj.data, names) };
+          setTab("details");
         }
         setProject(proj);
         setView(proj.orientation);

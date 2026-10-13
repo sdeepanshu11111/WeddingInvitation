@@ -14,7 +14,7 @@ export function Logo() {
   );
 }
 
-/** Promo strip + sticky header for the public pages (home, templates, policies): nav · centred logo · actions.
+/** Promo strip + sticky header for the public pages (home, templates, policies): logo · nav · one call to action.
  *  Phones get burger · logo · Create, and a menu that opens right under the header. */
 export function SiteHeader() {
   const pathname = usePathname() || "/";
@@ -54,7 +54,7 @@ export function SiteHeader() {
         <span className="promo-long">
           {PAYMENTS ? (
             <>
-              Create your invitation and preview it free. Remove the watermark for <b>₹{LINK_PRICE_INR}</b> when you are ready.
+              Preview your invitation free with your own names. Remove the watermark for just <b>₹{LINK_PRICE_INR}</b>, one time.
             </>
           ) : (
             <>Create your invitation free and share it on WhatsApp in minutes.</>
@@ -79,10 +79,11 @@ export function SiteHeader() {
           <i />
           <i />
         </button>
+        <Logo />
         <nav className="site-nav" aria-label="Main">
           <div className="nav-drop">
             <Link href="/templates" className={inTemplates ? "on" : undefined} aria-current={pathname === "/templates" ? "page" : undefined}>
-              Templates <Caret />
+              Designs <Caret />
             </Link>
             <div className="drop-panel">
               <span className="mono-label">Browse by function</span>
@@ -95,7 +96,7 @@ export function SiteHeader() {
                 ))}
               </div>
               <Link href="/templates" className="drop-all">
-                All templates →
+                All designs →
               </Link>
             </div>
           </div>
@@ -103,27 +104,26 @@ export function SiteHeader() {
           <Link href="/#pricing">Pricing</Link>
           <Link href="/#faq">FAQ</Link>
         </nav>
-        <Logo />
         <div className="head-end">
           <Link href="/create" className="nav-studio">
             Open studio
           </Link>
           <Link href="/templates" className="cta-btn sm">
-            <span className="desk-txt">Create invitation →</span>
-            <span className="mob-txt">Create →</span>
+            <span className="desk-txt">Make my invitation</span>
+            <span className="mob-txt">Create free</span>
           </Link>
         </div>
       </header>
       {open ? (
         <div id="site-menu" className="m-menu" style={{ top: menuTop }} onClick={(e) => (e.target as HTMLElement).closest("a") && setOpen(false)}>
-          <span className="mono-label">Templates</span>
+          <span className="mono-label">Designs by function</span>
           {CATEGORIES.map((c) => (
             <Link key={c.id} href={"/templates?category=" + c.id} className="m-cat">
               {c.label} <small lang="hi">{c.local}</small>
             </Link>
           ))}
           <Link href="/templates" className="m-cat">
-            All templates →
+            All designs →
           </Link>
           <div className="m-sep" />
           <Link href="/#how">How it works</Link>
@@ -132,7 +132,7 @@ export function SiteHeader() {
           <Link href="/create">Open studio</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/templates" className="cta-btn block">
-            Create invitation →
+            Make my invitation →
           </Link>
         </div>
       ) : null}

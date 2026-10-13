@@ -2,12 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PayIcons } from "@/components/PayIcons";
 import { Faq, SectionHead, faqItems } from "@/components/site/Faq";
-import { DesignStack, HeroReel, Showcase } from "@/components/site/Landing";
-import { MobileCta } from "@/components/site/MobileCta";
+import { Arrow, DesignStack, FunctionTiles, Hero, Showcase } from "@/components/site/Landing";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { BRAND } from "@/lib/brand";
-import { CATEGORIES } from "@/lib/catalog";
+import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
 import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
 import { SITE_URL } from "@/lib/site";
 import { TEMPLATES } from "@/lib/templates";
@@ -15,113 +14,83 @@ import { TEMPLATES } from "@/lib/templates";
 const HOST = SITE_URL.replace(/^https?:\/\//, "");
 
 export const metadata: Metadata = {
-  title: BRAND + " · Create your wedding invitation and invitation page",
+  title: BRAND + " · Animated wedding invitation website",
   description:
-    "Create an animated wedding invitation with its own web page. Preview it free with your names, date and venue, then share one link on WhatsApp.",
+    "Turn your wedding invitation into an animated website with your names, dates, photos and music. Preview it free, then send one link on WhatsApp.",
 };
 
 export default function Home() {
   return (
     <div className="site">
       <SiteHeader />
+      <Hero />
 
-      {/* ---------- hero ---------- */}
-      <section className="hero">
-        <div className="hero-copy">
-          <span className="mono-label">Animated invitations · Invitation pages</span>
-          <h1>
-            Create your invitation.
-            <br />
-            <em>Share it in one link.</em>
-          </h1>
-          <p className="lead">
-            Choose a design, add your names, date and venue, and preview your animated invitation free. It comes with its own invitation page
-            that opens on any phone, ready to send to every guest on WhatsApp.
-            {PAYMENTS ? " Remove the watermark for ₹" + LINK_PRICE_INR + " once you are happy with it." : ""}
-          </p>
-          <div className="hero-ctas">
-            <Link href="/templates" className="cta-btn lg">
-              Create your invitation →
-            </Link>
-            <Link href="#how" className="ghost-btn lg">
-              How it works
-            </Link>
-          </div>
-          <p className="hero-note">
-            <span>✓ Free preview</span>
-            <span>✓ Your own invitation page</span>
-            <span>✓ No app for guests</span>
-          </p>
-          <dl className="hero-facts">
-            <div>
-              <dt>Preview</dt>
-              <dd>Free</dd>
-            </div>
-            <div>
-              <dt>Invitation page</dt>
-              <dd>Included</dd>
-            </div>
-            <div>
-              <dt>Ready in</dt>
-              <dd>Minutes</dd>
-            </div>
-          </dl>
+      {/* ---------- what you get, in numbers that are true today ---------- */}
+      <section className="proof" aria-label="At a glance">
+        <div>
+          <b>{TEMPLATES.length}</b>
+          <span>animated designs</span>
         </div>
-        <HeroReel />
+        <div>
+          <b>{CATEGORIES.length}</b>
+          <span>functions, haldi to reception</span>
+        </div>
+        <div>
+          <b>{COMMUNITIES.length}</b>
+          <span>traditions and styles</span>
+        </div>
+        <div>
+          <b>
+            हिं · த · తె · ਪੰ · ع
+          </b>
+          <span>scripts where they belong</span>
+        </div>
       </section>
 
-      {/* ---------- ticker of functions ---------- */}
-      <div className="ticker" aria-hidden>
-        <div className="ticker-run">
-          {[0, 1].map((k) => (
-            <span key={k}>
-              {CATEGORIES.map((c) => (
-                <span key={c.id}>
-                  {c.label} <b lang="hi">{c.local}</b> ✦{" "}
-                </span>
-              ))}
-            </span>
-          ))}
-        </div>
-      </div>
+      {/* ---------- start from the function ---------- */}
+      <section className="sec" id="functions">
+        <SectionHead label="Start here" center>
+          Which function are you <em>inviting for?</em>
+        </SectionHead>
+        <FunctionTiles />
+      </section>
 
       {/* ---------- how it works ---------- */}
       <section className="sec surface" id="how">
-        <SectionHead n="02" label="How it works">
-          Three steps. <em>One link.</em>
+        <SectionHead label="How it works" center>
+          Ready to send in <em>three steps.</em>
         </SectionHead>
         <div className="steps">
           <article className="step">
             <div className="step-vis">
               <DesignStack />
             </div>
-            <span className="step-n">01</span>
+            <span className="step-n">1</span>
             <h3>Choose a design</h3>
-            <p>Handmade for Hindu, South Indian, Muslim, Sikh and modern weddings, and for every function around them.</p>
+            <p>Made for Hindu, South Indian, Muslim, Sikh and modern weddings, and for every function around them.</p>
           </article>
           <article className="step">
             <div className="step-vis">
               <div className="mini-form">
                 <label>
-                  <span className="mono-label">Bride</span>
+                  <span>Bride</span>
                   <b>Ananya</b>
                 </label>
                 <label>
-                  <span className="mono-label">Groom</span>
+                  <span>Groom</span>
                   <b>Aarav</b>
                 </label>
                 <label>
-                  <span className="mono-label">Date</span>
+                  <span>Date</span>
                   <b>8 Dec 2026</b>
                 </label>
                 <label>
-                  <span className="mono-label">Venue</span>
+                  <span>Venue</span>
                   <b>Rambagh Palace, Jaipur</b>
                 </label>
-                <span className="mini-btn">Preview →</span>
               </div>
             </div>
-            <span className="step-n">02</span>
+            <span className="step-n">2</span>
             <h3>Add your details</h3>
             <p>Names, dates, venue, photos and music in one short form. The preview plays as you type.</p>
           </article>
@@ -139,25 +108,26 @@ export default function Home() {
                   </span>
                   <em>21:14 ✓✓</em>
                 </div>
-                <div className="mini-chan">
-                  <span className="mono-label">Share via</span>
-                  <b>WhatsApp</b>
-                  <b>Link</b>
-                </div>
               </div>
             </div>
-            <span className="step-n">03</span>
-            <h3>Watch &amp; share</h3>
-            <p>Send one link to the family group. Guests tap it and the invitation plays in their browser. No app needed.</p>
+            <span className="step-n">3</span>
+            <h3>Send one link</h3>
+            <p>Post it in the family group. Guests tap and the invitation plays in their browser, with your music.</p>
           </article>
+        </div>
+        <div className="sec-cta">
+          <Link href="/templates" className="cta-btn lg">
+            Choose your design <Arrow />
+          </Link>
         </div>
       </section>
 
-      {/* ---------- templates ---------- */}
+      {/* ---------- designs ---------- */}
       <section className="sec" id="templates">
-        <SectionHead n="03" label="Templates">
-          Designs you&apos;d <em>actually</em> send.
+        <SectionHead label="Designs" center>
+          Find the one that <em>feels like you.</em>
         </SectionHead>
+        <p className="sec-lead centered">Hover or tap any design to watch it play. Every one takes your names, dates, photos and music.</p>
         <Showcase />
       </section>
 
@@ -165,27 +135,26 @@ export default function Home() {
       <section className="sec surface">
         <div className="guests">
           <div>
-            <SectionHead n="04" label="Your invitation page">
-              A page of <em>your own.</em>
+            <SectionHead label="Your invitation page">
+              One link. <em>Every guest.</em>
             </SectionHead>
-            <ol className="points">
+            <ul className="points">
               <li>
-                <b>Your names in the address.</b> Every invitation gets a page like <u>{HOST}/e/aarav-ananya</u>, with a preview card when it is
-                shared.
+                <b>Your names in the address.</b> Every invitation gets a page like <u>{HOST}/e/aarav-ananya</u>, with a preview card in the chat.
               </li>
               <li>
-                <b>Opens anywhere.</b> From WhatsApp, SMS, email or Instagram, in any browser. No app and no download.
+                <b>Opens anywhere.</b> From WhatsApp, SMS, email or Instagram, in any browser. No app and no download for Dadi.
               </li>
               <li>
-                <b>Fits the screen.</b> Upright on phones, widescreen on laptops and the living-room TV.
+                <b>Fits every screen.</b> Upright on phones, widescreen on laptops and the living-room TV.
               </li>
               <li>
-                <b>Every function.</b> The All Functions design puts haldi, mehendi, sangeet, pheras and reception in one invitation, each with its date and venue.
+                <b>Every function in one.</b> Haldi, mehendi, sangeet, pheras and reception, each with its own date and venue.
               </li>
               <li>
-                <b>Your music and photos.</b> Add a song and your favourite pictures; we handle the timing.
+                <b>Your music and photos.</b> Add a song and your favourite pictures; the timing is done for you.
               </li>
-            </ol>
+            </ul>
           </div>
           <div className="wa-demo">
             <div className="wa-phone">
@@ -220,12 +189,48 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ---------- why a link ---------- */}
+      <section className="sec" id="compare">
+        <SectionHead label="Why a link" center>
+          More than a card. <em>Less than a courier.</em>
+        </SectionHead>
+        <div className="compare" role="table" aria-label="Invitation link compared with a printed card and an image or PDF">
+          <div className="cmp-row cmp-head" role="row">
+            <span role="columnheader" />
+            <span role="columnheader">Printed card</span>
+            <span role="columnheader">Image or PDF</span>
+            <span role="columnheader" className="us">
+              {BRAND} link
+            </span>
+          </div>
+          {(
+            [
+              ["Animation and music", false, false, true],
+              ["Reaches guests the same minute", false, true, true],
+              ["Every function, date and venue in one", true, true, true],
+              ["Upright on phones, wide on the TV", false, false, true],
+              ["Looks right without zooming", true, false, true],
+              ["Nothing to print or post", false, true, true],
+            ] as [string, boolean, boolean, boolean][]
+          ).map(([label, ...v]) => (
+            <div className="cmp-row" role="row" key={label}>
+              <span role="rowheader">{label}</span>
+              {v.map((ok, n) => (
+                <span key={n} role="cell" className={(n === 2 ? "us " : "") + (ok ? "yes" : "no")} aria-label={ok ? "Yes" : "No"}>
+                  {ok ? "✓" : "—"}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* ---------- pricing ---------- */}
-      <section className="sec" id="pricing">
-        <SectionHead n="05" label="Pricing">
+      <section className="sec surface" id="pricing">
+        <SectionHead label="Pricing" center>
           {PAYMENTS ? (
             <>
-              Free to make. <em>Pay</em> only to keep it clean.
+              Free to make. <em>₹{LINK_PRICE_INR}</em> to make it yours.
             </>
           ) : (
             <>
@@ -233,14 +238,14 @@ export default function Home() {
             </>
           )}
         </SectionHead>
-        <p className="sec-lead">
+        <p className="sec-lead centered">
           {PAYMENTS
-            ? "Try every design with your own details for as long as you like. Upgrade a link when you're happy with it."
+            ? "Try every design with your own details for as long as you like. Pay once, only when you're happy with it."
             : "Every design, your own details, one link for all your guests."}
         </p>
         <div className={"price-grid" + (PAYMENTS ? "" : " one")}>
           <div className="price-card">
-            <span className="mono-label">Preview</span>
+            <span className="kicker">Preview</span>
             <div className="price-num">Free</div>
             <p>Your full invitation with your details, shared as a link.</p>
             <ul>
@@ -250,22 +255,23 @@ export default function Home() {
               {PAYMENTS ? <li className="minus">Watermark on the invitation</li> : null}
             </ul>
             <Link href="/templates" className="ghost-btn block">
-              Browse designs
+              Start free
             </Link>
           </div>
           {PAYMENTS ? (
-            <div className="price-card dark">
-              <span className="mono-label">Premium · per invitation</span>
+            <div className="price-card best">
+              <span className="best-tag">One-time · per invitation</span>
+              <span className="kicker">Premium</span>
               <div className="price-num">₹{LINK_PRICE_INR}</div>
-              <p>One payment. The watermark comes off the same link, instantly.</p>
+              <p>The watermark comes off the same link, instantly. Guests keep the link they already have.</p>
               <ul>
-                <li>No watermark</li>
-                <li>Guests keep the link they already have</li>
+                <li>No watermark, for every guest</li>
+                <li>Same link, nothing to resend</li>
                 <li>UPI, cards and net banking</li>
-                <li>No subscription</li>
+                <li>No subscription, no hidden charges</li>
               </ul>
               <Link href="/templates" className="cta-btn block">
-                Choose a design →
+                Choose a design <Arrow />
               </Link>
               <div className="price-pay">
                 <PayIcons size={18} />
@@ -276,27 +282,27 @@ export default function Home() {
       </section>
 
       {/* ---------- FAQ ---------- */}
-      <section className="sec surface" id="faq">
-        <SectionHead n="06" label="Asked & answered">
-          Questions, <em>answered.</em>
+      <section className="sec" id="faq">
+        <SectionHead label="Questions" center>
+          Good questions, <em>straight answers.</em>
         </SectionHead>
         <Faq items={faqItems()} />
       </section>
 
       {/* ---------- final call ---------- */}
       <section className="final">
-        <span className="mono-label">Free to preview · ready in minutes</span>
+        <span className="kicker">Free preview · ready in minutes</span>
         <h2>
-          Create your invitation <em>today.</em>
+          Your guests are waiting <em>for the invite.</em>
         </h2>
         <Link href="/templates" className="cta-btn lg">
-          Create your invitation →
+          Make my invitation <Arrow />
         </Link>
       </section>
 
       <SiteFooter />
-      {/* Phones: "Create" stays in thumb reach while none of the page's own buttons are on screen. */}
-      <MobileCta href="/templates" label="Create your invitation →" note="Free preview" watch=".hero-ctas, .price-card .ghost-btn, .final .cta-btn" />
+      {/* room for the hero's pinned "Make my invitation" bar on phones */}
+      <div className="m-cta-space" aria-hidden />
     </div>
   );
 }

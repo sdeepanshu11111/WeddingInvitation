@@ -61,6 +61,22 @@ export function buildTimeline(project: Project) {
   return { template, theme, scenes, slots, total, realTotal: total / project.speed };
 }
 
+/** Names typed before the studio (home hero, template page). Bride → brideName / nameA, groom → groomName / nameB
+    (the same pairing as defaultProject's aliases); only keys the template has are set, empty names are left alone. */
+export type StartNames = { bride: string; groom: string };
+export function withNames(t: TemplateDef, data: Record<string, any>, n: Partial<StartNames>): Record<string, any> {
+  const keys = new Set(t.groups.flatMap((g) => g.fields.map((f) => f.key)));
+  const out = { ...data };
+  const put = (k: string, v?: string) => {
+    if (keys.has(k) && v && v.trim()) out[k] = v.trim();
+  };
+  put("brideName", n.bride);
+  put("nameA", n.bride);
+  put("groomName", n.groom);
+  put("nameB", n.groom);
+  return out;
+}
+
 /** "Aarav & Ananya": the title of share pages and link previews. */
 export function coupleTitle(d: Record<string, any>): string {
   return [d.nameA ?? d.groomName, d.nameB ?? d.brideName].filter(Boolean).join(" & ") || "Wedding invitation";

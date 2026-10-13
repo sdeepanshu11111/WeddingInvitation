@@ -36,7 +36,7 @@ export default function Privacy() {
         </li>
         {LEADS ? (
           <li>
-            <b>Your WhatsApp number or email</b>: when you create a link, we ask for a WhatsApp number or an email address (one is enough). We keep it
+            <b>Your WhatsApp number or email</b>: when you create a link, you can give us a WhatsApp number or an email address. It is optional: the link works without it. If you give one, we keep it
             privately with the name of that link (it is never part of the invitation your guests see) and use it only to contact you about that
             invitation, for example to help you or to remind you while it still has the watermark. We never sell it or share it for anyone else&rsquo;s
             use. Reply STOP at any time and we will not contact you again.

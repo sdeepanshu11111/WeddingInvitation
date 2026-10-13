@@ -2,7 +2,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { withDemoMedia } from "@/lib/demo";
-import { SIZES, buildTimeline, defaultProject } from "@/lib/project";
+import { SIZES, buildTimeline, defaultProject, withNames, type StartNames } from "@/lib/project";
 import type { Orientation, Project, TemplateDef } from "@/lib/types";
 
 /* Demo media is generated on a canvas once per template and reused (browser only: it needs document). */
@@ -12,9 +12,15 @@ export function demoProject(t: TemplateDef, orientation: Orientation, paletteId?
   return { ...defaultProject(t.id), orientation, paletteId: paletteId ?? t.palettes[0].id, data: demoCache.get(t.id)! };
 }
 
-/** The template's demo timeline plus the time of its poster frame (the scene named by `poster`, else the 2nd). */
-export function useDemoTimeline(t: TemplateDef, orientation: Orientation, paletteId?: string) {
-  const project = useMemo(() => demoProject(t, orientation, paletteId), [t, orientation, paletteId]);
+/** The template's demo timeline plus the time of its poster frame (the scene named by `poster`, else the 2nd).
+    `names`: what a visitor typed (home hero, template page), shown in place of the demo couple. */
+export function useDemoTimeline(t: TemplateDef, orientation: Orientation, paletteId?: string, names?: Partial<StartNames>) {
+  const bride = names?.bride ?? "";
+  const groom = names?.groom ?? "";
+  const project = useMemo(() => {
+    const p = demoProject(t, orientation, paletteId);
+    return bride.trim() || groom.trim() ? { ...p, data: withNames(t, p.data, { bride, groom }) } : p;
+  }, [t, orientation, paletteId, bride, groom]);
   const tl = useMemo(() => buildTimeline(project), [project]);
   const poster = useMemo(() => {
     const i = Math.max(0, tl.scenes.findIndex((s) => s.id === t.poster));
