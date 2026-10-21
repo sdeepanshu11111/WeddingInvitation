@@ -12,6 +12,9 @@ import { receptionGala } from "./reception-gala";
 import { blushBotanical } from "./blush-botanical";
 import { cinematicReel } from "./cinematic-reel";
 import { polaroidMemories } from "./polaroid-memories";
+import { holyMatrimony } from "./holy-matrimony";
+import { shubhMangal } from "./shubh-mangal";
+import { shubhoBibaho } from "./shubho-bibaho";
 import { auroraModern } from "./aurora-modern";
 
 /**
@@ -23,8 +26,11 @@ export const TEMPLATES: TemplateDef[] = [
   royalMandala,
   shaadiUtsav,
   southKalyanam,
+  shubhMangal,
+  shubhoBibaho,
   nikahMubarak,
   anandKaraj,
+  holyMatrimony,
   sagaiRings,
   haldiMarigold,
   mehendiPaisley,

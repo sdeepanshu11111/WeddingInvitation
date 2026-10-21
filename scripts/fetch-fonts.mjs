@@ -23,6 +23,7 @@ const FONTS = [
   ["--f-marcellus", "Marcellus", "wght@400", "serif"],
   ["--f-inter", "Inter", "wght@300;400;500;600", "system-ui, sans-serif"],
   ["--f-devanagari", "Tiro Devanagari Hindi", "wght@400", "serif"],
+  ["--f-bengali", "Tiro Bangla", "wght@400", "serif"],
   ["--f-caveat", "Caveat", "wght@400;600", "cursive"],
   ["--f-bodoni", "Bodoni Moda", "ital,wght@0,400;0,600;1,400;1,600", "serif"],
   ["--f-arabic", "Amiri", "wght@400;700", "serif"],

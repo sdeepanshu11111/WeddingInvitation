@@ -12,6 +12,8 @@ import { DiamondRule, Photo, Reveal, dateParts, prettyTime } from "./primitives"
  * ===================================================================== */
 
 type Base = { t: number; theme: Theme; v: boolean; start?: number };
+/** 9:16 is seen on a phone at about 0.36x: 34 design px is about 12 px there, the least a label can be and still be read. */
+const KICKER_MIN = 34;
 const pick = <T,>(v: boolean, a: T, b: T) => (v ? a : b);
 
 /** Small spaced caps label. */
@@ -21,7 +23,7 @@ export function Kicker({ t, theme, v, start = 200, size = 30, color, children, s
       style={{
         fontFamily: font ?? theme.fontBody,
         color: color ?? theme.soft,
-        fontSize: pick(v, size, size * 1.12),
+        fontSize: pick(v, Math.max(size, KICKER_MIN), size * 1.12),
         letterSpacing: spacing,
         textTransform: upper ? "uppercase" : "none",
         ...fade(t, { start, dur: 800 }),
@@ -62,7 +64,7 @@ export function DateBlock({ t, theme, v, start = 300, date, time, timeLabel = ""
   const tm = prettyTime(time);
   return (
     <div style={{ textAlign: "center" }}>
-      <Kicker t={t} theme={theme} v={v} start={start} size={32}>
+      <Kicker t={t} theme={theme} v={v} start={start} size={36}>
         {d.weekday}
       </Kicker>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: pick(v, 34, 40), margin: pick(v, 22, 20) + "px 0" }}>
@@ -81,7 +83,7 @@ export function DateBlock({ t, theme, v, start = 300, date, time, timeLabel = ""
         </div>
       ) : null}
       {tm ? (
-        <div style={{ fontFamily: theme.fontBody, color: theme.ink, fontSize: pick(v, 40, 46), letterSpacing: "0.14em", marginTop: pick(v, 30, 24), ...rise(t, { start: start + 1200, dur: 900, dist: 18 }) }}>
+        <div style={{ fontFamily: theme.fontBody, color: theme.ink, fontSize: pick(v, 46, 46), letterSpacing: "0.14em", marginTop: pick(v, 30, 24), ...rise(t, { start: start + 1200, dur: 900, dist: 18 }) }}>
           {timeLabel ? <span style={{ color: theme.soft }}>{timeLabel} </span> : null}
           {tm}
         </div>
@@ -105,7 +107,7 @@ export function VenueBlock({ t, theme, v, start = 300, label = "Venue", name, ad
       </Headline>
       <div style={{ marginTop: pick(v, 26, 22) }}>
         {lines.map((l, i) => (
-          <div key={i} style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: pick(v, 40, 44), lineHeight: 1.5, ...rise(t, { start: start + 900 + i * 160, dur: 900, dist: 16 }) }}>
+          <div key={i} style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: pick(v, 46, 44), lineHeight: 1.45, ...rise(t, { start: start + 900 + i * 160, dur: 900, dist: 16 }) }}>
             {l}
           </div>
         ))}
@@ -175,7 +177,7 @@ export function EventCard({ t, theme, v, start = 200, ev, index, total, icon, na
   const tm = prettyTime(ev.time);
   return (
     <div style={{ textAlign: "center", maxWidth: pick(v, 900, 1500) }}>
-      <Kicker t={t} theme={theme} v={v} start={start} size={28}>
+      <Kicker t={t} theme={theme} v={v} start={start} size={34}>
         Function {index + 1} of {total}
       </Kicker>
       {icon ? <div style={{ display: "grid", placeItems: "center", margin: pick(v, "26px 0 8px", "18px 0 4px"), ...pop(t, { start: start + 200, dur: 900 }) }}>{icon}</div> : null}
@@ -185,17 +187,17 @@ export function EventCard({ t, theme, v, start = 200, ev, index, total, icon, na
       <div style={{ display: "grid", placeItems: "center", margin: pick(v, "24px 0", "18px 0") }}>
         <DiamondRule t={t} start={start + 800} width={pick(v, 340, 420)} color={theme.line} />
       </div>
-      <div style={{ fontFamily: theme.fontDisplay, color: theme.ink, fontSize: pick(v, 52, 58), letterSpacing: "0.06em", ...rise(t, { start: start + 1000, dur: 900, dist: 20 }) }}>
+      <div style={{ fontFamily: theme.fontDisplay, color: theme.ink, fontSize: pick(v, 58, 58), letterSpacing: "0.06em", ...rise(t, { start: start + 1000, dur: 900, dist: 20 }) }}>
         {d.weekday}, {Number(d.day)} {d.month}
       </div>
       {tm ? (
-        <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: pick(v, 40, 44), letterSpacing: "0.14em", marginTop: 12, ...rise(t, { start: start + 1200, dur: 900, dist: 16 }) }}>{tm}</div>
+        <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: pick(v, 46, 44), letterSpacing: "0.14em", marginTop: 12, ...rise(t, { start: start + 1200, dur: 900, dist: 16 }) }}>{tm}</div>
       ) : null}
       {ev.venue ? (
-        <div style={{ fontFamily: theme.fontBody, color: theme.ink, fontSize: pick(v, 42, 46), marginTop: pick(v, 34, 26), ...rise(t, { start: start + 1400, dur: 900, dist: 16 }) }}>{ev.venue}</div>
+        <div style={{ fontFamily: theme.fontBody, color: theme.ink, fontSize: pick(v, 48, 46), marginTop: pick(v, 34, 26), ...rise(t, { start: start + 1400, dur: 900, dist: 16 }) }}>{ev.venue}</div>
       ) : null}
       {ev.note ? (
-        <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: pick(v, 32, 34), fontStyle: "italic", marginTop: 12, ...fade(t, { start: start + 1700, dur: 900 }) }}>{ev.note}</div>
+        <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: pick(v, 40, 34), fontStyle: "italic", marginTop: 12, ...fade(t, { start: start + 1700, dur: 900 }) }}>{ev.note}</div>
       ) : null}
     </div>
   );
@@ -212,11 +214,11 @@ export function EventsOverview({ t, theme, v, start = 200, events }: Base & { ev
           <div key={i} style={{ display: "grid", gridTemplateColumns: pick(v, "150px 1fr", "180px 1fr 1fr"), alignItems: "center", gap: pick(v, 24, 40), padding: pick(v, "22px 0", "20px 0"), borderBottom: "1px solid " + theme.line + "55", ...rise(t, { start: st, dur: 900, dist: 20 }) }}>
             <div style={{ textAlign: "center", borderRight: "1px solid " + theme.line + "77", paddingRight: 20 }}>
               <div style={{ fontFamily: theme.fontDisplay, color: theme.accent, fontSize: pick(v, 64, 70), lineHeight: 1 }}>{d.day}</div>
-              <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: pick(v, 22, 24), letterSpacing: "0.2em" }}>{d.monthShort}</div>
+              <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: pick(v, 28, 24), letterSpacing: "0.2em" }}>{d.monthShort}</div>
             </div>
             <div>
-              <div style={{ fontFamily: theme.fontDisplay, color: theme.ink, fontSize: pick(v, 46, 50) }}>{ev.name}</div>
-              <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: pick(v, 28, 30), marginTop: 4 }}>
+              <div style={{ fontFamily: theme.fontDisplay, color: theme.ink, fontSize: pick(v, 52, 50) }}>{ev.name}</div>
+              <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: pick(v, 36, 30), marginTop: 4, lineHeight: 1.35 }}>
                 {prettyTime(ev.time)}
                 {v && ev.venue ? " · " + ev.venue : ""}
               </div>

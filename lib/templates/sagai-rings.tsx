@@ -164,7 +164,7 @@ export const sagaiRings: TemplateDef = {
                 {data.nameA} &amp; {data.nameB}
               </div>
               {data.rsvp ? (
-                <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: S(34, 36), letterSpacing: "0.08em", marginTop: S(30, 22), ...fade(t, { start: 2400, dur: 1000 }) }}>{data.rsvp}</div>
+                <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: S(42, 36), letterSpacing: "0.08em", marginTop: S(30, 22), ...fade(t, { start: 2400, dur: 1000 }) }}>{data.rsvp}</div>
               ) : null}
             </div>
           </Layer>

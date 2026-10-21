@@ -197,7 +197,7 @@ export const auroraModern: TemplateDef = {
                   style={{
                     fontFamily: theme.fontBody,
                     color: theme.soft,
-                    fontSize: S(28, 24),
+                    fontSize: S(36, 24),
                     letterSpacing: "0.5em",
                     textTransform: "uppercase",
                     ...fade(t, { start: 2000, dur: 900 }),
@@ -245,7 +245,7 @@ export const auroraModern: TemplateDef = {
                   style={{
                     fontFamily: theme.fontBody,
                     color: theme.soft,
-                    fontSize: S(30, 28),
+                    fontSize: S(38, 28),
                     letterSpacing: "0.44em",
                     marginTop: S(24, 26),
                     ...fade(t, { start: 1700, dur: 900 }),
@@ -294,7 +294,7 @@ export const auroraModern: TemplateDef = {
                           style={{
                             fontFamily: theme.fontBody,
                             color: theme.soft,
-                            fontSize: S(26, 24),
+                            fontSize: S(36, 24),
                             letterSpacing: "0.4em",
                             textTransform: "uppercase",
                             ...fade(t, { start: st, dur: 700 }),
@@ -341,7 +341,7 @@ export const auroraModern: TemplateDef = {
                 style={{
                   fontFamily: theme.fontBody,
                   color: theme.soft,
-                  fontSize: S(28, 24),
+                  fontSize: S(36, 24),
                   letterSpacing: "0.5em",
                   textTransform: "uppercase",
                   ...fade(t, { start: 200, dur: 800 }),
@@ -369,7 +369,7 @@ export const auroraModern: TemplateDef = {
                   style={{
                     fontFamily: theme.fontBody,
                     color: theme.soft,
-                    fontSize: S(26, 23),
+                    fontSize: S(36, 23),
                     letterSpacing: "0.34em",
                     textTransform: "uppercase",
                     marginTop: S(40, 28),

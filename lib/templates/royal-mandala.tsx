@@ -236,7 +236,7 @@ export const royalMandala: TemplateDef = {
                   style={{
                     fontFamily: theme.fontBody,
                     color: theme.soft,
-                    fontSize: S(32, 28),
+                    fontSize: S(40, 28),
                     letterSpacing: "0.3em",
                     textTransform: "uppercase",
                     marginBottom: S(52, 40),
@@ -270,7 +270,7 @@ export const royalMandala: TemplateDef = {
                   style={{
                     fontFamily: theme.fontBody,
                     color: theme.soft,
-                    fontSize: S(34, 28),
+                    fontSize: S(42, 28),
                     fontStyle: "italic",
                     marginTop: S(34, 26),
                     ...fade(t, { start: 1900, dur: 900 }),
@@ -394,7 +394,7 @@ export const royalMandala: TemplateDef = {
                   padding: S("16px 48px", "13px 40px"),
                   fontFamily: theme.fontDisplay,
                   color: theme.accent,
-                  fontSize: S(32, 27),
+                  fontSize: S(34, 27),
                   letterSpacing: "0.26em",
                   textTransform: "uppercase",
                   whiteSpace: "nowrap",
@@ -424,7 +424,7 @@ export const royalMandala: TemplateDef = {
                   style={{
                     fontFamily: theme.fontBody,
                     color: theme.soft,
-                    fontSize: S(34, 28),
+                    fontSize: S(42, 28),
                     letterSpacing: "0.34em",
                     textTransform: "uppercase",
                     ...fade(t, { start: 200, dur: 700 }),
@@ -507,7 +507,7 @@ export const royalMandala: TemplateDef = {
                 style={{
                   fontFamily: theme.fontBody,
                   color: theme.soft,
-                  fontSize: S(32, 27),
+                  fontSize: S(40, 27),
                   letterSpacing: "0.34em",
                   textTransform: "uppercase",
                   marginBottom: S(40, 30),

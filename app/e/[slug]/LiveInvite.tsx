@@ -12,6 +12,8 @@ import { Confetti } from "@/components/Celebrate";
 import { AgreeNote, LockIcon, TrustRow } from "@/components/PayTrust";
 import { normalizeEmail, normalizePhone, rememberContact, savedEmail, savedPhone, typingPhone } from "@/lib/contact";
 import { ownerKeyFor, takeJustCreated } from "@/lib/owner";
+import { countdownText, daysUntil, inviteDetails } from "@/lib/inviteDetails";
+import { GuestDetails } from "./GuestDetails";
 
 /* The guest's view of a live share: the same <Frame/> as the editor, driven by
    a rAF clock. It opens on a "tap to open" cover, because browsers only allow
@@ -286,8 +288,75 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
     }
   }, [phase]);
 
+  /* ---------- story controls: tap right = next scene, tap left = back, hold = pause (like Instagram stories) ---------- */
+  const seek = (t: number) => {
+    setT(t);
+    const a = audio.current;
+    if (a && music && phase === "playing") a.currentTime = (music.offset || 0) + t / speed / 1000;
+  };
+  const sceneAt = (t: number) => tl.slots.reduce((at, s, i) => (s.start <= t + 1 ? i : at), 0);
+  const nextScene = () => {
+    const i = sceneAt(T);
+    if (i + 1 < tl.slots.length) seek(tl.slots[i + 1].start);
+    else {
+      setT(total);
+      setPhase("ended");
+    }
+  };
+  const prevScene = () => {
+    const i = sceneAt(T);
+    seek(i === 0 || T - tl.slots[i].start > 1200 ? tl.slots[i].start : tl.slots[i - 1].start);
+  };
+  const press = useRef<{ x: number; held: boolean; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const [holding, setHolding] = useState(false);
+  const resume = () => {
+    unlockAudio();
+    setHolding(false);
+    setPhase("playing");
+  };
+  const onDown = (e: React.PointerEvent) => {
+    if (phase !== "playing") return;
+    const p = { x: e.clientX / window.innerWidth, held: false, timer: setTimeout(() => {
+      p.held = true;
+      setHolding(true);
+      setPhase("paused");
+    }, 260) };
+    press.current = p;
+  };
+  const onUp = () => {
+    const p = press.current;
+    press.current = null;
+    if (!p) {
+      if (phase === "paused") resume(); // paused by leaving the tab: any tap plays on
+      return;
+    }
+    clearTimeout(p.timer);
+    if (p.held) resume();
+    else if (p.x < 0.3) prevScene();
+    else nextScene();
+  };
+  const onCancel = () => {
+    const p = press.current;
+    press.current = null;
+    if (!p) return;
+    clearTimeout(p.timer);
+    if (p.held) resume();
+  };
+  // A one-time hint the first time it plays, so guests know they can skip ahead.
+  const [hint, setHint] = useState(false);
+  const hinted = useRef(false);
+  useEffect(() => {
+    if (phase !== "playing" || hinted.current) return;
+    hinted.current = true;
+    setHint(true);
+    const id = setTimeout(() => setHint(false), 3400);
+    return () => clearTimeout(id);
+  }, [phase]);
+
   useEffect(() => {
     const k = (e: KeyboardEvent) => {
+      if (e.code === "ArrowRight" && (phase === "playing" || phase === "paused")) return nextScene();
+      if (e.code === "ArrowLeft" && (phase === "playing" || phase === "paused")) return prevScene();
       if (e.code !== "Space") return;
       e.preventDefault();
       if (phase === "cover") open();
@@ -296,7 +365,14 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
     window.addEventListener("keydown", k);
     return () => window.removeEventListener("keydown", k);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, toggle]);
+  }, [phase, toggle, T]);
+
+  // "49 days to go" on the cover: worked out in the browser (the cover HTML is cached for everyone).
+  const [countdown, setCountdown] = useState("");
+  useEffect(() => {
+    const ev = inviteDetails(project.templateId, project.data).events.find((e) => daysUntil(e.date) >= 0);
+    setCountdown(ev ? countdownText(daysUntil(ev.date)) : "");
+  }, [project]);
 
   const { W, H } = SIZES[o];
   const ink = theme.ink;
@@ -329,29 +405,45 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
       ) : null}
 
       {phase !== "cover" ? (
-        <div onClick={toggle} style={{ position: "absolute", inset: 0, cursor: "pointer" }}>
+        <div
+          onPointerDown={onDown}
+          onPointerUp={onUp}
+          onPointerCancel={onCancel}
+          onPointerLeave={onCancel}
+          onContextMenu={(e) => e.preventDefault()}
+          style={{ position: "absolute", inset: 0, cursor: "pointer", touchAction: "manipulation", WebkitTouchCallout: "none" } as React.CSSProperties}
+        >
           <Stage W={W} H={H}>
             <Frame project={{ ...project, orientation: o }} template={tl.template} theme={theme} scenes={tl.scenes} slots={tl.slots} total={total} T={Math.min(T, total)} playing={playing} />
           </Stage>
         </div>
       ) : null}
 
-      {/* progress */}
+      {/* progress: one segment per scene, like stories */}
       {phase !== "cover" ? (
-        <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 3, background: "rgba(255,255,255,.12)", pointerEvents: "none" }}>
-          <div style={{ height: "100%", width: (T / total) * 100 + "%", background: theme.accent }} />
+        <div className="story-bar" aria-hidden>
+          {tl.slots.map((s, i) => {
+            const end = i + 1 < tl.slots.length ? tl.slots[i + 1].start : total;
+            const f = Math.max(0, Math.min(1, (Math.min(T, total) - s.start) / Math.max(1, end - s.start)));
+            return (
+              <i key={i}>
+                <b style={{ transform: "scaleX(" + f.toFixed(4) + ")" }} />
+              </i>
+            );
+          })}
         </div>
       ) : null}
+      {hint && phase === "playing" ? <div className="tap-hint">Tap to skip ›&nbsp; · &nbsp;Hold to pause</div> : null}
 
       {marked ? <Watermark /> : null}
 
       {music && (phase === "playing" || phase === "paused") ? (
-        <button aria-label={muted ? "Unmute" : "Mute"} onClick={() => setMuted((m) => !m)} style={{ ...round(42), position: "absolute", top: 14, right: 14, fontSize: 18 }}>
+        <button aria-label={muted ? "Unmute" : "Mute"} onClick={() => setMuted((m) => !m)} style={{ ...round(42), position: "absolute", top: 24, right: 14, fontSize: 18 }}>
           {muted ? "🔇" : "🔊"}
         </button>
       ) : null}
 
-      {phase === "paused" ? (
+      {phase === "paused" && !holding ? (
         <button aria-label="Play" onClick={toggle} style={{ ...round(84), position: "absolute", left: "50%", top: "50%", transform: "translate(-50%,-50%)", fontSize: 30, paddingLeft: 6 }}>
           ▶
         </button>
@@ -359,9 +451,7 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
 
       {phase === "ended" ? (
         <div className="end-shade">
-          <button className="btn" onClick={toggle}>
-            ↻ Watch again
-          </button>
+          <GuestDetails project={project} title={title} name={name} onReplay={toggle} />
           {/* Free links only (they already carry our name): guests planning a function of their own find the maker.
               Paid links stay clean. The utm tags attribute the visit (lib/analytics keeps them); no invite details go along. */}
           {marked && !ownerKey ? (
@@ -406,6 +496,11 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
           {date ? (
             <div className="cover-in d2" style={{ position: "relative", fontFamily: "var(--f-cinzel)", fontSize: 13, letterSpacing: "0.16em", color: theme.soft }}>
               {date}
+            </div>
+          ) : null}
+          {countdown ? (
+            <div className="cover-count" style={{ color: theme.accent, borderColor: theme.accent + "66" }}>
+              {countdown}
             </div>
           ) : null}
           <button

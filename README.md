@@ -11,7 +11,7 @@ npm run dev        # http://localhost:4321
 
 | | |
 |---|---|
-| **14 templates** | Built for the Indian market, every function covered (see the table below) |
+| **17 templates** | Built for the Indian market, every function covered (see the table below) |
 | **Categories** | Wedding · All Functions · Engagement · Haldi · Mehendi · Sangeet · Reception · Save the Date, plus community filters (Hindu / North Indian, South Indian, Muslim, Sikh, Christian, Modern). The gallery plays each template live on hover |
 | **Scripts** | Devanagari, Gurmukhi (ੴ), Arabic (Bismillah, wedding dua), Tamil, Telugu, Malayalam, Kannada |
 | **4 palettes each** | One click recolours the whole video |
@@ -29,8 +29,11 @@ npm run dev        # http://localhost:4321
 |---|---|---|---|
 | Royal Mandala | Wedding | Hindu | Gold mandala, filigree corners, Devanagari header |
 | **Shaadi Utsav** | All Functions | Hindu | Toran + kalash; **one scene per function** (Haldi → Reception) plus an at-a-glance schedule |
+| **Shubh Mangal** | Wedding | Hindu (Marathi) | Paithani silk colours, zari border, self-drawing peacock feathers, kalash; चि. / चि. सौ. कां., शुभ मुहूर्त, स्वागत समारंभ |
+| **Shubho Bibaho** | Wedding | Hindu (Bengali) | Lal-paar border, prajapati butterfly over প্রজাপতয়ে নমঃ, alpana, shankha-pola photo ring; শ্রীমান / কল্যাণীয়া, বৌভাত |
 | **Kalyanam** | Wedding | South Indian | Temple border, kuthuvilakku, bells, kolam, banana leaves; header in Tamil/Telugu/Malayalam/Kannada; Chi./Sow.; Muhurtham window |
 | **Nikah Mubarak** | Wedding, Reception | Muslim | Bismillah, mehrab arch, 8-point star lattice, lanterns, optional Walima, wedding dua |
+| **Holy Matrimony** | Wedding | Christian | Wedding bells on a bow, cathedral rose window, photo in a lancet church-window arch, 1 Corinthians 13 verse (editable), ceremony + reception |
 | **Anand Karaj** | Wedding | Sikh | Glowing ੴ, Gurmukhi titles, phulkari band, Milni/Laavan/Langar schedule, Fateh sign-off |
 | **Sagai Rings** | Engagement | All | Interlocking rings with diamond flash; works for Roka, Sagai, Ring ceremony |
 | **Haldi Marigold** | Haldi | Hindu | Swaying genda-phool garlands, Rozha One titles, yellow dress-code swatches |

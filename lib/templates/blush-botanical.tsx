@@ -127,7 +127,7 @@ export const blushBotanical: TemplateDef = {
                 style={{
                   fontFamily: theme.fontBody,
                   color: theme.soft,
-                  fontSize: S(34, 29),
+                  fontSize: S(42, 29),
                   letterSpacing: "0.42em",
                   textTransform: "uppercase",
                   ...fade(t, { start: 700, dur: 900 }),
@@ -230,7 +230,7 @@ export const blushBotanical: TemplateDef = {
                     style={{
                       fontFamily: theme.fontBody,
                       color: theme.soft,
-                      fontSize: S(32, 34),
+                      fontSize: S(40, 34),
                       letterSpacing: "0.36em",
                       textTransform: "uppercase",
                       ...rise(t, { start: 1100, dur: 900, dist: 20 }),
@@ -271,7 +271,7 @@ export const blushBotanical: TemplateDef = {
                 style={{
                   fontFamily: theme.fontBody,
                   color: theme.soft,
-                  fontSize: S(32, 34),
+                  fontSize: S(40, 34),
                   letterSpacing: "0.4em",
                   textTransform: "uppercase",
                   ...fade(t, { start: 200, dur: 800 }),
@@ -386,7 +386,7 @@ export const blushBotanical: TemplateDef = {
                 style={{
                   fontFamily: theme.fontBody,
                   color: theme.soft,
-                  fontSize: S(32, 34),
+                  fontSize: S(40, 34),
                   letterSpacing: "0.42em",
                   textTransform: "uppercase",
                   marginBottom: S(36, 28),
@@ -423,7 +423,7 @@ export const blushBotanical: TemplateDef = {
                   style={{
                     fontFamily: theme.fontDisplay,
                     color: theme.accent,
-                    fontSize: S(34, 40),
+                    fontSize: S(42, 40),
                     letterSpacing: "0.2em",
                     marginTop: S(60, 44),
                     ...fade(t, { start: 2300, dur: 1000 }),

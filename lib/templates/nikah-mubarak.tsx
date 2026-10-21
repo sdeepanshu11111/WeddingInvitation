@@ -221,7 +221,7 @@ export const nikahMubarak: TemplateDef = {
                 <Headline t={t} theme={theme} v={v} start={300} size={S(150, 140)} font={theme.fontScript}>
                   {data.groomName}
                 </Headline>
-                <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontStyle: "italic", fontSize: S(34, 36), ...fade(t, { start: 800, dur: 800 }) }}>{data.groomParents}</div>
+                <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontStyle: "italic", fontSize: S(42, 36), ...fade(t, { start: 800, dur: 800 }) }}>{data.groomParents}</div>
               </div>
               <div style={{ margin: S("30px 0", "0") }}>
                 <Crescent t={t} color={theme.accent} size={S(90, 100)} start={1100} />
@@ -230,7 +230,7 @@ export const nikahMubarak: TemplateDef = {
                 <Headline t={t} theme={theme} v={v} start={1400} size={S(150, 140)} font={theme.fontScript}>
                   {data.brideName}
                 </Headline>
-                <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontStyle: "italic", fontSize: S(34, 36), ...fade(t, { start: 1900, dur: 800 }) }}>{data.brideParents}</div>
+                <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontStyle: "italic", fontSize: S(42, 36), ...fade(t, { start: 1900, dur: 800 }) }}>{data.brideParents}</div>
               </div>
             </div>
           </Layer>

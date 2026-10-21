@@ -224,7 +224,7 @@ export const polaroidMemories: TemplateDef = {
                 style={{
                   fontFamily: theme.fontBody,
                   color: theme.soft,
-                  fontSize: S(30, 34),
+                  fontSize: S(38, 34),
                   letterSpacing: "0.36em",
                   textTransform: "uppercase",
                   marginTop: S(38, 28),
@@ -286,7 +286,7 @@ export const polaroidMemories: TemplateDef = {
                   style={{
                     fontFamily: theme.fontBody,
                     color: theme.soft,
-                    fontSize: S(28, 32),
+                    fontSize: S(36, 32),
                     letterSpacing: "0.44em",
                     textTransform: "uppercase",
                     ...fade(t, { start: 150, dur: 700 }),
@@ -362,7 +362,7 @@ export const polaroidMemories: TemplateDef = {
                   style={{
                     fontFamily: theme.fontBody,
                     color: theme.soft,
-                    fontSize: S(28, 32),
+                    fontSize: S(36, 32),
                     letterSpacing: "0.4em",
                     textTransform: "uppercase",
                     ...fade(t, { start: 700, dur: 800 }),
@@ -441,7 +441,7 @@ export const polaroidMemories: TemplateDef = {
                   style={{
                     fontFamily: theme.fontBody,
                     color: theme.soft,
-                    fontSize: S(28, 32),
+                    fontSize: S(36, 32),
                     letterSpacing: "0.2em",
                     marginTop: S(32, 24),
                     ...fade(t, { start: 2400, dur: 1000 }),

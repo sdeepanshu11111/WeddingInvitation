@@ -238,13 +238,13 @@ export const southKalyanam: TemplateDef = {
                   {chi ? <span style={{ fontFamily: theme.fontDisplay, fontSize: "0.4em", color: theme.accent, marginRight: 14 }}>Chi.</span> : null}
                   {data.groomName}
                 </Headline>
-                <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontStyle: "italic", fontSize: S(32, 34), ...fade(t, { start: 900, dur: 800 }) }}>{data.groomParents}</div>
+                <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontStyle: "italic", fontSize: S(40, 34), ...fade(t, { start: 900, dur: 800 }) }}>{data.groomParents}</div>
                 <div style={{ fontFamily: theme.fontDisplay, color: theme.accent, fontSize: S(38, 40), letterSpacing: "0.3em", margin: S("26px 0", "18px 0"), ...fade(t, { start: 1200, dur: 800 }) }}>WITH</div>
                 <Headline t={t} theme={theme} v={v} start={1400} size={S(120, 120)} font={theme.fontScript} color={theme.ink}>
                   {chi ? <span style={{ fontFamily: theme.fontDisplay, fontSize: "0.4em", color: theme.accent, marginRight: 14 }}>Sow.</span> : null}
                   {data.brideName}
                 </Headline>
-                <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontStyle: "italic", fontSize: S(32, 34), ...fade(t, { start: 1800, dur: 800 }) }}>{data.brideParents}</div>
+                <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontStyle: "italic", fontSize: S(40, 34), ...fade(t, { start: 1800, dur: 800 }) }}>{data.brideParents}</div>
               </div>
             </Layer>
           </>

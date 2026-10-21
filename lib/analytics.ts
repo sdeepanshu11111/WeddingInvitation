@@ -46,6 +46,8 @@ type Events = {
   /** A guest watched to the end (once per visit). */
   invite_watched: {};
   invite_shared: { channel: "whatsapp" | "native_share" | "copy"; invite_id?: string };
+  /** A guest used the card at the end of an invite (app/e/[slug]/GuestDetails.tsx). */
+  guest_action_clicked: { action: "calendar" | "directions" | "rsvp" };
 };
 
 type Surface = "site" | "editor" | "guest_page";

@@ -115,7 +115,14 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
     link). All client-side, so the page stays static ISR HTML for everyone. Another browser = guest view (fine).
     `card` (palette colours + date) is computed in the editor so server code never imports the templates.
     `app/e/[slug]/LiveInvite.tsx` plays it with `<Frame>` + rAF clock: tap-to-open cover (audio unlock on iOS), 9:16 on
-    portrait screens and 16:9 on landscape, pause/mute/replay. Its `<Warmup>` lays out every scene hidden once, so only the
+    portrait screens and 16:9 on landscape, mute/replay. **Interactive like stories** (since 2026-10-21): one progress segment per
+    scene at the top, tap the right 70% = next scene, left 30% = back, hold = pause (`onDown/onUp`, music re-synced on seek), arrow keys,
+    a one-time "Tap to skip · Hold to pause" hint, and "N days to go" on the cover (computed in the browser; the cover HTML is cached).
+    When it ends, `GuestDetails.tsx` shows each function with **Add to calendar** (Google Calendar link; iPhones get
+    `/e/<name>/calendar.ics`, every function in one file) and **Directions** (Google Maps search), **RSVP on WhatsApp** when any field holds an
+    Indian mobile (the families' RSVP lines), a countdown and Watch again; ✕ tucks it into a pill. All read from the invite's fields by
+    `lib/inviteDetails.ts` (shared field names: weddingDate/Time, venueName/Address/City, events, receptionDate/Time/Venue/`receptionLabel`,
+    walima*, muhurthamStart/End, schedule; `MAIN` names a template's main function). Times are IST. Analytics: `guest_action_clicked`. Its `<Warmup>` lays out every scene hidden once, so only the
     fonts the invite uses download (~260 KB instead of 2.4 MB for all 174 faces).
   - **Video** ("Share link" on a finished export, only with `VIDEO_EXPORT`): `POST /api/share {file,title}` links an MP4.
   - Storage (`SHARE_STORE`): `disk` = `exports/shares/<token>/`, media served by `/api/share/[token]/media/[name]` via
@@ -171,7 +178,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   Purchase (eventID `purchase-<invite_id>`), free invite_link_created → Lead. Automatic events off. Headless Chrome only
   sends events when `navigator.webdriver` is hidden, so check by hand or with that override.
 
-## Templates (14), in `lib/templates/`, registered in `index.ts`
+## Templates (17), in `lib/templates/`, registered in `index.ts`
 
 | id | Category | Community | Notes |
 |---|---|---|---|
@@ -185,6 +192,9 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 | mehendi-paisley | mehendi | hindu, muslim | self-drawing paisleys, henna ring |
 | sangeet-night | sangeet | hindu, sikh | beams, neon glow, line-up, confetti |
 | reception-gala | reception | all | fairy lights, deco fans, programme |
+| holy-matrimony | wedding | christian | church wedding: bells on a bow, rose window, lancet-arch photo (`clip-path: path()`), 1 Cor 13 verse (toggle), ceremony + reception; no cross drawn |
+| shubh-mangal | wedding | hindu (Marathi) | Paithani zari border, `MorPankh` peacock feathers, kalash; चि. / चि. सौ. कां. toggle, शुभ मुहूर्त, स्वागत समारंभ, आपली उपस्थिती प्रार्थनीय, आग्रहाचे निमंत्रण |
+| shubho-bibaho | wedding | hindu (Bengali) | `--f-bengali` (Tiro Bangla); lal-paar border, prajapati butterfly, alpana, shankha-pola ring; শ্রীমান / কল্যাণীয়া, বৌভাত (`receptionLabel`), উপস্থিতি একান্ত কাম্য, বিনীত |
 | blush-botanical, cinematic-reel (video clip + montage), polaroid-memories (gallery), aurora-modern | save-the-date etc. | modern | the original 4 |
 
 ### Adding a template
@@ -193,10 +203,16 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
    optional `backdrop`, and `build(data, orientation, theme) → Scene[]`.
 2. Inside `build`, use `const S = function <T>(v: T, h: T): T { return vertical ? v : h; }` for every orientation-specific
    size/layout. **16:9 needs larger type than 9:16** (it is 1920 wide); stack in 9:16, put side by side in 16:9.
-3. Register it in `lib/templates/index.ts`, then run `npm run snapshot -- <dir> --only=<id>` and **look at both sheets**.
+   **Phones show 9:16 at about 0.36x**: no information smaller than ~36 design px there (labels: `Kicker` enforces 34,
+   `KICKER_MIN` in blocks.tsx; addresses, parents, RSVP lines 40+). Use the shared field names (weddingDate, weddingTime,
+   venueName, venueAddress, receptionDate/Time/Venue, rsvp...) so the guest card's calendar/directions/RSVP work, and add the
+   main function's name to `MAIN` in `lib/inviteDetails.ts` if it isn't "Wedding". Name scenes so `lib/fieldScene.ts` finds them
+   ("date", "venue", "reception", "close" in the id or label).
+3. Register it in `lib/templates/index.ts`, then run `npm run snapshot -- <dir> --only=<id>` and **look at both sheets**
+   (and a dark palette with `--palette=<id>`: white or red details can vanish on a matching background).
 4. Fonts are CSS variables from `app/fonts.css`: --f-cinzel, --f-cormorant, --f-vibes (script), --f-playfair, --f-marcellus,
    --f-inter, --f-devanagari, --f-caveat, --f-bodoni, --f-arabic (Amiri), --f-gurmukhi, --f-tamil, --f-telugu, --f-malayalam,
-   --f-kannada, --f-rozha (bold Hindi display), --f-kalam (handwritten Hindi), --f-yatra.
+   --f-kannada, --f-bengali (Tiro Bangla), --f-rozha (bold Hindi display), --f-kalam (handwritten Hindi), --f-yatra.
    They are self-hosted in `public/fonts/` (unicode-range subsets, as Google serves them). To add or change one, edit the
    list in `scripts/fetch-fonts.mjs` and run `node scripts/fetch-fonts.mjs`; commit the generated files. **Don't go back to
    `next/font/google`**: it downloads during the build, and Google sometimes answers Vercel's build machines with font URLs
@@ -217,7 +233,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   No hand-drawn Khanda or Ganesha (too easy to get wrong); text glyphs like ੴ are used instead.
 
 ## Status & next ideas
-Done: 14 templates, categories + gallery, events field, both orientations, music, pacing, autosave, MP4 export (720p/1080p/4K, 24/30/60fps),
+Done: 17 templates, categories + gallery, events field, both orientations, music, pacing, autosave, MP4 export (720p/1080p/4K, 24/30/60fps),
 exports folder, CLI render, snapshot QA script, production build passes. Hosted on Vercel with live share links (`/e/<name>`),
 Razorpay paid links (watermark removal), Mixpanel analytics, share success screen (iPhone mockups of the guest journey,
 WhatsApp chat preview, Preview link / After payment toggle).

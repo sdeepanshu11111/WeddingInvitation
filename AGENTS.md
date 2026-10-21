@@ -104,6 +104,7 @@ wrong property, so update that type first.
 | `invite_opened` | Guest tapped "Open invitation" | `orientation` | `app/e/[slug]/LiveInvite.tsx` |
 | `invite_watched` | Guest reached the end (once per visit) | (super properties) | `app/e/[slug]/LiveInvite.tsx` |
 | `invite_shared` | Link sent on: WhatsApp, the phone's share sheet (after it succeeds), or copy | `channel` (`whatsapp`/`native_share`/`copy`), `invite_id` | `ShareDialog.tsx` (`GetLink` copy, `SharePanel`), `LiveInvite.tsx` (`GuestBar`, `OwnerBar`, `OwnerSheet`) |
+| `guest_action_clicked` | A guest used the card at the end of an invite | `action` (`calendar`/`directions`/`rsvp`) | `app/e/[slug]/GuestDetails.tsx` |
 
 ---
 

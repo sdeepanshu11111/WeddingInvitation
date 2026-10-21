@@ -198,7 +198,7 @@ export const cinematicReel: TemplateDef = {
                   style={{
                     fontFamily: theme.fontBody,
                     color: theme.accent,
-                    fontSize: S(30, 36),
+                    fontSize: S(38, 36),
                     letterSpacing: "0.6em",
                     textTransform: "uppercase",
                     margin: S(22, 16) + "px 0",
@@ -288,7 +288,7 @@ export const cinematicReel: TemplateDef = {
                   style={{
                     fontFamily: theme.fontBody,
                     color: theme.ink,
-                    fontSize: S(26, 22),
+                    fontSize: S(36, 22),
                     letterSpacing: "0.4em",
                     textTransform: "uppercase",
                     opacity: tw(t, 200, 500),
@@ -319,7 +319,7 @@ export const cinematicReel: TemplateDef = {
                 style={{
                   fontFamily: theme.fontBody,
                   color: theme.soft,
-                  fontSize: S(28, 32),
+                  fontSize: S(36, 32),
                   letterSpacing: "0.55em",
                   textTransform: "uppercase",
                   ...fade(t, { start: 200, dur: 800 }),
@@ -363,15 +363,17 @@ export const cinematicReel: TemplateDef = {
                 style={{
                   fontFamily: theme.fontBody,
                   color: theme.soft,
-                  fontSize: S(30, 36),
-                  letterSpacing: "0.3em",
+                  fontSize: S(38, 36),
+                  letterSpacing: S("0.22em", "0.3em"),
+                  lineHeight: 1.5,
                   textTransform: "uppercase",
                   marginTop: S(40, 30),
                   ...rise(t, { start: 2000, dur: 1000, dist: 18 }),
                 }}
               >
                 {[data.venueName, data.venueCity].filter(Boolean).join(" · ")}
-                {time ? " · " + time : ""}
+                {/* 9:16 is too narrow for venue · city · time on one line: the time gets its own */}
+                {time ? vertical ? <div>{time}</div> : " · " + time : ""}
               </div>
             </div>
           </Layer>
@@ -422,7 +424,7 @@ export const cinematicReel: TemplateDef = {
                   style={{
                     fontFamily: theme.fontBody,
                     color: theme.soft,
-                    fontSize: S(28, 32),
+                    fontSize: S(36, 32),
                     letterSpacing: "0.26em",
                     marginTop: S(36, 26),
                     ...fade(t, { start: 2600, dur: 1200 }),

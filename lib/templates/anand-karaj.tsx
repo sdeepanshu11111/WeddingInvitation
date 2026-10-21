@@ -201,12 +201,12 @@ export const anandKaraj: TemplateDef = {
               <Headline t={t} theme={theme} v={v} start={500} size={S(110, 110)} font={theme.fontScript}>
                 {data.groomName}
               </Headline>
-              <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontStyle: "italic", fontSize: S(30, 32), ...fade(t, { start: 900, dur: 800 }) }}>{data.groomParents}</div>
+              <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontStyle: "italic", fontSize: S(38, 32), ...fade(t, { start: 900, dur: 800 }) }}>{data.groomParents}</div>
               <div style={{ fontFamily: theme.fontDisplay, color: theme.accent, fontSize: S(40, 40), letterSpacing: "0.3em", margin: S("20px 0", "14px 0"), ...fade(t, { start: 1200, dur: 800 }) }}>&amp;</div>
               <Headline t={t} theme={theme} v={v} start={1400} size={S(110, 110)} font={theme.fontScript}>
                 {data.brideName}
               </Headline>
-              <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontStyle: "italic", fontSize: S(30, 32), ...fade(t, { start: 1800, dur: 800 }) }}>{data.brideParents}</div>
+              <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontStyle: "italic", fontSize: S(38, 32), ...fade(t, { start: 1800, dur: 800 }) }}>{data.brideParents}</div>
             </div>
           </Layer>
         ),
@@ -275,7 +275,7 @@ export const anandKaraj: TemplateDef = {
               {String(data.groomName || "").split(" ")[0]} &amp; {String(data.brideName || "").split(" ")[0]}
             </div>
             {data.rsvp ? (
-              <div style={{ fontFamily: theme.fontDisplay, color: theme.soft, fontSize: S(34, 36), letterSpacing: "0.08em", marginTop: S(40, 28), ...fade(t, { start: 2200, dur: 1000 }) }}>{data.rsvp}</div>
+              <div style={{ fontFamily: theme.fontDisplay, color: theme.soft, fontSize: S(42, 36), letterSpacing: "0.08em", marginTop: S(40, 28), ...fade(t, { start: 2200, dur: 1000 }) }}>{data.rsvp}</div>
             ) : null}
           </div>
         </Layer>

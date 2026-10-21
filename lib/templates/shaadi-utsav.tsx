@@ -208,12 +208,12 @@ export const shaadiUtsav: TemplateDef = {
               <Headline t={t} theme={theme} v={v} start={500} size={S(120, 120)} font={theme.fontScript}>
                 {data.groomName}
               </Headline>
-              <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: S(32, 34), fontStyle: "italic", ...fade(t, { start: 900, dur: 800 }) }}>{data.groomParents}</div>
+              <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: S(40, 34), fontStyle: "italic", ...fade(t, { start: 900, dur: 800 }) }}>{data.groomParents}</div>
               <div style={{ fontFamily: theme.fontDisplay, color: theme.accent, fontSize: S(40, 42), letterSpacing: "0.3em", margin: S("22px 0", "16px 0"), ...fade(t, { start: 1200, dur: 800 }) }}>WEDS</div>
               <Headline t={t} theme={theme} v={v} start={1400} size={S(120, 120)} font={theme.fontScript}>
                 {data.brideName}
               </Headline>
-              <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: S(32, 34), fontStyle: "italic", ...fade(t, { start: 1800, dur: 800 }) }}>{data.brideParents}</div>
+              <div style={{ fontFamily: theme.fontBody, color: theme.soft, fontSize: S(40, 34), fontStyle: "italic", ...fade(t, { start: 1800, dur: 800 }) }}>{data.brideParents}</div>
             </div>
           </Layer>
         ),

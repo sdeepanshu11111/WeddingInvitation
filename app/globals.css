@@ -721,3 +721,38 @@ li.lead.out { opacity: 0.6; }
 .owner-sheet .os-note { margin-top: 8px; color: rgba(236, 232, 227, 0.55); font-size: 12.5px; }
 .owner-sheet .os-note.bad { color: #e2766b; }
 .os-contact.saved { color: #7fc8a0; font-size: 14px; }
+
+/* ================================================================== *
+ * Invite page, interactive (app/e/[slug]/LiveInvite.tsx + GuestDetails.tsx): story-style segments and
+ * tap/hold controls, a countdown on the cover, and the guest card at the end (calendar, directions, RSVP).
+ * ================================================================== */
+.story-bar { position: absolute; z-index: 6; top: calc(8px + env(safe-area-inset-top)); left: 10px; right: 10px; display: flex; gap: 4px; pointer-events: none; }
+.story-bar i { flex: 1; height: 3px; overflow: hidden; border-radius: 3px; background: rgba(255, 255, 255, 0.28); box-shadow: 0 0 4px rgba(0, 0, 0, 0.25); }
+.story-bar b { display: block; height: 100%; background: #fff; transform-origin: left; }
+.tap-hint { position: absolute; z-index: 7; top: calc(30px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); padding: 8px 14px; border-radius: 99px; background: rgba(15, 14, 16, 0.7); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: tap-hint 3.4s ease both; }
+@keyframes tap-hint { 0% { opacity: 0; transform: translate(-50%, -6px); } 10%, 85% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; } }
+.cover-count { position: relative; margin-top: 2px; padding: 5px 14px; border: 1px solid; border-radius: 99px; font-size: 12.5px; font-weight: 600; letter-spacing: 0.06em; animation: cover-in 0.9s 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* the guest card when the invite ends; .end-shade keeps it above the bottom bar */
+.end-shade { padding-top: 40px; }
+.gd { width: min(440px, 100%); max-height: calc(100% - 20px); display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 20px; border: 1px solid rgba(255, 255, 255, 0.14); background: rgba(15, 14, 16, 0.82); color: #fff; text-align: left; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45); animation: pop-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.gd-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.gd-head b { font-family: var(--f-vibes); font-size: 26px; font-weight: 400; line-height: 1.1; color: #f0d6a6; }
+.gd-count { flex: none; padding: 4px 10px; border-radius: 99px; background: rgba(240, 214, 166, 0.16); color: #f0d6a6; font-size: 12px; font-weight: 700; }
+.gd-list { display: grid; gap: 8px; max-height: 44vh; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; }
+.gd-ev { display: flex; align-items: center; gap: 10px; padding: 10px 10px 10px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.07); }
+.gd-when { flex: 1; min-width: 0; display: grid; gap: 1px; }
+.gd-when b { font-size: 14.5px; font-weight: 700; }
+.gd-when span { font-size: 12.5px; color: rgba(255, 255, 255, 0.72); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gd-acts { flex: none; display: flex; gap: 6px; }
+.gd-btn { display: grid; justify-items: center; gap: 2px; min-width: 64px; padding: 7px 6px 6px; border-radius: 12px; background: rgba(255, 255, 255, 0.1); color: #fff; font-size: 11px; font-weight: 600; text-decoration: none; transition: background 0.15s, transform 0.12s; }
+.gd-btn:hover { background: rgba(255, 255, 255, 0.18); }
+.gd-btn:active { transform: scale(0.95); }
+.gd-foot { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.gd-foot .btn { height: 46px; justify-content: center; border-radius: 13px !important; font-size: 14.5px; font-weight: 600; }
+.gd-foot .gd-replay { background: rgba(255, 255, 255, 0.1) !important; color: #fff !important; border-color: transparent !important; }
+.gd-rsvp { text-decoration: none; }
+@media (min-width: 420px) { .gd-foot:has(.gd-rsvp) { grid-template-columns: 1.4fr 1fr; } }
+.gd-head .gd-count { margin-left: auto; }
+.gd-x { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 50%; background: transparent; color: rgba(255, 255, 255, 0.75); font-size: 12px; }
+.gd-pill { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 99px; background: rgba(15, 14, 16, 0.8); color: #fff; font-size: 14px; font-weight: 600; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: pop-in 0.25s ease both; }
