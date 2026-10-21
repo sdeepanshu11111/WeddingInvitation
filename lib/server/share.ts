@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { createHash, randomBytes } from "node:crypto";
+import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { BlobNotFoundError, get, head, put } from "@vercel/blob";
 import type { Project } from "../types";
 import { SHARE_STORE } from "../features";
@@ -31,7 +31,8 @@ export type Card = { bg: string; bg2: string; ink: string; soft: string; accent:
 
 export type Share =
   /** origin: the site the share was created on (e.g. https://x.vercel.app), for the absolute preview-card URL. */
-  | { token: string; kind: "live"; title: string; createdAt: number; card: Card; origin?: string }
+  /** ownerHash: sha256 of the key only the creator's browser got back (see ownerKey below); missing on older links. */
+  | { token: string; kind: "live"; title: string; createdAt: number; card: Card; origin?: string; ownerHash?: string }
   | { token: string; kind: "video"; title: string; createdAt: number; file: string; vertical: boolean };
 
 export const SHARE_DIR = path.join(EXPORT_DIR, "shares");
@@ -118,6 +119,46 @@ export async function suggestName(base: string, year?: string): Promise<string> 
   return stem + "-" + randomBytes(3).toString("hex");
 }
 
+/**
+ * The automatic link name: the first free "<n>-<base>", counting per couple: 1-deepak-sonia, then 2-deepak-sonia...
+ * Numbers fill up in order, so it doubles until it finds a free one and then halves back to the first free number:
+ * about 2·log2(n) existence checks instead of n. (A gap, e.g. a deleted link, may get skipped; any free number is fine.)
+ */
+export async function nextNumberedName(base: string): Promise<string> {
+  const stem = SLUG_RE.test(base) ? base.slice(0, 44).replace(/-+$/, "") : "invite";
+  const at = (n: number) => n + "-" + stem;
+  if (!(await nameTaken(at(1)))) return at(1);
+  let lo = 1; // taken
+  let hi = 2;
+  while (await nameTaken(at(hi))) {
+    lo = hi;
+    hi *= 2;
+    if (hi > 1e6) return stem + "-" + randomBytes(3).toString("hex");
+  }
+  while (hi - lo > 1) {
+    const mid = (lo + hi) >> 1;
+    if (await nameTaken(at(mid))) lo = mid;
+    else hi = mid;
+  }
+  return at(hi);
+}
+
+/* Owner key: the couple's browser gets a random key when it creates a link (kept in its localStorage), and the
+   share stores only its sha256. That key is what lets the invite page treat a visitor as the couple (pay, leave a
+   number) without accounts, and what stops a stranger from attaching their own number to someone else's link.
+   share.json is public in Blob, which is fine for a hash of 144 random bits. */
+export const newOwnerKey = () => randomBytes(18).toString("base64url");
+export const ownerKeyHash = (key: string) => createHash("sha256").update(key).digest("hex");
+export function isOwnerKey(share: Share, key: unknown): boolean {
+  if (share.kind !== "live" || !share.ownerHash || typeof key !== "string" || !key) return false;
+  const a = Buffer.from(ownerKeyHash(key), "hex");
+  const b = Buffer.from(share.ownerHash, "hex");
+  return a.length === b.length && timingSafeEqual(a, b);
+}
+
+/** "3-deepak-sonia" → "deepak-sonia": the base of an automatic numbered name. */
+export const numberedBase = (name: string) => name.replace(/^\d+-/, "");
+
 export async function getShare(token: string): Promise<(Share & { path: string }) | null> {
   if (!ID.test(token)) return null;
   const s = await store.readJSON<Share>(token + "/share.json");
@@ -151,7 +192,7 @@ const COLOR = /^#[0-9a-f]{3,8}$/i;
  * become stored files, so the watch page stays a few KB and media streams
  * separately. Media may only point at this app's own storage.
  */
-export async function createLiveShare(project: Project, title: string, card: Partial<Card>, name: string, origin?: string): Promise<Share> {
+export async function createLiveShare(project: Project, title: string, card: Partial<Card>, name: string, origin?: string, ownerHash?: string): Promise<Share> {
   assertWritable();
   if (!SLUG_RE.test(name)) throw new ShareError(400, "Use 3–50 lowercase letters, numbers and hyphens for the link name");
   const year = /\b(20\d\d)\b/.exec(typeof card.date === "string" ? card.date : "")?.[1];
@@ -199,6 +240,7 @@ export async function createLiveShare(project: Project, title: string, card: Par
     title: title.slice(0, 120),
     createdAt: Date.now(),
     origin: origin && /^https?:\/\/[\w.-]+(:\d+)?$/.test(origin) ? origin : undefined,
+    ownerHash,
     card: {
       bg: pick("bg", "#4a0d1c"), bg2: pick("bg2", "#22050d"), ink: pick("ink", "#fff4e6"),
       soft: pick("soft", "#e8cfc0"), accent: pick("accent", "#e9c46a"), line: pick("line", "#c9a24a"),

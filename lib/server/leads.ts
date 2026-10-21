@@ -8,21 +8,22 @@ import { EXPORT_DIR } from "./paths";
 /* =====================================================================
  * Leads: the people behind invite links, so the owner can follow up on
  * WhatsApp or email from /admin/leads. One document per link:
- *   - the WhatsApp number and/or email typed in the Get-link step (with the notice they saw),
+ *   - the WhatsApp number and/or email the couple left on their invite page (owner sheet, POST /api/share/contact,
+ *     checked with the link's owner key), with the notice they saw (the Get-link step asked before 2026-10-21),
  *   - the phone and email a payer typed into Razorpay Checkout.
  * Private data: never written to Vercel Blob (that store is public), Mixpanel
  * or the Meta Pixel, never logged, never sold or shared.
  *
  * LEADS = "mongo" MongoDB (MONGODB_URI, e.g. Atlas; database MONGODB_DB, default "invite_studio")
  *         "disk"  exports/leads.json, when running locally
- *         ""      off (on Vercel without MONGODB_URI: the Get-link step asks for nothing)
+ *         ""      off (on Vercel without MONGODB_URI: the invite page asks for nothing)
  * ===================================================================== */
 
 export type Lead = {
   link: string; // the share name: /e/<link>
   title: string; // "Aarav & Ananya"
-  phone: string | null; // E.164, from the Get-link step
-  email: string | null; // from the Get-link step
+  phone: string | null; // E.164, left by the couple (invite page)
+  email: string | null; // left by the couple (invite page)
   consent: string | null; // CONTACT_NOTICE version they agreed to
   pay_phone: string | null; // from Razorpay Checkout
   pay_email: string | null; // from Razorpay Checkout
@@ -89,13 +90,39 @@ const blank = (link: string, created_at: string): Lead => ({ link, created_at, .
 
 /* ---- API ---- */
 
-/** The number and/or email from the Get-link step, saved once the link exists. */
+/** The number and/or email the couple left for their link (on their invite page, or the older Get-link step).
+    A missing one keeps what was saved before, so adding an email later doesn't erase the number. */
 export async function saveShareLead(link: string, title: string, c: { phone: string | null; email: string | null }, consent: string) {
   if (LEADS === "mongo") {
+    // An update pipeline, like savePaymentLead: keeps earlier values and fills a new document's fields.
+    const keep = (f: string, empty: unknown) => ({ $ifNull: ["$" + f, empty] });
     const col = await mongo();
-    const fresh = { pay_phone: null, pay_email: null, paid_inr: null, paid_at: null, contacted_at: null, opted_out: false, created_at: new Date() };
-    await col.updateOne({ _id: link }, { $set: { title, phone: c.phone, email: c.email, consent }, $setOnInsert: fresh }, { upsert: true });
-  } else if (LEADS === "disk") await edit((all, now) => void (all[link] = { ...(all[link] ?? blank(link, now)), title, ...c, consent }));
+    await col.updateOne(
+      { _id: link },
+      [
+        {
+          $set: {
+            title: { $literal: title },
+            phone: { $ifNull: [{ $literal: c.phone }, "$phone", null] },
+            email: { $ifNull: [{ $literal: c.email }, "$email", null] },
+            consent: { $literal: consent },
+            pay_phone: keep("pay_phone", null),
+            pay_email: keep("pay_email", null),
+            paid_inr: keep("paid_inr", null),
+            paid_at: keep("paid_at", null),
+            contacted_at: keep("contacted_at", null),
+            opted_out: keep("opted_out", false),
+            created_at: keep("created_at", "$$NOW"),
+          },
+        },
+      ],
+      { upsert: true },
+    );
+  } else if (LEADS === "disk")
+    await edit((all, now) => {
+      const l = all[link] ?? blank(link, now);
+      all[link] = { ...l, title, phone: c.phone ?? l.phone, email: c.email ?? l.email, consent };
+    });
 }
 
 /** What a payer typed into Razorpay Checkout (any link, also ones made before lead capture existed). */

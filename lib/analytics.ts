@@ -49,9 +49,10 @@ type Events = {
 };
 
 type Surface = "site" | "editor" | "guest_page";
-/** Registered on every event of the page: which page it came from and, on a guest page, which invite. */
-type Super = { invite_id?: string; template_id?: string; is_watermarked?: boolean };
-const PAGE_KEYS = ["invite_id", "template_id", "is_watermarked"] as const;
+/** Registered on every event of the page: which page it came from and, on a guest page, which invite and whether
+    the viewer is the couple who made it (is_owner: the link was created in this browser, lib/owner.ts). */
+type Super = { invite_id?: string; template_id?: string; is_watermarked?: boolean; is_owner?: boolean };
+const PAGE_KEYS = ["invite_id", "template_id", "is_watermarked", "is_owner"] as const;
 /** Tags on the link that brought the visitor, e.g. a Meta ad's utm_source=meta&utm_campaign=... */
 const UTM = ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term"] as const;
 /** A guest page's URL and title carry the couple's names. */

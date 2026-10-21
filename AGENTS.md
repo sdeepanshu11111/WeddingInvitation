@@ -40,7 +40,7 @@ library unless the owner asks for it. Project context and architecture are in `C
   (`/`, `/templates`, `/templates/<id>`, the policy pages). `sitePage(path)` decides, and skips `/create`, `/e/`, `/v/`,
   `/render`, `/client-render` and `/admin`.
 - `app/create/page.tsx` (the editor): `startAnalytics("editor")`
-- `app/e/[slug]/LiveInvite.tsx` (the guest page): `startAnalytics("guest_page", { invite_id, template_id, is_watermarked })`
+- `app/e/[slug]/LiveInvite.tsx` (the guest page): `startAnalytics("guest_page", { invite_id, template_id, is_watermarked, is_owner })`
 
 It loads the SDK once, with a dynamic `import()` after the page loads, so it never slows the invite down. `track()`
 calls made before the SDK arrives are queued in order. Each call sets the guest-page blacklist on or off, swaps the
@@ -85,6 +85,7 @@ wrong property, so update that type first.
 |---|---|---|
 | `surface` | all | `site`, `editor`, `guest_page` |
 | `invite_id`, `template_id`, `is_watermarked` | guest page | which invite the guest is looking at |
+| `is_owner` | guest page | `true` when the viewer is the couple who made the link (its owner key is in this browser, `lib/owner.ts`). Filter it out to count real guests; since 2026-10-21 the couple lands on their own invite right after "Get link" |
 | `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` | after a visit from a tagged link (an ad) | the link's tags; kept on later events and visits until a link with other tags arrives (last touch) |
 
 ### Current Mixpanel events
@@ -93,16 +94,16 @@ wrong property, so update that type first.
 |---|---|---|---|
 | `$mp_web_page_view` | A site page (each route), the editor or a guest page loaded | (super properties) | `lib/analytics.ts` |
 | `template_selected` | Couple picks a template (in the editor, or arrives from "Customize" on a template page with a different one) | `template_id`, `source` (`sidebar`/`gallery`/`template_page`) | `app/create/page.tsx` |
-| `share_dialog_opened` | Couple opens Get link (share dialog) | `template_id` | `app/create/page.tsx` |
+| `share_dialog_opened` | Couple taps Get link (the link is created right away, no dialog to fill in since 2026-10-21) | `template_id` | `app/create/page.tsx` |
 | `invite_link_created` ★ | Share link saved (value moment) | `invite_id`, `template_id`, `palette_id`, `orientation`, `plan` (`free`/`premium`, only with payments on), `is_custom_name`, `has_music`, `photo_count`, `has_video`, `duration_seconds` | `components/editor/ShareDialog.tsx` |
 | `video_export_clicked` | "Export MP4" clicked (only where export is on; the hosted site hides the button) | `is_available` | `app/create/page.tsx` |
-| `payment_started` | Pay ₹ clicked (editor or guest page) | `invite_id`, `amount_inr` | `lib/pay.ts` |
+| `payment_started` | Pay ₹ clicked: the couple's owner sheet on their invite (since 2026-10-21) or a guest's "Remove · ₹" | `invite_id`, `amount_inr` | `lib/pay.ts` |
 | `payment_completed` | Server verified the Razorpay payment | `invite_id`, `amount_inr` (from the order, paise / 100) | `lib/pay.ts` |
 | `payment_cancelled` | Buyer closed Razorpay Checkout | `invite_id` | `lib/pay.ts` |
 | `payment_failed` | Order, Checkout load or verification failed | `invite_id` | `lib/pay.ts` |
 | `invite_opened` | Guest tapped "Open invitation" | `orientation` | `app/e/[slug]/LiveInvite.tsx` |
 | `invite_watched` | Guest reached the end (once per visit) | (super properties) | `app/e/[slug]/LiveInvite.tsx` |
-| `invite_shared` | Link sent on: WhatsApp, the phone's share sheet (after it succeeds), or copy | `channel` (`whatsapp`/`native_share`/`copy`), `invite_id` | `ShareDialog.tsx` (`SharePanel`), `LiveInvite.tsx` (`GuestBar`) |
+| `invite_shared` | Link sent on: WhatsApp, the phone's share sheet (after it succeeds), or copy | `channel` (`whatsapp`/`native_share`/`copy`), `invite_id` | `ShareDialog.tsx` (`GetLink` copy, `SharePanel`), `LiveInvite.tsx` (`GuestBar`, `OwnerBar`, `OwnerSheet`) |
 
 ---
 
@@ -129,8 +130,12 @@ Meta events are sent by `track()` from the Mixpanel events, so there is one call
 | `payment_completed` | `Purchase` | `value` (from the order), `currency: INR`, `eventID: purchase-<invite_id>` |
 | `invite_link_created` (free plan, or payments off) | `Lead` | `content_ids: [template_id]` |
 
-A premium link fires `Purchase`, not `Lead`. Payments made from a guest page ("Remove · ₹" in `GuestBar`) send no
-Meta events, because the pixel never runs there. The `eventID` is computable on the server (`inviteId(name)`), so a
+Every link is created free now (`plan: free` → `Lead`); the watermark is removed on the invite page. **Payments made on an
+invite page (the couple's owner sheet, or "Remove · ₹" in `GuestBar`) send no Meta `InitiateCheckout`/`Purchase`**: the pixel
+never runs on `/e/` pages (the URL has the couple's names; `/privacy` promises guests are not tracked). Mixpanel still records
+them. To get purchases back into Meta, add a server-side Conversions API sender in `/api/pay/verify` (needs a Meta access
+token; `eventID: purchase-<invite_id>`).
+The `eventID` is computable on the server (`inviteId(name)`), so a
 future Conversions API sender can deduplicate against the browser. Send only template ids and amounts to Meta; no
 names, link names, `invite_id` as a parameter, phone or email. **Any change to what reaches Meta means updating `/privacy`.**
 

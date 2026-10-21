@@ -36,7 +36,7 @@ export default function Privacy() {
         </li>
         {LEADS ? (
           <li>
-            <b>Your WhatsApp number or email</b>: when you create a link, you can give us a WhatsApp number or an email address. It is optional: the link works without it. If you give one, we keep it
+            <b>Your WhatsApp number or email</b>: after you create a link, your invitation page (on the device you made it on) lets you leave a WhatsApp number or an email address. It is optional: the link works without it. If you give one, we keep it
             privately with the name of that link (it is never part of the invitation your guests see) and use it only to contact you about that
             invitation, for example to help you or to remind you while it still has the watermark. We never sell it or share it for anyone else&rsquo;s
             use. Reply STOP at any time and we will not contact you again.
@@ -119,7 +119,8 @@ export default function Privacy() {
 
       <h2>5. Cookies and your choices</h2>
       <p>
-        We use your browser&rsquo;s storage to autosave the invitation you are editing and to keep the anonymous analytics ID
+        We use your browser&rsquo;s storage to autosave the invitation you are editing, to remember the invitation links you made on that
+        device (a random key, so your invitation page shows you its owner options) and to keep the anonymous analytics ID
         {LEADS ? " and the WhatsApp number or email you last entered, so you don't have to type it again" : ""}. Advertising tools such as
         the Meta Pixel may set cookies. You can clear or block cookies and site data in your browser settings at any time; the editor still works, but
         an unsaved draft on that device will be lost. You can control how Meta uses information for ads in your{" "}

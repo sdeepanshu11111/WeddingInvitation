@@ -86,11 +86,12 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   308-redirect there via next.config). Server-rendered, so link previews work; on-demand ISR (`generateStaticParams` → `[]`,
   `revalidate = false`): rendered on first visit, then cached. Don't read headers/cookies there or it turns dynamic; absolute
   URLs come from `SITE_URL` (`lib/site.ts`). Caching only shows in a production build, not `next dev`.
-  - Names default to a short code + the couple's first names (`autoName` in ShareDialog, e.g. k7x-aarav-ananya: 3 random look-alike-free characters + each first name, honorifics skipped) so nobody
-    has to pick again; "Edit" lets them type one, and an auto name that collides retries with the server suggestion.
+  - Names are a per-couple number + first names (`autoBase` in ShareDialog + `nextNumberedName` in share.ts, e.g. 1-aarav-ananya,
+    then 2-aarav-ananya; honorifics skipped). The studio posts `1-<first names>` with `auto: true` and the server takes the next
+    free number itself on a clash (`GET /api/share/check?next=` also answers it). Nobody picks a name any more (no "Edit" since 2026-10-21).
     Payment logos (`components/PayIcons.tsx`) are Simple Icons 16.32.0 paths (CC0); UPI is a text badge.
   - Names (`lib/slug.ts`: 3–50 of a-z 0-9 single hyphens) are claimed by writing `project.json` with no-overwrite (Blob
-    default, `wx` on disk). The dialog checks `GET /api/share/check?name=&year=`; taken → 409 + suggestion (name-year, -2..-9).
+    default, `wx` on disk). `GET /api/share/check?name=&year=` (unused by the UI now) → available / suggestion (name-year, -2..-9).
   - **Names are guessable, so a 404 may be cached before a name exists.** `POST /api/share` calls `revalidatePath("/e/"+name)`
     (works for pages). The preview card is `/e/[slug]/card?v=<createdAt>` (next/og route), linked from the page metadata:
     Next 14 does NOT invalidate cached route responses on revalidatePath (file-system-cache only checks `kind === "PAGE"`),
@@ -98,7 +99,16 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
     for up to a minute after the file is written, and `get(..., { useCache: false })` only bypasses it for **private** stores
     (ours is public). So `readJSON` adds a fresh `?fresh=<now>` query, and existence checks (`isPaid`, `nameTaken`) use
     `head()`, which asks the Blob API. The SDK's undici fetch stays outside Next's caching.
-  - **Live** (topbar "Get invite link", `components/editor/ShareDialog.tsx`; one contact field with a WhatsApp/Email toggle, `typingPhone()` caps the number at 10 digits): `POST /api/share {project,title,card,name}` stores a snapshot.
+  - **Live** ("Get invite link" / "Get link", `GetLink` in `components/editor/ShareDialog.tsx`), **no form since 2026-10-21, for conversion**:
+    the tap creates the link at once (`POST /api/share {project,title,card,name,auto}` stores a snapshot), shows a celebration
+    (confetti + drawn tick, `components/Celebrate.tsx`, the link with Copy) and after **3 s** sends the studio tab to `/e/<name>`
+    ("Stay in the studio" cancels). The response carries an **owner key**: the share stores only its sha256 (`ownerHash` in
+    share.json, public Blob, fine for 144 random bits), the creating browser keeps the key in localStorage (`lib/owner.ts`,
+    `fp.owned`). On `/e/<name>` that key turns the guest page into the couple's: a note on the cover ("This is exactly what your
+    guests will see"), `<OwnerBar>` instead of `<GuestBar>`, and `<OwnerSheet>` (opens from the bar, and by itself when the invite
+    ends): remove the watermark (Razorpay), share (WhatsApp / copy / share sheet), and an optional WhatsApp number or email saved via
+    `POST /api/share/contact {name,key,phone|email}` (403 without the right key, so nobody can attach a number to someone else's
+    link). All client-side, so the page stays static ISR HTML for everyone. Another browser = guest view (fine).
     `card` (palette colours + date) is computed in the editor so server code never imports the templates.
     `app/e/[slug]/LiveInvite.tsx` plays it with `<Frame>` + rAF clock: tap-to-open cover (audio unlock on iOS), 9:16 on
     portrait screens and 16:9 on landscape, pause/mute/replay. Its `<Warmup>` lays out every scene hidden once, so only the
@@ -113,14 +123,15 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
     Media types are whitelisted in `lib/media.ts` (no SVG: it could run script on our origin).
   - On localhost the dialog shows the Wi-Fi IP URL so phones on the same network can open it.
 - **Paid links** (Razorpay, `lib/server/razorpay.ts`, `lib/pay.ts`, `app/api/pay/*`): with `PAYMENTS` on (keys set), free links
-  show a watermark (`<Watermark>` in LiveInvite: diagonal BRAND · PREVIEW pattern + stripe + badge, always on) and the Share dialog
-  offers Preview (free) / Premium (₹`LINK_PRICE_INR`) plan cards. Brand name for guests/buyers: `lib/brand.ts`. `POST /api/pay/order {name}` creates an order and records
+  show a watermark (`<Watermark>` in LiveInvite: diagonal BRAND · PREVIEW pattern + stripe + badge, always on). Every link is created
+  free; the couple pays ₹`LINK_PRICE_INR` in the owner sheet on their invite (since 2026-10-21; the studio's Preview/Premium plan cards
+  are gone). Brand name for guests/buyers: `lib/brand.ts`. `POST /api/pay/order {name}` creates an order and records
   `shares/<name>/order-<id>.json`; Checkout → `POST /api/pay/verify` checks the HMAC signature, that the order record belongs
   to that name (so one payment can't unlock other links), and with Razorpay's API that the payment is captured (captures
   if only authorized); then `markPaid` writes `paid.json` (no-overwrite, idempotent) and `revalidatePath("/e/"+name)`.
   `POST /api/pay/webhook` (event `order.paid`, `RAZORPAY_WEBHOOK_SECRET`) is the backup. The guest page has an always-on
-  `<GuestBar>` (WhatsApp share; on free links also "Remove · ₹") from the cover on; the success screen shows the real
-  WhatsApp card (`card` URL returned by POST /api/share). The page computes
+  `<GuestBar>` (WhatsApp share; on free links also "Remove · ₹") from the cover on (the couple gets `<OwnerBar>` instead). Payments on
+  `/e/` pages send no Meta InitiateCheckout/Purchase (no Pixel there); a server-side Conversions API in verify would fix that. The page computes
   `watermark = PAYMENTS && !isPaid(name)`. **`isPaid` must ask the Blob API (`head`), never the public URL**: `/api/pay/order`
   checks it just before Checkout opens, so the CDN still holds that 404 when the post-payment re-render happens, and that page
   would keep the watermark forever (this was the "sometimes not removed after payment" bug). `/api/pay/order` on a paid link
@@ -129,9 +140,11 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   and the guest page drops the watermark locally on success instead of reloading. `shareFile()` refuses `.json`, so order/paid records are not served as media.
 - **Policy pages** (for Meta ads and Razorpay review): `/privacy` (has `#delete`), `/terms`, `/refunds` (incl. delivery), `/contact`
   in `app/(legal)/`, business details in `lib/legal.ts` (empty values are left off the pages). Linked from the editor sidebar
-  bottom, the phone ⋯ menu, and an "By paying you agree…" line under every create/pay button in ShareDialog. They describe
+  bottom, the phone ⋯ menu, and an `<AgreeNote>` line (`components/PayTrust.tsx`) under the studio's Get-link button, in the
+  creating overlay and under the owner sheet's pay button ("By paying you agree…"). They describe
   what the app really does: **adding a tracker (Meta Pixel), processor or stored field means updating `/privacy`**.
-- **Leads** (`lib/server/leads.ts`, flag `LEADS`): the Share step asks for a WhatsApp number or an email, **optional** since 2026-10-13 (a typed but invalid one blocks; empty is fine) (`lib/contact.ts`:
+- **Leads** (`lib/server/leads.ts`, flag `LEADS`): the owner sheet on the couple's invite asks for a WhatsApp number or an email,
+  **optional** (since 2026-10-21 there; before that the Get-link step asked; `saveShareLead` keeps the other field when one is missing) (`lib/contact.ts`:
   10-digit Indian mobile or `+`country code; remembered in localStorage, pre-fill Razorpay Checkout), with the promise that we never
   sell or share them. `POST /api/share {…, phone?, email?}` saves them with the link name and the notice version
   (`CONTACT_NOTICE`) after the link exists; payments save Razorpay's contact/email as `pay_phone`/`pay_email`

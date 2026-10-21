@@ -3,15 +3,25 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Frame, Stage } from "@/components/Frame";
 import { SIZES, buildTimeline, inviteDate } from "@/lib/project";
 import type { Orientation, Project } from "@/lib/types";
-import { LINK_PRICE_INR } from "@/lib/features";
+import { LEADS, LINK_PRICE_INR } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
 import { inviteId, startAnalytics, track } from "@/lib/analytics";
 import { BRAND } from "@/lib/brand";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
+import { Confetti } from "@/components/Celebrate";
+import { AgreeNote, LockIcon, TrustRow } from "@/components/PayTrust";
+import { normalizeEmail, normalizePhone, rememberContact, savedEmail, savedPhone, typingPhone } from "@/lib/contact";
+import { ownerKeyFor, takeJustCreated } from "@/lib/owner";
 
 /* The guest's view of a live share: the same <Frame/> as the editor, driven by
    a rAF clock. It opens on a "tap to open" cover, because browsers only allow
-   music to start after a tap. */
+   music to start after a tap.
+
+   The couple who made the link land here 3 seconds after "Get link" in the studio. Their browser holds the link's
+   owner key (lib/owner.ts), so they get owner tools instead of the guest bar: a note on the cover, an owner bar,
+   and a sheet (opened by the bar, and by itself when the invite ends) to remove the watermark, share the link and
+   leave a WhatsApp number or email. The page itself stays the same static HTML for everyone (ISR): all of
+   this is decided in the browser. */
 
 type Phase = "cover" | "opening" | "playing" | "paused" | "ended";
 
@@ -163,13 +173,28 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
   const watched = useRef(false);
   const [paidHere, setPaidHere] = useState(false); // paid on this page: drop the watermark now, no reload needed
   const marked = watermark && !paidHere;
+  const [ownerKey, setOwnerKey] = useState<string | null>(null); // set: the couple who made this link
+  const [welcome, setWelcome] = useState(false); // they just came from "Get link"
+  const [sheet, setSheet] = useState(false);
+  const sheetShown = useRef(false);
 
-  useEffect(() => startAnalytics("guest_page", { invite_id: name && inviteId(name), template_id: project.templateId, is_watermarked: watermark }), [name, project, watermark]);
   useEffect(() => {
-    if (phase !== "ended" || watched.current) return;
+    const key = ownerKeyFor(name);
+    setOwnerKey(key);
+    setWelcome(!!key && takeJustCreated(name));
+    startAnalytics("guest_page", { invite_id: name && inviteId(name), template_id: project.templateId, is_watermarked: watermark, is_owner: !!key });
+  }, [name, project, watermark]);
+  useEffect(() => {
+    if (phase !== "ended") return;
+    // The couple has just watched their invite: now is the moment for the owner sheet (once per visit).
+    if (ownerKey && !sheetShown.current) {
+      sheetShown.current = true;
+      setSheet(true);
+    }
+    if (watched.current) return;
     watched.current = true; // "Watch again" doesn't count twice
     track("invite_watched");
-  }, [phase]);
+  }, [phase, ownerKey]);
 
   // Both layouts are hand-tuned, so phones get 9:16 and laptops/TVs 16:9.
   useEffect(() => {
@@ -339,7 +364,7 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
           </button>
           {/* Free links only (they already carry our name): guests planning a function of their own find the maker.
               Paid links stay clean. The utm tags attribute the visit (lib/analytics keeps them); no invite details go along. */}
-          {marked ? (
+          {marked && !ownerKey ? (
             <a className="end-make" href={"/templates/" + project.templateId + "?utm_source=invite&utm_medium=guest_page"}>
               Make your own invitation →
             </a>
@@ -398,8 +423,286 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
         </div>
       ) : null}
 
-      <GuestBar title={title} name={name} watermark={marked} onPaid={() => setPaidHere(true)} />
+      {/* The couple's own visit: a note on the cover, their bar, their sheet. Guests get the guest bar. */}
+      {ownerKey && (phase === "cover" || phase === "opening") ? (
+        <div className={"owner-note" + (welcome ? " welcome" : "")}>
+          {welcome ? (
+            <>
+              <b>🎉 Your invite is live!</b> This is exactly what your guests will see. Tap to watch it.
+            </>
+          ) : (
+            <>
+              <b>Your invite</b> · this is what your guests see
+            </>
+          )}
+        </div>
+      ) : null}
+      {ownerKey && name ? (
+        <>
+          <OwnerBar title={title} name={name} watermark={marked} onOpen={() => setSheet(true)} />
+          {sheet ? (
+            <OwnerSheet title={title} name={name} ownerKey={ownerKey} watermark={marked} onPaid={() => setPaidHere(true)} onClose={() => setSheet(false)} />
+          ) : null}
+        </>
+      ) : (
+        <GuestBar title={title} name={name} watermark={marked} onPaid={() => setPaidHere(true)} />
+      )}
     </main>
+  );
+}
+
+/** The link guests should get: this page's own address, without anything after it. */
+const inviteUrl = (name: string) => window.location.origin + "/e/" + name;
+const inviteText = (title: string) => title + " - you're invited!";
+
+function shareOnWhatsApp(title: string, name: string) {
+  track("invite_shared", { channel: "whatsapp", invite_id: inviteId(name) });
+  window.open("https://wa.me/?text=" + encodeURIComponent(inviteText(title) + "\n" + inviteUrl(name)), "_blank", "noopener");
+}
+
+/** The couple's bar at the bottom: the one next step (remove the watermark, or share) and WhatsApp. Opens the sheet. */
+function OwnerBar({ title, name, watermark, onOpen }: { title: string; name: string; watermark: boolean; onOpen: () => void }) {
+  return (
+    <div className="guest-bar owner-bar">
+      <button className="gb-pay ob-main" onClick={onOpen}>
+        <span className="gb-ico" aria-hidden>
+          {watermark ? "✦" : "✓"}
+        </span>
+        <span className="gb-text">
+          <b>{watermark ? "Remove the watermark" : "Your invite is live"}</b>
+          <span>{watermark ? "Before you send it · one-time" : "Send it to your guests"}</span>
+        </span>
+        <span className="btn primary sm">{watermark ? "₹" + LINK_PRICE_INR : "Share"}</span>
+      </button>
+      <button className="gb-wa" onClick={() => shareOnWhatsApp(title, name)} aria-label="Send on WhatsApp" title="Send on WhatsApp">
+        <WhatsAppIcon size={26} />
+      </button>
+    </div>
+  );
+}
+
+type PayState = "idle" | "paying" | "paid" | { error: string };
+
+/**
+ * The couple's sheet: remove the watermark (free links), share the link, and optionally leave a WhatsApp number or
+ * email (saved with the owner key, app/api/share/contact). Paying refreshes this same link for every guest.
+ */
+function OwnerSheet({
+  title,
+  name,
+  ownerKey,
+  watermark,
+  onPaid,
+  onClose,
+}: {
+  title: string;
+  name: string;
+  ownerKey: string;
+  watermark: boolean;
+  onPaid: () => void;
+  onClose: () => void;
+}) {
+  const [pay, setPay] = useState<PayState>("idle");
+  const [copied, setCopied] = useState(false);
+  const [canShare, setCanShare] = useState(false);
+  useEffect(() => setCanShare(!!navigator.share), []);
+  const link = inviteUrl(name);
+
+  const removeWatermark = async () => {
+    setPay("paying");
+    try {
+      // Paid: the server has refreshed this link for everyone; here the watermark goes at once (no reload).
+      if ((await payToRemoveWatermark(name, title)) === "paid") {
+        onPaid();
+        setPay("paid");
+      } else setPay("idle");
+    } catch (e: any) {
+      setPay({ error: e?.message || String(e) });
+    }
+  };
+
+  const copy = async () => {
+    track("invite_shared", { channel: "copy", invite_id: inviteId(name) });
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      window.prompt("Copy this link", link);
+    }
+  };
+
+  return (
+    <div className="owner-back" onClick={(e) => e.target === e.currentTarget && onClose()}>
+      {pay === "paid" ? <Confetti y={30} /> : null}
+      <div className="owner-sheet" role="dialog" aria-label="Your invite">
+        <button className="os-x" onClick={onClose} aria-label="Close">
+          ✕
+        </button>
+
+        {watermark ? (
+          <section className="os-pay">
+            <h3>Remove the watermark before you send it</h3>
+            <p>
+              Guests will see &ldquo;{BRAND.toUpperCase()} · PREVIEW&rdquo; across your invite. Remove it once and this same link turns clean for
+              everyone.
+            </p>
+            <div className="os-price">
+              <b>₹{LINK_PRICE_INR}</b>
+              <span>one-time · no subscription</span>
+            </div>
+            <ul className="os-ticks">
+              <li>Same link, nothing to resend</li>
+              <li>Clean for every guest</li>
+              <li>Done in seconds</li>
+            </ul>
+            <button className="btn primary os-cta" onClick={removeWatermark} disabled={pay === "paying"}>
+              {pay === "paying" ? (
+                <>
+                  <span className="spin" aria-hidden /> Waiting for payment…
+                </>
+              ) : (
+                <>
+                  <LockIcon /> Remove watermark · ₹{LINK_PRICE_INR}
+                </>
+              )}
+            </button>
+            {typeof pay === "object" ? <p className="os-err">{pay.error}</p> : null}
+            <TrustRow />
+            <AgreeNote paying />
+          </section>
+        ) : (
+          <section className="os-done">
+            <h3>{pay === "paid" ? "Watermark removed 🎉" : "Your invite is ready to send"}</h3>
+            <p>{pay === "paid" ? "Every guest now sees the clean invite, on this same link." : "Share this link with your family and guests."}</p>
+          </section>
+        )}
+
+        <section className="os-share">
+          <span className="os-label">{watermark ? "Or share it as it is" : "Your link"}</span>
+          <div className={"os-link" + (copied ? " copied" : "")}>
+            <span className="url" title={link}>
+              {link.replace(/^https?:\/\/(www\.)?/, "")}
+            </span>
+            <button onClick={copy}>{copied ? "✓ Copied" : "Copy"}</button>
+          </div>
+          <div className="os-share-row">
+            <button className="btn wa" onClick={() => shareOnWhatsApp(title, name)}>
+              <WhatsAppIcon size={20} /> Send on WhatsApp
+            </button>
+            {canShare ? (
+              <button
+                className="btn"
+                onClick={() =>
+                  navigator.share({ title, text: inviteText(title), url: link }).then(() => track("invite_shared", { channel: "native_share", invite_id: inviteId(name) }), () => {})
+                }
+              >
+                More apps
+              </button>
+            ) : null}
+          </div>
+        </section>
+
+        {LEADS ? <OwnerContact name={name} ownerKey={ownerKey} watermark={watermark} /> : null}
+      </div>
+    </div>
+  );
+}
+
+/** Optional: a WhatsApp number or an email, so we can help them finish and remind them. One field, with a toggle. */
+function OwnerContact({ name, ownerKey, watermark }: { name: string; ownerKey: string; watermark: boolean }) {
+  const [via, setVia] = useState<"whatsapp" | "email">("whatsapp");
+  const [phone, setPhone] = useState("");
+  const [email, setEmail] = useState("");
+  const [state, setState] = useState<"idle" | "saving" | "saved" | { error: string }>("idle");
+  // What they gave before on this device, so saving is one tap.
+  useEffect(() => {
+    setPhone(typingPhone(savedPhone()));
+    setEmail(savedEmail());
+    if (!savedPhone() && savedEmail()) setVia("email");
+  }, []);
+
+  const save = async () => {
+    const p = via === "whatsapp" ? normalizePhone(phone) : null;
+    const m = via === "email" ? normalizeEmail(email) : null;
+    if (!p && !m)
+      return setState({ error: via === "whatsapp" ? "Enter a 10-digit mobile number. Outside India? Start with + and your country code." : "That email doesn't look right." });
+    setState("saving");
+    try {
+      const res = await fetch("/api/share/contact", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, key: ownerKey, phone: p ?? undefined, email: m ?? undefined }),
+      });
+      const r = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(r.error || "Could not save it");
+      rememberContact(p, m); // also pre-fills Razorpay Checkout
+      setState("saved");
+    } catch (e: any) {
+      setState({ error: e?.message || String(e) });
+    }
+  };
+
+  if (state === "saved")
+    return (
+      <section className="os-contact saved">
+        <b>✓ Saved.</b> We&apos;ll only message you about this invite. Reply STOP anytime.
+      </section>
+    );
+  return (
+    <section className="os-contact">
+      <span className="os-label">
+        {watermark ? "Not ready yet? We can remind you" : "Need help with your invite?"} <em>(optional)</em>
+      </span>
+      <div className="os-contact-row">
+        <div className="seg" role="radiogroup" aria-label="How should we reach you?">
+          <button className={via === "whatsapp" ? "on" : ""} onClick={() => setVia("whatsapp")} role="radio" aria-checked={via === "whatsapp"}>
+            WhatsApp
+          </button>
+          <button className={via === "email" ? "on" : ""} onClick={() => setVia("email")} role="radio" aria-checked={via === "email"}>
+            Email
+          </button>
+        </div>
+        {via === "whatsapp" ? (
+          <input
+            key="phone"
+            className="os-input"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel-national"
+            placeholder="10-digit mobile number"
+            value={phone}
+            onChange={(e) => {
+              setPhone(typingPhone(e.target.value));
+              if (typeof state === "object") setState("idle");
+            }}
+            aria-label="Your WhatsApp number"
+          />
+        ) : (
+          <input
+            key="email"
+            className="os-input"
+            type="email"
+            inputMode="email"
+            autoComplete="email"
+            placeholder="you@example.com"
+            maxLength={254}
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (typeof state === "object") setState("idle");
+            }}
+            aria-label="Your email"
+          />
+        )}
+        <button className="btn os-save" onClick={save} disabled={state === "saving"}>
+          {state === "saving" ? <span className="spin" aria-hidden /> : "Save"}
+        </button>
+      </div>
+      <p className={"os-note" + (typeof state === "object" ? " bad" : "")}>
+        {typeof state === "object" ? state.error : "We only contact you about this invite and never sell or share your details."}
+      </p>
+    </section>
   );
 }
 

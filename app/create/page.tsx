@@ -3,7 +3,8 @@ import Link from "next/link";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { ExportDialog } from "@/components/editor/ExportDialog";
-import { ShareDialog } from "@/components/editor/ShareDialog";
+import { GetLink } from "@/components/editor/ShareDialog";
+import { AgreeNote } from "@/components/PayTrust";
 import { FieldGroups, MusicPanel } from "@/components/editor/Fields";
 import { TemplateGallery } from "@/components/editor/TemplateGallery";
 import { CATEGORIES, countIn } from "@/lib/catalog";
@@ -483,10 +484,13 @@ export default function Editor() {
             </button>
           </div>
         </details>
-        <div className="next-cta mob-only">
+        {/* The end of the form, on every screen: one tap makes the link (components/editor/ShareDialog.tsx, GetLink). */}
+        <div className="next-cta get-cta">
           <button className="btn primary" onClick={openShare}>
-            Next: get your invite link →
+            <span className="mob-only">Next: get your invite link →</span>
+            <span className="desk-only">Get my invite link →</span>
           </button>
+          <AgreeNote creating />
         </div>
       </aside>
 
@@ -516,7 +520,7 @@ export default function Editor() {
 
       {music ? <audio ref={audio} src={music.src} preload="auto" /> : null}
       {exporting ? <ExportDialog project={project} onClose={() => setExporting(false)} /> : null}
-      {sharing ? <ShareDialog project={project} onClose={() => setSharing(false)} /> : null}
+      {sharing ? <GetLink project={project} onClose={() => setSharing(false)} /> : null}
       {gallery ? (
         <TemplateGallery
           current={project.templateId}
