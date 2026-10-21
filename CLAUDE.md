@@ -55,10 +55,14 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   accent words in `<em>`, Inter Tight `--ui`, `.kicker` labels, pill CTAs (`.cta-btn`, `.ghost-btn`, min 48px tall). Don't name a site class
   `.center` / `.lead`-style generic names without checking `globals.css` (the studio's `.center` and admin's `li.lead` collided once).
   `/` (`app/page.tsx`): the hero (`Hero` in `components/site/Landing.tsx`) lets visitors **type their names and watch them in a real playing
-  template** (held on the names scene while typing; phones show the phone and the name boxes side by side so both stay above the keyboard;
-  "Pick a design" cards use each template's `thumb()` art, the playing one ringed, plus a "+N more" card), headline "Your wedding invite as an
-  animated website.",
-  then proof strip, function tiles, how it works, showcase, guests, "why a link" comparison, pricing, FAQ, final CTA.
+  template** (it opens on the names scene, `sceneForField("brideName")`, and holds there while typing; the design's `thumb()` art fills
+  the phone until the script loads; phones show the phone and the name boxes side by side so both stay above the keyboard;
+  "Pick a design" cards use each template's `thumb()` art, the playing one ringed, plus a "+N more" card), headline "Your wedding invite,
+  beautifully animated.", then a one-row proof strip, the playing designs with function tabs ("Which function are you inviting for?",
+  `Showcase`; cards open `/templates/<id>`), how it works, guests, "why a link" comparison, pricing, FAQ, final CTA. The promo strip
+  above the header is desktop only. Why this order (Mixpanel, Oct 2026): ~80% of visitors are Android phones from Meta ads, only ~19%
+  of home visitors reached the studio, while ~66% of `/templates/<id>` visitors did, so real designs come right after the hero.
+  Keep the home page light: every font a visible glyph needs downloads (a decorative row of five scripts once cost ~200 KB).
   **Names travel to the studio through sessionStorage (`lib/start.ts`), never the URL** (/create's URL reaches Mixpanel and the Pixel);
   `useStartNames`/`NamesForm` (components/site/NamesForm.tsx) save as they type, the studio's `takeStart()` applies them once via
   `withNames()` (lib/project.ts: bride → brideName/nameA, groom → groomName/nameB). Template cards play on hover, and on touch screens while

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PayIcons } from "@/components/PayIcons";
 import { Faq, SectionHead, faqItems } from "@/components/site/Faq";
-import { Arrow, DesignStack, FunctionTiles, Hero, Showcase } from "@/components/site/Landing";
+import { Arrow, DesignStack, Hero, Showcase } from "@/components/site/Landing";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { BRAND } from "@/lib/brand";
@@ -25,7 +25,7 @@ export default function Home() {
       <SiteHeader />
       <Hero />
 
-      {/* ---------- what you get, in numbers that are true today ---------- */}
+      {/* ---------- what you get, in numbers that are true today (one row on phones) ---------- */}
       <section className="proof" aria-label="At a glance">
         <div>
           <b>{TEMPLATES.length}</b>
@@ -33,26 +33,29 @@ export default function Home() {
         </div>
         <div>
           <b>{CATEGORIES.length}</b>
-          <span>functions, haldi to reception</span>
+          <span>
+            functions<span className="desk-txt">, haldi to reception</span>
+          </span>
         </div>
         <div>
           <b>{COMMUNITIES.length}</b>
-          <span>traditions and styles</span>
+          <span>
+            traditions<span className="desk-txt">&nbsp;and styles</span>
+          </span>
         </div>
         <div>
-          <b>
-            हिं · த · తె · ਪੰ · ع
-          </b>
-          <span>scripts where they belong</span>
+          <b>1</b>
+          <span>link for every guest</span>
         </div>
       </section>
 
-      {/* ---------- start from the function ---------- */}
-      <section className="sec" id="functions">
-        <SectionHead label="Start here" center>
+      {/* ---------- the designs, playing, by function, right after the hero ---------- */}
+      <section className="sec" id="templates">
+        <SectionHead label="Designs" center>
           Which function are you <em>inviting for?</em>
         </SectionHead>
-        <FunctionTiles />
+        <p className="sec-lead centered">Open a design to see it big, with your names. Every one takes your dates, venue, photos and music.</p>
+        <Showcase />
       </section>
 
       {/* ---------- how it works ---------- */}
@@ -122,17 +125,8 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ---------- designs ---------- */}
-      <section className="sec" id="templates">
-        <SectionHead label="Designs" center>
-          Find the one that <em>feels like you.</em>
-        </SectionHead>
-        <p className="sec-lead centered">Hover or tap any design to watch it play. Every one takes your names, dates, photos and music.</p>
-        <Showcase />
-      </section>
-
       {/* ---------- what guests get ---------- */}
-      <section className="sec surface">
+      <section className="sec">
         <div className="guests">
           <div>
             <SectionHead label="Your invitation page">
@@ -190,7 +184,7 @@ export default function Home() {
       </section>
 
       {/* ---------- why a link ---------- */}
-      <section className="sec" id="compare">
+      <section className="sec surface" id="compare">
         <SectionHead label="Why a link" center>
           More than a card. <em>Less than a courier.</em>
         </SectionHead>
@@ -226,7 +220,7 @@ export default function Home() {
       </section>
 
       {/* ---------- pricing ---------- */}
-      <section className="sec surface" id="pricing">
+      <section className="sec" id="pricing">
         <SectionHead label="Pricing" center>
           {PAYMENTS ? (
             <>
@@ -282,7 +276,7 @@ export default function Home() {
       </section>
 
       {/* ---------- FAQ ---------- */}
-      <section className="sec" id="faq">
+      <section className="sec surface" id="faq">
         <SectionHead label="Questions" center>
           Good questions, <em>straight answers.</em>
         </SectionHead>

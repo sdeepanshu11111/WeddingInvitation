@@ -24,7 +24,8 @@ export function sceneForField(key: string, scenes: SceneLike[]): number {
   if (/venue|address|city|dress|map/.test(k)) return first(/venue|details|muhurtham|^nikah\b|ceremony/);
   if (/date|time|muhurtham/.test(k)) return first(/\bdate\b|muhurtham|^nikah\b|ceremony|portrait|details/);
   if (/parents/.test(k)) return first(/\bnames?\b|couple/, /hosts|blessing/);
-  if (/name|groom|bride|joiner/.test(k)) return first(/\bnames?\b|couple/);
+  // ^title: Sangeet Night writes the names on its title card ("Sangeet Night"), it has no names scene.
+  if (/name|groom|bride|joiner/.test(k)) return first(/\bnames?\b|couple/, /^title\b/);
   if (/host|blessing|famil|compliment/.test(k)) return k.includes("compliment") ? first(/close|fateh/) : first(/hosts|blessing|famil/);
   if (/closing|rsvp|hashtag|endcard|smallprint/.test(k)) {
     const i = first(/close|fateh|\bend\b/);

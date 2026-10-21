@@ -40,9 +40,9 @@ export function Hero() {
   return (
     <section className="hero">
       <div className="hero-copy">
-        <span className="kicker">Free preview · Share on WhatsApp</span>
+        <span className="kicker">Free preview · Send on WhatsApp</span>
         <h1>
-          Your wedding invite as an <em>animated website.</em>
+          Your wedding invite, <em>beautifully animated.</em>
         </h1>
         <p className="lead">
           Your names, dates, photos and music on a page of its own that plays like a film. Send one link; it opens on any phone, no app needed.
@@ -52,9 +52,12 @@ export function Hero() {
       <div className="hero-stage">
         <div className="phone-frame hero-phone">
           <div className="phone-screen" style={{ background: "linear-gradient(160deg, " + p.bg + ", " + p.bg2 + ")" }}>
+            {/* Until the script arrives (seconds on a slow phone), the design's own art instead of an empty screen. */}
             {mounted ? (
               <HeroPlayer key={t.id} t={t} names={names} edited={edited} onEnd={chosen ? undefined : () => setI((n) => n + 1)} />
-            ) : null}
+            ) : (
+              <div className="hero-still">{t.thumb(p)}</div>
+            )}
             <div className="phone-island" aria-hidden />
           </div>
         </div>
@@ -63,7 +66,7 @@ export function Hero() {
       <div className="try-card">
         <div className="try-head">
           <b>{typed ? "That's your invite" : "Try it with your names"}</b>
-          <span>{typed ? "Playing now, with your names" : "Free · they appear in the invite"}</span>
+          <span>{typed ? "Playing now, with your names" : "Free · watch them appear"}</span>
         </div>
         <NamesForm
           names={names}
@@ -81,8 +84,8 @@ export function Hero() {
         </Link>
         <ul className="ticks-row">
           <li>Free preview</li>
+          <li>No sign-up</li>
           <li>Ready in 2 minutes</li>
-          <li>No app for guests</li>
         </ul>
         {PAYMENTS ? (
           <p className="hero-price">
@@ -129,24 +132,29 @@ export function Hero() {
       </div>
 
       {/* Phones: "Make my invitation" stays in thumb reach once the hero's own button scrolls away. */}
-      <MobileCta href={create} label="Make my invitation →" note="Free preview" watch=".hero-cta, .final .cta-btn, .price-card .cta-btn, .price-card .ghost-btn, .sec-cta .cta-btn" spacer={false} />
+      <MobileCta href={create} label={typed ? "Continue with my invite →" : "Make my invitation →"} note="Free preview" watch=".hero-cta, .final .cta-btn, .price-card .cta-btn, .price-card .ghost-btn, .sec-cta .cta-btn" spacer={false} />
     </section>
   );
 }
 
-/** The hero's invitation: plays through, holds on the names scene while they type, then moves on (or loops once a design is chosen). */
+/**
+ * The hero's invitation. It opens on the names scene, so the first thing a visitor sees is a couple's names written
+ * out in the design (their own once they type), not a slow intro; holds there while they type, plays on, then moves
+ * to the next design (or loops from the very start once a design is chosen).
+ */
 function HeroPlayer({ t, names, edited, onEnd }: { t: TemplateDef; names: StartNames; edited: number; onEnd?: () => void }) {
-  const { project, tl } = useDemoTimeline(t, "vertical", undefined, names);
-  const [T, setT] = useState(0);
+  const { project, tl, poster } = useDemoTimeline(t, "vertical", undefined, names);
+  const at = sceneForField("brideName", tl.scenes);
+  const opening = at < 0 ? poster : tl.slots[at].start;
+  const [T, setT] = useState(opening);
   // Refs: typing changes the timeline every keystroke, and the clock must keep running through that.
   const live = useRef({ tl, edited, onEnd, namesAt: -1 });
-  const at = sceneForField("brideName", tl.scenes);
   live.current = { tl, edited, onEnd, namesAt: at < 0 ? -1 : tl.slots[at].start + tl.scenes[at].duration * 0.6 };
 
   useEffect(() => {
     let raf = 0;
     let last = performance.now();
-    let pos = 0;
+    let pos = opening;
     const loop = (now: number) => {
       const dt = Math.min(100, now - last);
       last = now;
@@ -180,35 +188,8 @@ function HeroPlayer({ t, names, edited, onEnd }: { t: TemplateDef; names: StartN
   );
 }
 
-/** "Which function is it for?": every function with its Hindi name and how many designs it has. */
-export function FunctionTiles() {
-  return (
-    <div className="fn-grid">
-      {CATEGORIES.filter((c) => countIn(TEMPLATES, c.id) > 0).map((c) => {
-        const t = TEMPLATES.find((x) => x.categories[0] === c.id) ?? TEMPLATES.find((x) => x.categories.includes(c.id))!;
-        const p = t.palettes[0];
-        return (
-          <Link key={c.id} href={"/templates?category=" + c.id} className="fn-tile">
-            <span className="fn-swatch" style={{ background: "linear-gradient(140deg, " + p.bg + " 10%, " + p.bg2 + " 60%, " + p.accent + ")" }}>
-              <span lang="hi" style={{ color: p.ink }}>
-                {c.local}
-              </span>
-            </span>
-            <span className="fn-text">
-              <b>{c.label}</b>
-              <small>
-                {countIn(TEMPLATES, c.id)} {countIn(TEMPLATES, c.id) === 1 ? "design" : "designs"}
-              </small>
-            </span>
-            <Arrow />
-          </Link>
-        );
-      })}
-    </div>
-  );
-}
-
-/** Home "Designs" section: function tabs + the first eight matching cards. */
+/** Home "Which function?" section: function tabs + the first eight matching cards (six on phones, see site.css).
+    Cards open the design's own page, with the visitor's names. */
 export function Showcase() {
   const tabs = (["all", ...CATEGORIES.map((c) => c.id)] as (CategoryId | "all")[]).filter((id) => countIn(TEMPLATES, id) > 0);
   const [cat, setCat] = useState<CategoryId | "all">("all");
