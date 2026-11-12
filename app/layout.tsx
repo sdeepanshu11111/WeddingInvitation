@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import { BRAND } from "@/lib/brand";
 import { MetaPixel } from "@/components/MetaPixel";
 import { SiteAnalytics } from "@/components/SiteAnalytics";
+import { Analytics } from "@vercel/analytics/next";
 import "./fonts.css";
 import "./globals.css";
 import "./studio.css";
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <MetaPixel />
         <SiteAnalytics />
+        <Analytics />
       </body>
     </html>
   );
