@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 // Google, and the headless renderer never waits on it. Each script (Devanagari, Gurmukhi,
 // Arabic, Tamil, ...) is its own unicode-range file, so a browser only downloads a script
 // when it actually appears on screen. Templates use the --f-* variables defined there.
+import { Analytics } from "@vercel/analytics/next";
 import { BRAND } from "@/lib/brand";
 import { MetaPixel } from "@/components/MetaPixel";
 import { SiteAnalytics } from "@/components/SiteAnalytics";
@@ -23,6 +24,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {children}
         <MetaPixel />
         <SiteAnalytics />
+        <Analytics />
       </body>
     </html>
   );
