@@ -12,6 +12,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "2.8.0",
     "mediabunny": "1.58.1",
     "mixpanel-browser": "2.84.0",
