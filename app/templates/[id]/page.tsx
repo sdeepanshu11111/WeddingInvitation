@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { AdSense } from "@/components/AdSense";
 import { Faq, SectionHead, faqItems } from "@/components/site/Faq";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
@@ -20,6 +21,7 @@ export default function TemplatePage({ params }: { params: { id: string } }) {
   if (!TEMPLATES.some((t) => t.id === params.id)) notFound();
   return (
     <div className="site">
+      <AdSense />
       <SiteHeader />
       <TemplateDetail id={params.id} />
       <section className="sec surface">

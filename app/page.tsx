@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AdSense } from "@/components/AdSense";
 import { PayIcons } from "@/components/PayIcons";
 import { Faq, SectionHead, faqItems } from "@/components/site/Faq";
 import { Arrow, DesignStack, Hero, Showcase } from "@/components/site/Landing";
@@ -22,6 +23,7 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className="site">
+      <AdSense />
       <SiteHeader />
       <Hero />
 

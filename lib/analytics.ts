@@ -16,7 +16,7 @@
 
 import type { Mixpanel } from "mixpanel-browser";
 import type { Orientation } from "./types";
-import { LINK_PRICE_INR, META_PIXEL_ID, MIXPANEL_API_HOST, MIXPANEL_TOKEN, PAYMENTS } from "./features";
+import { GA_ID, LINK_PRICE_INR, META_PIXEL_ID, MIXPANEL_API_HOST, MIXPANEL_TOKEN, PAYMENTS } from "./features";
 
 /** The tracking plan. Names are snake_case and fixed: never build an event or property name at runtime. */
 type Events = {
@@ -124,9 +124,12 @@ const META: { [E in keyof Events]?: (p: Events[E]) => MetaEvent | null } = {
 type Fbq = ((...args: unknown[]) => void) & Record<string, any>;
 const fbq = () => (typeof window === "undefined" ? undefined : ((window as any).fbq as Fbq | undefined));
 
+/** Pages no ad or Google tool may see: a guest's invite (names in the URL), the headless export pages, /admin. */
+const PRIVATE_PATH = /^\/(e|v|render|client-render|admin)(\/|$)/;
+const herePath = () => (typeof location === "undefined" ? "" : location.pathname);
+
 /** Pages the pixel may see: not a guest's invite (names in the URL), not the headless export pages, not /admin. */
-export const pixelAllowed = (path = typeof location === "undefined" ? "" : location.pathname) =>
-  !!META_PIXEL_ID && !/^\/(e|v|render|client-render|admin)(\/|$)/.test(path);
+export const pixelAllowed = (path = herePath()) => !!META_PIXEL_ID && !PRIVATE_PATH.test(path);
 
 /** Loads Meta's fbevents.js once (their base code, unminified) and sends a PageView. Call on every route change. */
 export function pixelPageView() {
@@ -153,6 +156,38 @@ export function pixelPageView() {
     n("init", META_PIXEL_ID);
   }
   w.fbq("track", "PageView");
+}
+
+/* ---- Google Analytics (GA4) ---- */
+
+/** Pages Google Analytics may see: the same ones as the pixel (site pages and the editor). */
+export const gaAllowed = (path = herePath()) => !!GA_ID && !PRIVATE_PATH.test(path);
+
+/** Loads Google's gtag.js once (their snippet, as given by the GA admin). Call on every route change.
+    Page views are gtag's own: one when it loads, then one per history change (GA's "enhanced measurement",
+    on by default in the property), so nothing is sent by hand here and nothing is counted twice.
+    No events from track(): GA gets page views only. */
+export function gaPageView() {
+  if (!GA_ID) return;
+  const w = window as any;
+  const ok = gaAllowed();
+  // Google's documented switch: while it is true, gtag sends nothing for this property. It covers the case
+  // where gtag is already loaded and the router moves to a private page (today every way into /e/ is a full
+  // page load, where gtag is never loaded at all).
+  w["ga-disable-" + GA_ID] = !ok;
+  if (!ok || w.gtag) return;
+  w.dataLayer = w.dataLayer || [];
+  w.gtag = function () {
+    // gtag reads the arguments object itself; an array is ignored.
+    // eslint-disable-next-line prefer-rest-params
+    w.dataLayer.push(arguments);
+  };
+  w.gtag("js", new Date());
+  w.gtag("config", GA_ID);
+  const s = document.createElement("script");
+  s.async = true;
+  s.src = "https://www.googletagmanager.com/gtag/js?id=" + GA_ID;
+  document.head.appendChild(s);
 }
 
 /** Mixpanel wants a missing property left out, not sent as null or "". */

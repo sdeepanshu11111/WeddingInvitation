@@ -5,6 +5,10 @@ const videoExport = (process.env.VIDEO_EXPORT ?? (process.env.VERCEL ? "0" : "1"
 const mixpanel = (process.env.MIXPANEL ?? (process.env.VERCEL_ENV === "production" ? "1" : "0")) === "1";
 // Meta Pixel (ad measurement): same rule. Force with META_PIXEL=1/0; META_PIXEL_ID points it at another pixel.
 const metaPixel = (process.env.META_PIXEL ?? (process.env.VERCEL_ENV === "production" ? "1" : "0")) === "1";
+// Google Analytics (GA4) and Google AdSense: same rule. Force with GA=1/0 and ADSENSE=1/0; GA_ID and
+// ADSENSE_CLIENT point them at another property / publisher.
+const ga = (process.env.GA ?? (process.env.VERCEL_ENV === "production" ? "1" : "0")) === "1";
+const adsense = (process.env.ADSENSE ?? (process.env.VERCEL_ENV === "production" ? "1" : "0")) === "1";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
@@ -29,6 +33,10 @@ const nextConfig = {
     NEXT_PUBLIC_MIXPANEL_API_HOST: process.env.MIXPANEL_API_HOST || "https://api-js.mixpanel.com",
     // Pixel "FutureProof Wedding Web" (Futureproof 2 portfolio). Public by design, like the Mixpanel token. Empty = off.
     NEXT_PUBLIC_META_PIXEL_ID: metaPixel ? process.env.META_PIXEL_ID || "1116330824214375" : "",
+    // GA4 measurement ID and AdSense publisher ID. Both are public by design (they sit in the page source). Empty = off.
+    // The publisher ID is also in public/ads.txt (without the "ca-" prefix): change both together.
+    NEXT_PUBLIC_GA_ID: ga ? process.env.GA_ID || "G-7S5DBM9NN2" : "",
+    NEXT_PUBLIC_ADSENSE_CLIENT: adsense ? process.env.ADSENSE_CLIENT || "ca-pub-3765220388345390" : "",
   },
   // Share links moved from /v/<token> to /e/<name>; links already sent keep working.
   async redirects() {

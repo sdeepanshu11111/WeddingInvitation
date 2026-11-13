@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AdSense } from "@/components/AdSense";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { BRAND } from "@/lib/brand";
@@ -24,6 +25,7 @@ export function generateMetadata({ searchParams }: { searchParams: Search }): Me
 export default function Templates({ searchParams }: { searchParams: Search }) {
   return (
     <div className="site">
+      <AdSense />
       <SiteHeader />
       <TemplateBrowser initial={{ category: pickCategory(searchParams.category), community: pickCommunity(searchParams.community) }} />
       <SiteFooter />

@@ -26,6 +26,12 @@ export const MIXPANEL_API_HOST = process.env.NEXT_PUBLIC_MIXPANEL_API_HOST || "h
 /** Meta Pixel ID for ad measurement, set only on the production deployment (or with META_PIXEL=1). Empty = off. */
 export const META_PIXEL_ID = process.env.NEXT_PUBLIC_META_PIXEL_ID || "";
 
+/** Google Analytics (GA4) measurement ID, set only on the production deployment (or with GA=1). Empty = off. */
+export const GA_ID = process.env.NEXT_PUBLIC_GA_ID || "";
+
+/** Google AdSense publisher ID ("ca-pub-…"), set only on the production deployment (or with ADSENSE=1). Empty = off. */
+export const ADSENSE_CLIENT = process.env.NEXT_PUBLIC_ADSENSE_CLIENT || "";
+
 /** Response for export endpoints while video export is switched off. */
 export const exportOff = () =>
   Response.json({ error: "Video export is coming soon. Use Share to send a link for now." }, { status: 501 });

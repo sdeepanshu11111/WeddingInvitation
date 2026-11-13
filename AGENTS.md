@@ -1,8 +1,9 @@
 # Analytics Tracking — Mixpanel
 
 This project uses **Mixpanel** for all product analytics, plus the **Meta Pixel** for ad measurement only (see
-"Meta Pixel" below; the owner asked for it on 2026-10-11). Do not add another analytics tool, SDK or tracking
-library unless the owner asks for it. Project context and architecture are in `CLAUDE.md`.
+"Meta Pixel" below; the owner asked for it on 2026-10-11), and **Google Analytics** page views and the **Google AdSense**
+loader (see "Google Analytics and AdSense" below; the owner asked for both on 2026-11-13). Do not add another analytics
+tool, SDK or tracking library unless the owner asks for it. Project context and architecture are in `CLAUDE.md`.
 
 ---
 
@@ -105,6 +106,29 @@ wrong property, so update that type first.
 | `invite_watched` | Guest reached the end (once per visit) | (super properties) | `app/e/[slug]/LiveInvite.tsx` |
 | `invite_shared` | Link sent on: WhatsApp, the phone's share sheet (after it succeeds), or copy | `channel` (`whatsapp`/`native_share`/`copy`), `invite_id` | `ShareDialog.tsx` (`GetLink` copy, `SharePanel`), `LiveInvite.tsx` (`GuestBar`, `OwnerBar`, `OwnerSheet`) |
 | `guest_action_clicked` | A guest used the card at the end of an invite | `action` (`calendar`/`directions`/`rsvp`) | `app/e/[slug]/GuestDetails.tsx` |
+
+---
+
+## Google Analytics and AdSense
+
+Both were added on the owner's request (2026-11-13) from the snippets Google hands out. Neither gets events from `track()`:
+Mixpanel stays the product analytics tool.
+
+| Detail | Google Analytics (GA4) | Google AdSense |
+|---|---|---|
+| **ID** | Measurement ID `G-7S5DBM9NN2` | Publisher `ca-pub-3765220388345390` (also in `public/ads.txt`, without `ca-`) |
+| **Code** | `gaPageView`, `gaAllowed` in `lib/analytics.ts`; `components/GoogleAnalytics.tsx` in `app/layout.tsx` | `components/AdSense.tsx` (server component, the tag is in the page source for Google's site check) |
+| **When it is on** | Production deployment only. Force with `GA=1` / `0`; `GA_ID` points it at another property. | Production deployment only. Force with `ADSENSE=1` / `0`; `ADSENSE_CLIENT` for another publisher. |
+| **Pages** | Same as the pixel: site pages and `/create`. Never `/e/…`, `/v/…`, `/render`, `/client-render`, `/admin`. | Only the pages that render `<AdSense />`: `/`, `/templates`, `/templates/<id>` and the policy pages. Not `/create`, and never the root layout. |
+| **What is sent** | gtag's own page views: one on load, then one per history change (GA "enhanced measurement", a setting in the GA property). Nothing is sent by hand. | Nothing by us. Ads only appear once the site is approved and Auto ads (or ad units) are switched on in AdSense. |
+
+- **Guest invites stay clean.** `/privacy` promises no analytics-for-ads or ad tools on `/e/` pages, and their URL and title carry the
+  couple's names. Every way into `/e/` is a full page load today (`location.assign` and a plain `<a>` in `ShareDialog.tsx`), so
+  neither script exists there. Keep it that way: a `next/link` into `/e/` would carry both scripts along. As a second guard
+  `gaPageView()` sets `window["ga-disable-<id>"]` on private paths.
+- **AdSense stays in memory across client-side navigation**, so after `/` → `/create` Auto ads could still place ads in the
+  studio. If that shows up, exclude `/create` in AdSense (Auto ads → Page exclusions).
+- Adding either to a new page type, or sending events to GA, means updating `/privacy` (sections 2, 4, 5).
 
 ---
 

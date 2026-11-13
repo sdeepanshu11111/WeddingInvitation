@@ -153,7 +153,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   in `app/(legal)/`, business details in `lib/legal.ts` (empty values are left off the pages). Linked from the editor sidebar
   bottom, the phone ⋯ menu, and an `<AgreeNote>` line (`components/PayTrust.tsx`) under the studio's Get-link button, in the
   creating overlay and under the owner sheet's pay button ("By paying you agree…"). They describe
-  what the app really does: **adding a tracker (Meta Pixel), processor or stored field means updating `/privacy`**.
+  what the app really does: **adding a tracker (Meta Pixel, Google Analytics, AdSense), processor or stored field means updating `/privacy`**.
 - **Leads** (`lib/server/leads.ts`, flag `LEADS`): the owner sheet on the couple's invite asks for a WhatsApp number or an email,
   **optional** (since 2026-10-21 there; before that the Get-link step asked; `saveShareLead` keeps the other field when one is missing) (`lib/contact.ts`:
   10-digit Indian mobile or `+`country code; remembered in localStorage, pre-fill Razorpay Checkout), with the promise that we never
@@ -177,6 +177,12 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   template_selected → ViewContent, share_dialog_opened → AddToCart, payment_started → InitiateCheckout, payment_completed →
   Purchase (eventID `purchase-<invite_id>`), free invite_link_created → Lead. Automatic events off. Headless Chrome only
   sends events when `navigator.webdriver` is hidden, so check by hand or with that override.
+- **Google Analytics + AdSense** (since 2026-11-13; details in `AGENTS.md`): GA4 `G-7S5DBM9NN2` is `<GoogleAnalytics>` in the root
+  layout (`gaPageView` in `lib/analytics.ts`: gtag's own page views, same pages as the pixel, production only, `GA=1` to test).
+  AdSense `ca-pub-3765220388345390` is `<AdSense />` (`components/AdSense.tsx`, a server-rendered `<script>`), mounted by the site
+  pages only (`/`, `/templates`, `/templates/<id>`, the `(legal)` layout), production only (`ADSENSE=1` to test), plus
+  `public/ads.txt`. **Neither may reach `/e/`, `/render`, `/client-render` or `/admin`: don't move them to the root layout or
+  link into `/e/` with `next/link`.**
 
 ## Templates (17), in `lib/templates/`, registered in `index.ts`
 

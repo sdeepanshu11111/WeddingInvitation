@@ -1,3 +1,4 @@
+import { AdSense } from "@/components/AdSense";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 
@@ -6,6 +7,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 export default function LegalLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="site legal">
+      <AdSense />
       <SiteHeader />
       <main className="legal-body">{children}</main>
       <SiteFooter />
