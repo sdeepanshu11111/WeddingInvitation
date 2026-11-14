@@ -113,7 +113,7 @@ export const shaadiUtsav: TemplateDef = {
     localTitle: "शुभ विवाह",
     hosts: "Smt. Kamla Devi & Late Shri Ramesh Sharma\nSharma & Verma families",
     closingLine: "Your presence is our blessing",
-    rsvp: "Rajesh Sharma · +91 98290 12345\nVikram Verma · +91 98100 54321",
+    rsvp: "", // no sample number: a mobile here becomes a live "RSVP on WhatsApp" button for guests
   },
 
   backdrop: ({ T, theme, W, H, vertical }) => (

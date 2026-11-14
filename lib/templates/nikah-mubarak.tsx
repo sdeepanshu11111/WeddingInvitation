@@ -122,7 +122,7 @@ export const nikahMubarak: TemplateDef = {
     walimaTime: "20:00",
     walimaVenue: "Novotel HICC",
     walimaAddress: "HITEC City\nHyderabad",
-    rsvp: "RSVP · Imran Khan · +91 98480 12345",
+    rsvp: "", // no sample number: a mobile here becomes a live "RSVP on WhatsApp" button for guests
   },
 
   backdrop: ({ T, theme, W, H }) => (

@@ -31,7 +31,10 @@ export function Hero() {
   const t = list[i % list.length];
   const p = t.palettes[0];
   const typed = !!(names.bride.trim() || names.groom.trim());
-  const create = "/create?template=" + t.id;
+  // The design travels to the studio only once the visitor chose it (picked a card or typed their names over it).
+  // While the hero is still cycling by itself, the button must not turn "whatever was playing" into a choice: that
+  // opened the studio on a design nobody picked and switched a returning visitor's saved draft to it.
+  const create = chosen ? "/create?template=" + t.id : "/create";
 
   // Grid areas, so phones and desktop can order the same parts differently (site.css, .hero):
   // desktop = copy, names, designs, button on the left and the playing phone on the right;

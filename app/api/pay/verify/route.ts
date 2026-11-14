@@ -18,8 +18,9 @@ export async function POST(req: Request) {
   const b = (await req.json().catch(() => ({}))) as Record<string, string>;
   const { name, orderId, paymentId, signature } = b;
   if (!checkoutSignatureValid(orderId, paymentId, signature)) return NextResponse.json({ error: "Payment signature is invalid" }, { status: 400 });
-  if (!(await orderBelongsTo(name, orderId))) return NextResponse.json({ error: "That payment is for a different link" }, { status: 400 });
   try {
+    // Inside the try: if storage cannot be asked right now, answer 502 so the browser retries (a 4xx is final).
+    if (!(await orderBelongsTo(name, orderId))) return NextResponse.json({ error: "That payment is for a different link" }, { status: 400 });
     const p = await confirmPayment(orderId, paymentId);
     await markPaid(name, { orderId, paymentId, amount: p.amount, paidAt: Date.now() });
     if (LEADS) await savePaymentLead(name, p).catch((e) => console.error("Lead not saved:", e?.message));

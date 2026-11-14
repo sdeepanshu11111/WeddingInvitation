@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
+import { pageMeta } from "@/lib/seo";
 import { LEGAL, OPERATOR } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Contact · " + BRAND, description: `Get help with your ${BRAND} invitation, payment or data.` };
+export const metadata: Metadata = pageMeta("Contact · " + BRAND, `Get help with your ${BRAND} invitation, payment or data.`, "/contact");
 
 export default function Contact() {
   const rows: [string, React.ReactNode][] = [

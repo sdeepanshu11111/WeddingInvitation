@@ -95,7 +95,7 @@ export const anandKaraj: TemplateDef = {
     receptionTime: "19:30",
     receptionVenue: "The Grand, Vasant Kunj",
     showFateh: true,
-    rsvp: "RSVP · Gurdeep Singh · +91 98140 12345",
+    rsvp: "", // no sample number: a mobile here becomes a live "RSVP on WhatsApp" button for guests
   },
 
   backdrop: ({ T, theme, W, H }) => (

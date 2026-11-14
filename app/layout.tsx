@@ -4,16 +4,19 @@ import type { Metadata } from "next";
 // Arabic, Tamil, ...) is its own unicode-range file, so a browser only downloads a script
 // when it actually appears on screen. Templates use the --f-* variables defined there.
 import { BRAND } from "@/lib/brand";
+import { SITE_URL } from "@/lib/site";
 import { GoogleAnalytics } from "@/components/GoogleAnalytics";
 import { MetaPixel } from "@/components/MetaPixel";
 import { SiteAnalytics } from "@/components/SiteAnalytics";
-import { Analytics } from "@vercel/analytics/next";
+import { VercelAnalytics } from "@/components/VercelAnalytics";
 import "./fonts.css";
 import "./globals.css";
 import "./studio.css";
 import "./site.css";
 
 export const metadata: Metadata = {
+  // Makes relative canonical and preview-image URLs absolute (lib/seo.ts, pageMeta).
+  metadataBase: new URL(SITE_URL),
   title: BRAND + " · Wedding invitation pages",
   description: "Animated invitations for Indian weddings and every function, each with its own page. Preview free with your names and share one link on WhatsApp.",
 };
@@ -26,7 +29,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <MetaPixel />
         <GoogleAnalytics />
         <SiteAnalytics />
-        <Analytics />
+        <VercelAnalytics />
       </body>
     </html>
   );

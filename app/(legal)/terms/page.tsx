@@ -1,10 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
+import { pageMeta } from "@/lib/seo";
 import { LINK_PRICE_INR } from "@/lib/features";
 import { LEGAL, OPERATOR } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Terms of Service · " + BRAND, description: `The terms for using ${BRAND} invitation links and the Premium plan.` };
+export const metadata: Metadata = pageMeta("Terms of Service · " + BRAND, `The terms for using ${BRAND} invitation links and the Premium plan.`, "/terms");
 
 export default function Terms() {
   const mail = <a href={"mailto:" + LEGAL.email}>{LEGAL.email}</a>;
@@ -65,8 +66,9 @@ export default function Terms() {
       <h2>5. Share links are public to anyone with the link</h2>
       <p>
         Anyone who has your invitation link can open it and forward it. Links are not listed publicly, but link names can be guessed. Do not include
-        information you want to keep private. Each link name is first come, first served; once created, a link&rsquo;s content cannot be edited, so
-        create a new link if something needs to change.
+        information you want to keep private. Each link name is first come, first served; you can change your invitation later by editing
+        it and getting the link again in the same browser you made it in, which updates that same link for everyone who has it. From any other
+        browser or device, or after clearing that browser&rsquo;s data, a change means creating a new link.
       </p>
 
       <h2>6. Premium plan and payment</h2>

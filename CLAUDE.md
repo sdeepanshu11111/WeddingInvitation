@@ -60,7 +60,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   "Pick a design" cards use each template's `thumb()` art, the playing one ringed, plus a "+N more" card), headline "Your wedding invite,
   beautifully animated.", then a one-row proof strip, the playing designs with function tabs ("Which function are you inviting for?",
   `Showcase`; cards open `/templates/<id>`), how it works, guests, "why a link" comparison, pricing, FAQ, final CTA. The promo strip
-  above the header is desktop only. Why this order (Mixpanel, Oct 2026): ~80% of visitors are Android phones from Meta ads, only ~19%
+  above the header is desktop only. Why this order (Mixpanel, 13 Oct 2026, a one-day Meta ad test; **no Meta ads have run since, owner 2026-11-14**): ~80% of visitors were Android phones from those ads, only ~19%
   of home visitors reached the studio, while ~66% of `/templates/<id>` visitors did, so real designs come right after the hero.
   Keep the home page light: every font a visible glyph needs downloads (a decorative row of five scripts once cost ~200 KB).
   **Names travel to the studio through sessionStorage (`lib/start.ts`), never the URL** (/create's URL reaches Mixpanel and the Pixel);
@@ -172,8 +172,9 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 - **Analytics** (Mixpanel, `lib/analytics.ts`; tracking plan and rules in `AGENTS.md`): typed `track()`, started on site pages
   (`<SiteAnalytics>`, surface `site`, keeps an ad's `utm_*` tags), the editor and the guest page (never `/render`, `/admin`), production deploy only (`MIXPANEL=1` to test locally), US residency
   (`api-js.mixpanel.com`; api-in silently drops this project's events), anonymous (no identify), no names: guest pages strip the URL/title and use a hashed `invite_id`.
-- **Meta Pixel** (ads, pixel `1116330824214375`; details in `AGENTS.md`): `<MetaPixel>` in the root layout sends PageView on
-  site pages only (never `/e/`, `/render`, `/client-render`, `/admin`), production only (`META_PIXEL=1` to test). `track()` maps
+- **Meta Pixel** (ads, pixel `1116330824214375`; details in `AGENTS.md`): **OFF since 2026-11-14** (no Meta ads run; `META_PIXEL=1` turns it
+  back on, and `/privacy` shows its Meta paragraphs only while it is on). When on, `<MetaPixel>` in the root layout sends PageView on
+  site pages only (never `/e/`, `/render`, `/client-render`, `/admin`). `track()` maps
   template_selected → ViewContent, share_dialog_opened → AddToCart, payment_started → InitiateCheckout, payment_completed →
   Purchase (eventID `purchase-<invite_id>`), free invite_link_created → Lead. Automatic events off. Headless Chrome only
   sends events when `navigator.webdriver` is hidden, so check by hand or with that override.
@@ -225,6 +226,34 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
    it cannot parse (`TypeError: Cannot read properties of null (reading '1')` in nextFontGoogleFontLoader → build fails).
 
 ## Gotchas already solved (don't reintroduce)
+- **Template `defaults` never hold a phone number** (2026-11-14): a mobile in any text field becomes a live "RSVP on WhatsApp" button
+  for guests (`lib/inviteDetails.ts`), and nine templates used to ship made-up numbers that belong to strangers. Keep numbers in
+  `placeholder` only. Old drafts still hold them: `SAMPLE_PHONES` is ignored and `withoutSamplePhones()` clears them at Get link.
+- **Untouched sample date / venue**: Get link stores `project.sample` (`sampleKeys()`), and `inviteDetails(id, data, sample)` skips those
+  fields, so guests get no calendar or directions button for a made-up wedding. Pass `project.sample` at every call.
+- **Empty photo / clip slots** carry class `ph`; `.guest-ui .ph` (globals.css) hides the "ADD A PHOTO" hint on a guest's invite.
+- **A link can be edited by its owner** (2026-11-14, owner's decision): Get link in the studio republishes to the link this browser
+  made last when the couple's names give the same base (`lastOwned()` in `lib/owner.ts`, `POST /api/share {update, key}` →
+  `updateLiveShare`, which overwrites project.json / share.json, sets `updatedAt` (versions the preview card) and keeps `paid.json`).
+  Wrong or missing key = 403 and the studio falls back to a new link. Event `invite_link_updated`, not `invite_link_created`.
+  Terms section 5 describes this. One paid link could be reused for a different invite by the same browser: accepted for now.
+- The couple's owner sheet also opens on the cover when they come back to a link that still has the watermark (`LiveInvite.tsx`);
+  straight after Get link they still watch first and get it at the end.
+- Upload size caps follow the extension (`maxBytesFor` in `lib/media.ts`: images 12 MB, audio 60 MB, video 100 MB), and a signed
+  upload only accepts the content types of that extension.
+- Policy pages name the proprietor: `LEGAL.entity` and `grievanceName` = Deepanshu Sharma (owner's word, 2026-11-14).
+- **Storage errors are not "not found"** (`lib/server/share.ts`, `missing()`): `readJSON` / `exists` return null / false only for a missing
+  file and throw otherwise. A swallowed error once meant a cached 404 for a real invite, or "payment is for a different link" after paying.
+  Payment routes keep storage calls inside their try so the answer is 502 (browser and Razorpay retry), never a final 4xx.
+- A second, different payment for an already paid link is kept as `shares/<name>/extra-payment-<id>.json` and logged "REFUND NEEDED".
+- Get link reuses media this browser already uploaded (`fp.uploads` in localStorage, by SHA-256), so polishing an invite over several
+  links does not re-upload every photo. Uploads are still never deleted and the endpoint is still open (no rate limit yet: needs a store such as Vercel KV).
+- **Vercel Web Analytics** goes through `components/VercelAnalytics.tsx` (`beforeSend` drops `/e/`, `/render`, `/client-render`, `/admin`).
+  Never mount `<Analytics />` bare: it would send invite addresses with the couple's names.
+- `app/robots.ts` must not disallow `/e/`: a blocked crawler never sees the page's noindex tag. Site pages get their canonical and
+  preview tags from `pageMeta()` (`lib/seo.ts`); new site pages go into `app/sitemap.ts`.
+- The home hero's button carries `?template=` only after the visitor chose a design or typed (`chosen` in `Landing.tsx`); otherwise it
+  would switch a returning visitor's saved draft to whatever design was auto-playing.
 - Embedded browsers (e.g. the Claude desktop browser pane) **silently block downloads**, which is why exports are auto-copied to `exports/`.
 - Dev hot-reload during a render could hang the queue. Hence the timeouts, the watchdog, and `__seek` rejecting when the render page unmounts.
 - Indic/Arabic fonts load lazily (unicode-range); the render page calls `document.fonts.forEach(f => f.load())` before frame 0.

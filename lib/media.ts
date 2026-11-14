@@ -12,6 +12,10 @@ export const MEDIA_TYPES: Record<string, string> = {
 
 /** Upper bound for one uploaded file (the editor already suggests keeping videos under ~80 MB). */
 export const MAX_MEDIA_BYTES = 100 * 1024 * 1024;
+/** Per kind, by extension: only a video needs the full size. Photos are compressed in the editor (well under 1 MB)
+    and a song is a few MB (an uncompressed WAV tens of MB), so anything far larger is not an invitation's media. */
+const MB = 1024 * 1024;
+export const maxBytesFor = (ext: string) => (/^\.(jpg|png|webp|gif)$/.test(ext) ? 12 * MB : /^\.(mp3|m4a|aac|wav|ogg)$/.test(ext) ? 60 * MB : MAX_MEDIA_BYTES);
 
 export const mimeOfDataUrl = (src: string) => /^data:([^;,]+)/.exec(src)?.[1]?.toLowerCase() ?? "";
 

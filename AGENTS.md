@@ -97,6 +97,7 @@ wrong property, so update that type first.
 | `template_selected` | Couple picks a template (in the editor, or arrives from "Customize" on a template page with a different one) | `template_id`, `source` (`sidebar`/`gallery`/`template_page`) | `app/create/page.tsx` |
 | `share_dialog_opened` | Couple taps Get link (the link is created right away, no dialog to fill in since 2026-10-21) | `template_id` | `app/create/page.tsx` |
 | `invite_link_created` ★ | Share link saved (value moment) | `invite_id`, `template_id`, `palette_id`, `orientation`, `plan` (`free`/`premium`, only with payments on), `is_custom_name`, `has_music`, `photo_count`, `has_video`, `duration_seconds` | `components/editor/ShareDialog.tsx` |
+| `invite_link_updated` | The couple edited their invite and Get link published it to the link they already had (same address, stays paid) | `invite_id`, `template_id` | `ShareDialog.tsx` (`GetLink`) |
 | `video_export_clicked` | "Export MP4" clicked (only where export is on; the hosted site hides the button) | `is_available` | `app/create/page.tsx` |
 | `payment_started` | Pay ₹ clicked: the couple's owner sheet on their invite (since 2026-10-21) or a guest's "Remove · ₹" | `invite_id`, `amount_inr` | `lib/pay.ts` |
 | `payment_completed` | Server verified the Razorpay payment | `invite_id`, `amount_inr` (from the order, paise / 100) | `lib/pay.ts` |
@@ -132,7 +133,16 @@ Mixpanel stays the product analytics tool.
 
 ---
 
+## Vercel Web Analytics
+
+Added by Vercel's bot PRs on 2026-11-12. Mounted only through `components/VercelAnalytics.tsx`, whose `beforeSend` drops every
+event for `/e/…`, `/v/…`, `/render`, `/client-render` and `/admin` (`privatePath` in `lib/analytics.ts`). Cookieless page views for
+the site pages and the editor; disclosed on `/privacy` as "Visit counts".
+
 ## Meta Pixel (ad measurement)
+
+**OFF since 2026-11-14**: the owner runs no Meta ads (the only ad traffic in Mixpanel is a one-day test on 2026-10-13). The code
+stays; `META_PIXEL=1` turns it back on (`next.config.mjs`), and `/privacy` prints its Meta paragraphs only while it is on.
 
 Pixel "FutureProof Wedding Web", ID `1116330824214375`, in the Futureproof 2 business portfolio, linked to ad account
 `27943393368611288`. The portfolio-wide Conversions API gateway is off.

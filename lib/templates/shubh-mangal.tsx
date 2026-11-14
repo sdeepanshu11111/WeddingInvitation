@@ -160,7 +160,7 @@ export const shubhMangal: TemplateDef = {
     receptionVenue: "Shubhankar Mangal Karyalay",
     inviters: "Deshpande & Kulkarni families",
     closingLine: "Your presence and blessings are requested",
-    rsvp: "RSVP · Vijay Deshpande · +91 98220 33445",
+    rsvp: "", // no sample number: a mobile here becomes a live "RSVP on WhatsApp" button for guests
   },
 
   backdrop: ({ T, theme, W, H, vertical }) => {

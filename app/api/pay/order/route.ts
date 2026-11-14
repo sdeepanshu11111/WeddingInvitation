@@ -11,9 +11,10 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   if (!PAYMENTS) return NextResponse.json({ error: "Payments are not set up" }, { status: 404 });
   const { name } = (await req.json().catch(() => ({}))) as { name?: string };
-  const share = typeof name === "string" ? await getShare(name) : null;
-  if (share?.kind !== "live") return NextResponse.json({ error: "No such invite link" }, { status: 404 });
   try {
+    // Inside the try: a storage error is "try again" (502), not "no such link".
+    const share = typeof name === "string" ? await getShare(name) : null;
+    if (share?.kind !== "live") return NextResponse.json({ error: "No such invite link" }, { status: 404 });
     if (await isPaid(share.token)) {
       // Already paid, yet someone still sees the watermark: refresh the cached page instead of charging again.
       revalidatePath("/e/" + share.token);

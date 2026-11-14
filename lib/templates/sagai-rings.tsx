@@ -77,7 +77,7 @@ export const sagaiRings: TemplateDef = {
     venueName: "The Leela Ambience",
     venueAddress: "Gurugram",
     closingLine: "Join us as we exchange rings & promises",
-    rsvp: "RSVP · Mehta family · +91 98110 22334",
+    rsvp: "", // no sample number: a mobile here becomes a live "RSVP on WhatsApp" button for guests
   },
 
   backdrop: ({ T, theme, W, H }) => (

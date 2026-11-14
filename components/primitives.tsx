@@ -226,7 +226,9 @@ export function Photo({
           }}
         />
       ) : (
+        // "ph": the studio's hint for an empty slot. On a guest's invite it is a plain panel (globals.css, .guest-ui .ph).
         <div
+          className="ph"
           style={{
             width: "100%",
             height: "100%",
@@ -327,6 +329,7 @@ export function Clip({
   if (!src) {
     return (
       <div
+        className="ph"
         style={{
           display: "grid",
           placeItems: "center",

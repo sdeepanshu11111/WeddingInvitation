@@ -193,7 +193,7 @@ export const shubhoBibaho: TemplateDef = {
     receptionVenue: "Banerjee Bhavan, Behala",
     closingLine: "Your presence is earnestly requested",
     inviters: "Banerjee & Chatterjee families",
-    rsvp: "RSVP · Subrata Banerjee · +91 98310 22445",
+    rsvp: "", // no sample number: a mobile here becomes a live "RSVP on WhatsApp" button for guests
   },
 
   backdrop: ({ T, theme, W, H, vertical }) => {

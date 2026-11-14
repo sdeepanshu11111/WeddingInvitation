@@ -6,7 +6,8 @@ import { getTemplate } from "@/lib/templates";
 import { PAYMENTS, SHARE_STORE } from "@/lib/features";
 import { inviteId, track } from "@/lib/analytics";
 import { MEDIA_TYPES, allSrcs, mapDataUrls } from "@/lib/media";
-import { rememberOwned } from "@/lib/owner";
+import { sampleKeys, withoutSamplePhones } from "@/lib/inviteDetails";
+import { lastOwned, rememberOwned } from "@/lib/owner";
 import { slugify } from "@/lib/slug";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { Confetti, DrawnCheck } from "@/components/Celebrate";
@@ -30,9 +31,35 @@ const autoBase = (title: string) => {
 };
 
 const inviteText = (title: string) => title + " - you're invited!";
+
+/* Media this browser already uploaded, by content hash, so a second "Get link" (people make several while they
+   polish the invite) reuses the files instead of uploading every photo and song again. Per browser, best effort:
+   without storage or crypto.subtle (plain http on a LAN address) every file is simply uploaded as before. */
+const UPLOADS_KEY = "fp.uploads";
+const readUploads = (): Record<string, string> => {
+  try {
+    return JSON.parse(localStorage.getItem(UPLOADS_KEY) || "{}") || {};
+  } catch {
+    return {};
+  }
+};
+function rememberUpload(hash: string, url: string) {
+  try {
+    const all = Object.entries({ ...readUploads(), [hash]: url }).slice(-300); // newest 300
+    localStorage.setItem(UPLOADS_KEY, JSON.stringify(Object.fromEntries(all)));
+  } catch {}
+}
+async function hashOf(file: Blob): Promise<string | null> {
+  try {
+    const digest = await crypto.subtle.digest("SHA-256", await file.arrayBuffer());
+    return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  } catch {
+    return null;
+  }
+}
 const REDIRECT_S = 3;
 
-type Stage = { kind: "working"; step: string } | { kind: "done"; token: string; url: string; lanUrl: string | null } | { kind: "error"; message: string };
+type Stage = { kind: "working"; step: string } | { kind: "done"; token: string; url: string; lanUrl: string | null; updated?: boolean } | { kind: "error"; message: string };
 
 const EnvelopeIcon = () => (
   <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -59,15 +86,21 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
   const create = async () => {
     setStage({ kind: "working", step: "Getting your invite ready…" });
     try {
-      let shared = uploaded.current ?? project;
+      // What gets published: no leftover sample RSVP number, and a note of which date / venue fields are still the
+      // template's sample, so guests get no calendar or directions button for them (lib/inviteDetails.ts).
+      const clean: Project = { ...project, data: withoutSamplePhones(project.data), sample: sampleKeys(project.data, getTemplate(project.templateId).defaults) };
+      let shared = uploaded.current ?? clean;
       if (SHARE_STORE === "blob" && !uploaded.current) {
         // Vercel caps request bodies at 4.5 MB, so photos/video/music go straight to Blob first.
         const { uploadPresigned } = await import("@vercel/blob/client");
         const total = new Set(allSrcs(project).filter((s) => s.startsWith("data:"))).size;
         let n = 0;
-        shared = await mapDataUrls(project, async (src) => {
+        const known = readUploads();
+        shared = await mapDataUrls(clean, async (src) => {
           setStage({ kind: "working", step: "Uploading your photos & music (" + ++n + " of " + total + ")…" });
           const file = await (await fetch(src)).blob();
+          const hash = await hashOf(file);
+          if (hash && known[hash]) return known[hash];
           // Random, unguessable name; the server refuses anything else and never overwrites.
           const r = await uploadPresigned("shares/uploads/" + crypto.randomUUID() + (MEDIA_TYPES[file.type] ?? ""), file, {
             access: "public",
@@ -75,6 +108,7 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
             contentType: file.type,
             multipart: file.size > 8 * 1024 * 1024,
           });
+          if (hash) rememberUpload(hash, r.url);
           return r.url;
         });
         uploaded.current = shared;
@@ -83,14 +117,23 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
       // Colours and date for the link-preview card, so the server never loads the templates.
       const t = makeTheme(getTemplate(project.templateId), project.paletteId);
       const card = { bg: t.bg, bg2: t.bg2, ink: t.ink, soft: t.soft, accent: t.accent, line: t.line, date: inviteDate(project.data) };
-      const res = await fetch("/api/share", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ project: shared, title, card, name: "1-" + autoBase(title), auto: true }),
-      });
+      const post = (extra: Record<string, unknown>) =>
+        fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: shared, title, card, ...extra }) });
+      // Editing an invite they already have a link for (same couple, made on this device): publish to that SAME
+      // link, so guests who have it see the correction and a paid link stays paid. Anything else is a new link.
+      const mine = lastOwned();
+      const same = mine && mine.name.replace(/^\d+-/, "") === autoBase(title) ? mine : null;
+      let res = same ? await post({ update: same.name, key: same.key }) : null;
+      if (!res || res.status === 403 || res.status === 404) res = await post({ name: "1-" + autoBase(title), auto: true });
       const r = await res.json().catch(() => ({}));
       if (!res.ok || !r.token) throw new Error(r.error || "Could not create the link");
       if (r.ownerKey) rememberOwned(r.token, r.ownerKey);
+      if (r.updated) {
+        track("invite_link_updated", { invite_id: inviteId(r.token), template_id: project.templateId });
+        setLeft(REDIRECT_S);
+        setStage({ kind: "done", token: r.token, url: r.url, lanUrl: r.lanUrl ?? null, updated: true });
+        return;
+      }
       const media = Object.values(project.data).flat().filter((v) => v && typeof v === "object" && v.src);
       track("invite_link_created", {
         invite_id: inviteId(r.token),
@@ -154,7 +197,7 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
               <span className="gl-ring" />
               <EnvelopeIcon />
             </div>
-            <h3>Creating your invite</h3>
+            <h3>Getting your invite ready</h3>
             <p className="gl-sub">{stage.step}</p>
             <div className="gl-bar" aria-hidden>
               <i />
@@ -177,8 +220,9 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
         ) : (
           <div className="gl-done">
             <DrawnCheck />
-            <h3>Your invite is live! 🎉</h3>
+            <h3>{stage.updated ? "Your invite is updated! 🎉" : "Your invite is live! 🎉"}</h3>
             <p className="gl-sub">
+              {stage.updated ? <>Same link as before: everyone who has it now sees this version. </> : null}
               {stay ? (
                 "Open it to watch it, share it and make it yours."
               ) : left > 0 ? (

@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
-import { LEADS } from "@/lib/features";
+import { pageMeta } from "@/lib/seo";
+import { LEADS, META_PIXEL_ID } from "@/lib/features";
 import { LEGAL, OPERATOR } from "@/lib/legal";
 
-export const metadata: Metadata = { title: "Privacy Policy · " + BRAND, description: `How ${BRAND} collects, uses and protects your information.` };
+export const metadata: Metadata = pageMeta("Privacy Policy · " + BRAND, `How ${BRAND} collects, uses and protects your information.`, "/privacy");
 
 /* Keep this in step with what the app really does: Blob storage for share links (lib/server/share.ts),
    Razorpay (lib/server/razorpay.ts), Mixpanel (lib/analytics.ts, AGENTS.md), local autosave (lib/project.ts).
-   Meta Pixel and Google Analytics (lib/analytics.ts, AGENTS.md), Google AdSense (components/AdSense.tsx,
-   AGENTS.md). WhatsApp numbers and payers' contacts (lib/server/leads.ts) only
+   Google Analytics (lib/analytics.ts, AGENTS.md), Google AdSense (components/AdSense.tsx, AGENTS.md), Vercel Web
+   Analytics (components/VercelAnalytics.tsx). The Meta Pixel paragraphs show only while the pixel is on
+   (META_PIXEL=1; off since 2026-11-14, no Meta ads run). WhatsApp numbers and payers' contacts (lib/server/leads.ts) only
    while LEADS is on. Adding a tracker or a new processor means updating sections 2, 4 and 5. */
 export default function Privacy() {
   const mail = <a href={"mailto:" + LEGAL.email}>{LEGAL.email}</a>;
@@ -70,20 +72,27 @@ export default function Privacy() {
           derived from your IP address. It never receives the names, photos or other content of your invitation, and it is never used on your
           guests&rsquo; invitation pages.
         </li>
-        <li>
-          <b>Advertising measurement</b>: we advertise on Meta platforms (Facebook and Instagram) and use the Meta Pixel on our website pages to
-          measure how well our ads work, for example whether someone who saw an ad later viewed a template, created an invitation or bought the
-          Premium plan. It receives the page address, the template chosen and the amount paid, never the names, photos or other content of your
-          invitation. We may also send the same events from our servers through Meta&rsquo;s Conversions API.
-          Meta and other third parties may use cookies, web beacons and similar technologies to collect or receive information from our website and
-          elsewhere on the internet, and use it to provide measurement services and to show ads. These tools are never used on your guests&rsquo;
-          invitation pages. See section 5 for how to opt out.
-        </li>
+        {META_PIXEL_ID ? (
+          <li>
+            <b>Advertising measurement</b>: we advertise on Meta platforms (Facebook and Instagram) and use the Meta Pixel on our website pages to
+            measure how well our ads work, for example whether someone who saw an ad later viewed a template, created an invitation or bought the
+            Premium plan. It receives the page address, the template chosen and the amount paid, never the names, photos or other content of your
+            invitation. We may also send the same events from our servers through Meta&rsquo;s Conversions API.
+            Meta and other third parties may use cookies, web beacons and similar technologies to collect or receive information from our website and
+            elsewhere on the internet, and use it to provide measurement services and to show ads. These tools are never used on your guests&rsquo;
+            invitation pages. See section 5 for how to opt out.
+          </li>
+        ) : null}
         <li>
           <b>Advertisements on our website</b>: we use Google AdSense, which may show advertisements on our website pages (the home page, the
           template pages and these policy pages). Third-party vendors, including Google, use cookies and similar technologies to show ads based on
           your earlier visits to this and other websites, and to measure them. Advertisements are never shown on invitation pages, and Google never
           receives the content of your invitation. See section 5 for how to opt out.
+        </li>
+        <li>
+          <b>Visit counts</b>: our hosting provider&rsquo;s Web Analytics (Vercel) counts page views on our website pages and in the editor. It
+          sets no cookies and records the page address, the referring site, your browser and device type and your country. It is not used on
+          invitation pages.
         </li>
         <li>
           <b>Server logs</b>: our hosting provider keeps standard technical logs (IP address, browser, pages requested, time) for security and to keep
@@ -100,7 +109,7 @@ export default function Privacy() {
           <li>To contact you on WhatsApp or by email about your invitation, using what you gave us (help, and a reminder while it has the watermark).</li>
         ) : null}
         <li>To understand usage, fix problems, prevent fraud and abuse, and improve the product.</li>
-        <li>To measure and improve our advertising.</li>
+        {META_PIXEL_ID ? <li>To measure and improve our advertising.</li> : null}
         <li>To show advertisements on our website pages.</li>
       </ul>
       <p>
@@ -118,10 +127,10 @@ export default function Privacy() {
           invitation that you would not want a stranger to see.
         </li>
         <li>
-          <b>Service providers</b> who process data for us under their own privacy and security terms: Vercel Inc. (website hosting and file storage,
-          servers in the United States), Razorpay Software Pvt. Ltd. (payments, India), Mixpanel Inc. (analytics, United States)
-          {LEADS === "mongo" ? ", MongoDB, Inc. (the private database for contact details, servers in India)" : ""}, Meta Platforms, Inc.
-          (advertising measurement) and Google LLC (website analytics and the advertisements on our website, United States).
+          <b>Service providers</b> who process data for us under their own privacy and security terms: Vercel Inc. (website hosting, file storage and
+          visit counts, servers in the United States), Razorpay Software Pvt. Ltd. (payments, India), Mixpanel Inc. (analytics, United States)
+          {LEADS === "mongo" ? ", MongoDB, Inc. (the private database for contact details, servers in India)" : ""}
+          {META_PIXEL_ID ? ", Meta Platforms, Inc. (advertising measurement)" : ""} and Google LLC (website analytics and the advertisements on our website, United States).
           {LEADS ? " When we contact you, WhatsApp or our email provider (Google) carries the message." : ""}
         </li>
         <li>
@@ -136,12 +145,18 @@ export default function Privacy() {
         We use your browser&rsquo;s storage to autosave the invitation you are editing, to remember the invitation links you made on that
         device (a random key, so your invitation page shows you its owner options) and to keep the anonymous analytics ID
         {LEADS ? " and the WhatsApp number or email you last entered, so you don't have to type it again" : ""}. Google Analytics, and
-        advertising tools such as the Meta Pixel and Google AdSense, may set cookies. You can clear or block cookies and site data in your browser settings at any time; the editor still works, but
-        an unsaved draft on that device will be lost. You can control how Meta uses information for ads in your{" "}
-        <a href="https://www.facebook.com/adpreferences" target="_blank" rel="noopener noreferrer">
-          Facebook ad preferences
-        </a>
-        , how Google personalises ads in your{" "}
+        advertising tools such as {META_PIXEL_ID ? "the Meta Pixel and " : ""}Google AdSense, may set cookies. You can clear or block cookies and site data in your browser settings at any time; the editor still works, but
+        an unsaved draft on that device will be lost. You can control{" "}
+        {META_PIXEL_ID ? (
+          <>
+            how Meta uses information for ads in your{" "}
+            <a href="https://www.facebook.com/adpreferences" target="_blank" rel="noopener noreferrer">
+              Facebook ad preferences
+            </a>
+            ,{" "}
+          </>
+        ) : null}
+        how Google personalises ads in your{" "}
         <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer">
           Google Ads Settings
         </a>{" "}

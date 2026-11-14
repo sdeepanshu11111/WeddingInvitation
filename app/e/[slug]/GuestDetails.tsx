@@ -36,7 +36,7 @@ const PinIcon = () => (
 );
 
 export function GuestDetails({ project, title, name, onReplay }: { project: Project; title: string; name?: string; onReplay: () => void }) {
-  const { events, rsvp } = useMemo(() => inviteDetails(project.templateId, project.data), [project]);
+  const { events, rsvp } = useMemo(() => inviteDetails(project.templateId, project.data, project.sample), [project]);
   const [ios, setIos] = useState(false);
   const [link, setLink] = useState("");
   const [small, setSmall] = useState(false); // tucked away, so the last scene can be read

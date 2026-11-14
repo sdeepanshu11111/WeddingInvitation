@@ -111,6 +111,8 @@ export type Project = {
   data: Record<string, any>;
   music: { src: string; name: string; volume: number; offset: number } | null;
   speed: number; // 0.75 .. 1.5 — scales every scene duration
+  /** Set when a link is made: fields still equal to the template's sample date / venue (lib/inviteDetails.ts, sampleKeys). */
+  sample?: string[];
 };
 
 export type Style = CSSProperties;

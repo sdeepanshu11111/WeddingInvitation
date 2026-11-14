@@ -5,6 +5,7 @@ import { Faq, SectionHead, faqItems } from "@/components/site/Faq";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { BRAND } from "@/lib/brand";
+import { pageMeta } from "@/lib/seo";
 import { TEMPLATES } from "@/lib/templates";
 import { TemplateDetail } from "./TemplateDetail";
 
@@ -14,7 +15,7 @@ export const generateStaticParams = () => TEMPLATES.map((t) => ({ id: t.id }));
 export function generateMetadata({ params }: { params: { id: string } }): Metadata {
   const t = TEMPLATES.find((x) => x.id === params.id);
   if (!t) return {};
-  return { title: t.name + " invitation · " + BRAND, description: t.tagline + ". Preview it free with your names, then share it on WhatsApp." };
+  return pageMeta(t.name + " invitation · " + BRAND, t.tagline + ". Preview it free with your names, then share it on WhatsApp.", "/templates/" + t.id);
 }
 
 export default function TemplatePage({ params }: { params: { id: string } }) {

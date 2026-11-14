@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { issueSignedToken } from "@vercel/blob";
 import { handleUploadPresigned, type HandleUploadPresignedBody } from "@vercel/blob/client";
 import { SHARE_STORE } from "@/lib/features";
-import { MAX_MEDIA_BYTES, MEDIA_TYPES } from "@/lib/media";
+import { MEDIA_TYPES, maxBytesFor } from "@/lib/media";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +27,9 @@ export async function POST(req: Request) {
       request: req,
       getSignedToken: async (pathname) => {
         if (!UPLOAD_PATH.test(pathname)) throw new Error("Bad upload path");
-        const limits = { allowedContentTypes: Object.keys(MEDIA_TYPES), maximumSizeInBytes: MAX_MEDIA_BYTES };
+        // The size cap and the accepted types follow the file's extension: a ".jpg" may only be a small image.
+        const ext = pathname.slice(pathname.lastIndexOf("."));
+        const limits = { allowedContentTypes: Object.keys(MEDIA_TYPES).filter((t) => MEDIA_TYPES[t] === ext), maximumSizeInBytes: maxBytesFor(ext) };
         const token = await issueSignedToken({ pathname, operations: ["put"], validUntil: Date.now() + 15 * 60_000, ...limits });
         return { token, urlOptions: { ...limits, allowOverwrite: false, cacheControlMaxAge: 31536000 } };
       },

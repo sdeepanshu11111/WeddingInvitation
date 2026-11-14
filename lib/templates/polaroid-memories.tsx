@@ -79,7 +79,7 @@ export const polaroidMemories: TemplateDef = {
     venueName: "The Old Granary",
     venueCity: "Goa",
     closingLine: "Come celebrate with us",
-    rsvpLine: "rsvp · +91 98765 43210",
+    rsvpLine: "", // no sample number: a mobile here becomes a live "RSVP on WhatsApp" button for guests
   },
 
   backdrop: ({ theme }) => (

@@ -35,6 +35,8 @@ type Events = {
     has_video: boolean;
     duration_seconds: number;
   };
+  /** The couple changed their invite and published it again to the link they already had (no new link). */
+  invite_link_updated: { invite_id: string; template_id: string };
   /** "Export MP4" (only where export is on: the hosted site hides it and doesn't mention video). */
   video_export_clicked: { is_available: boolean };
   payment_started: { invite_id: string; amount_inr: number };
@@ -126,6 +128,8 @@ const fbq = () => (typeof window === "undefined" ? undefined : ((window as any).
 
 /** Pages no ad or Google tool may see: a guest's invite (names in the URL), the headless export pages, /admin. */
 const PRIVATE_PATH = /^\/(e|v|render|client-render|admin)(\/|$)/;
+/** True for a guest's invite, the export pages and /admin: no ad, Google or Vercel tool may report these. */
+export const privatePath = (path: string) => PRIVATE_PATH.test(path);
 const herePath = () => (typeof location === "undefined" ? "" : location.pathname);
 
 /** Pages the pixel may see: not a guest's invite (names in the URL), not the headless export pages, not /admin. */

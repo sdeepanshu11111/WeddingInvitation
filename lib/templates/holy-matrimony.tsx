@@ -181,7 +181,7 @@ export const holyMatrimony: TemplateDef = {
     receptionTime: "19:30",
     receptionVenue: "The Taj Mahal Palace",
     closingLine: "Your presence will be our greatest blessing",
-    rsvp: "RSVP · Mrs. Maria D'Souza · +91 98200 45678",
+    rsvp: "", // no sample number: a mobile here becomes a live "RSVP on WhatsApp" button for guests
   },
 
   backdrop: ({ T, theme, W, H, vertical }) => (

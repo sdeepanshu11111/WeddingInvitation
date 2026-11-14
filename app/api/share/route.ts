@@ -4,7 +4,7 @@ import { LEADS, VIDEO_EXPORT, exportOff } from "@/lib/features";
 import { CONTACT_NOTICE, normalizeEmail, normalizePhone } from "@/lib/contact";
 import { slugify } from "@/lib/slug";
 import { saveShareLead } from "@/lib/server/leads";
-import { ShareError, createLiveShare, createVideoShare, lanOrigin, newOwnerKey, nextNumberedName, numberedBase, ownerKeyHash } from "@/lib/server/share";
+import { ShareError, createLiveShare, createVideoShare, lanOrigin, newOwnerKey, nextNumberedName, numberedBase, ownerKeyHash, updateLiveShare } from "@/lib/server/share";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,6 +13,8 @@ export const dynamic = "force-dynamic";
  * POST { project, title, card, name?, auto?, phone?, email? } -> live invitation at /e/<name> (default: 1-<first names>,
  *      the first free number for that couple; auto: true = name is that automatic one, so a clash takes the next number).
  *      phone, email: how to reach the couple (lead capture), stored privately, never in the published project
+ * POST { project, title, card, update: name, key }     -> the owner republishes their invite to the same link /e/<name>
+ *      (key = the owner key that link's creator got back; 403 without it). Returns the same shape plus updated: true.
  * POST { file, title }                                 -> link to a finished MP4 in ./exports
  * Both return { token, url, lanUrl }; a live share also { card, ownerKey } (the creator keeps the key: it unlocks the
  * owner tools on the invite page). A taken name gives 409 { error, suggestion }.
@@ -27,10 +29,13 @@ export async function POST(req: Request) {
   if (LEADS && body?.phone && !phone) return NextResponse.json({ error: "Please enter a valid WhatsApp number" }, { status: 400 });
   if (LEADS && body?.email && !email) return NextResponse.json({ error: "Please enter a valid email" }, { status: 400 });
   let share;
+  const updating = !!body?.project?.templateId && typeof body?.update === "string" && !!body.update;
   // Only the creating browser ever sees this key; the share keeps its hash (lib/server/share.ts, "Owner key").
   const ownerKey = newOwnerKey();
   try {
-    if (body?.project?.templateId) {
+    if (updating) {
+      share = await updateLiveShare(body.update, body.key, body.project, title, body.card ?? {});
+    } else if (body?.project?.templateId) {
       // auto: the dialog's numbered name (1-deepak-sonia). If someone claimed that number a moment ago, take the next
       // free one here instead of asking the couple; a name they typed themselves still gets a 409 + suggestion.
       const auto = body.auto === true;
@@ -60,12 +65,14 @@ export async function POST(req: Request) {
   revalidatePath("/e/" + share.token);
   const lan = lanOrigin(origin);
   // card: the WhatsApp preview image, so the dialog can show how the link will look in a chat.
-  const card = share.kind === "live" ? "/e/" + share.token + "/card?v=" + share.createdAt : null;
+  const card = share.kind === "live" ? "/e/" + share.token + "/card?v=" + (share.updatedAt ?? share.createdAt) : null;
   return NextResponse.json({
     token: share.token,
     url: origin + "/e/" + share.token,
     lanUrl: lan ? lan + "/e/" + share.token : null,
     card,
-    ownerKey: share.kind === "live" ? ownerKey : undefined,
+    // An update keeps the key the browser already has.
+    ownerKey: share.kind === "live" && !updating ? ownerKey : undefined,
+    updated: updating || undefined,
   });
 }

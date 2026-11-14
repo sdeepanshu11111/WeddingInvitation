@@ -34,11 +34,35 @@ export function parseClock(s?: string): string | undefined {
   return h < 24 && +m[2] < 60 ? String(h).padStart(2, "0") + ":" + m[2] : undefined;
 }
 
+/* The made-up numbers the templates once shipped as sample RSVP lines (until 2026-11-14). Drafts saved before then
+   and links made from them still carry these; they belong to strangers, so they never become a WhatsApp button and
+   are cleared from a project when a link is made (withoutSamplePhones). */
+const SAMPLE_PHONES = new Set(["9814012345", "9876543210", "9820045678", "9820011223", "9848012345", "9829012345", "9810054321", "9822033445", "9811022334", "9831022445"]);
+const PHONE = /(?:\+?\s?91[\s-]*)?([6-9]\d{4})[\s-]?(\d{5})(?!\d)/;
+const hasSamplePhone = (text: string) => text.split("\n").some((line) => { const m = PHONE.exec(line); return !!m && SAMPLE_PHONES.has(m[1] + m[2]); });
+
+/** A copy of the invite's fields with every text that still holds a sample RSVP number emptied. */
+export function withoutSamplePhones<T extends Record<string, any>>(d: T): T {
+  const out: Record<string, any> = { ...d };
+  for (const [k, v] of Object.entries(d)) if (typeof v === "string" && hasSamplePhone(v)) out[k] = "";
+  return out as T;
+}
+
+/**
+ * The fields the couple left exactly as the template's sample (date, venue, functions): the invite shows them, but
+ * a guest must not get "Add to calendar" or "Directions" for a made-up wedding. Stored with the project when a link
+ * is made (Project.sample), so the server never needs the templates.
+ */
+const SAMPLE_KEYS = /date$|^venue|venue$|address$|^events$/i;
+export function sampleKeys(d: Record<string, any>, defaults: Record<string, any>): string[] {
+  return Object.keys(d).filter((k) => SAMPLE_KEYS.test(k) && d[k] != null && d[k] !== "" && JSON.stringify(d[k]) === JSON.stringify(defaults[k]));
+}
+
 /** First Indian mobile number in the text (the families already put one in their RSVP line), as 91XXXXXXXXXX. */
 function findPhone(text: string): { phone: string; who?: string } | null {
   for (const line of text.split("\n")) {
-    const m = /(?:\+?\s?91[\s-]*)?([6-9]\d{4})[\s-]?(\d{5})(?!\d)/.exec(line);
-    if (!m) continue;
+    const m = PHONE.exec(line);
+    if (!m || SAMPLE_PHONES.has(m[1] + m[2])) continue;
     const who = line
       .slice(0, m.index)
       .replace(/\brsvp\b(\s+(by|before)\s+[^·|:,-]*)?/i, "")
@@ -50,7 +74,9 @@ function findPhone(text: string): { phone: string; who?: string } | null {
   return null;
 }
 
-export function inviteDetails(templateId: string, d: Record<string, any>): InviteDetails {
+export function inviteDetails(templateId: string, data: Record<string, any>, sample?: string[]): InviteDetails {
+  // Fields still holding the template's sample date or venue are treated as empty (see sampleKeys).
+  const d: Record<string, any> = Array.isArray(sample) && sample.length ? Object.fromEntries(Object.entries(data).filter(([k]) => !sample.includes(k))) : data;
   const events: InviteEvent[] = [];
   if (Array.isArray(d.events)) {
     for (const e of d.events) if (e && str(e.name) && isDate(e.date)) events.push({ name: str(e.name)!, date: e.date, time: parseClock(e.time), venue: str(e.venue) });

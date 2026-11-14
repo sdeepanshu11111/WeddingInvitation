@@ -11,7 +11,8 @@ import { ShareButtons } from "./ShareButtons";
    are in the HTML and WhatsApp/Telegram show a preview card.
    Live shares play the animation in the browser; video shares play the MP4.
 
-   A share never changes after it is created, so each page is rendered on its
+   A share changes only when its owner republishes it or pays (both revalidate
+   this path), so each page is rendered on its
    first visit and then served from the cache (on-demand ISR): the other few
    hundred guests get it from the CDN without running any server code.
    Nothing here may read headers/cookies, or the page turns dynamic again.
@@ -35,7 +36,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const abs = absFor(s.kind === "live" ? s : {});
   if (s.kind === "live") {
     // Versioned, so the card can never be a copy cached before this share existed (see ./card/route.tsx).
-    const images = [{ url: abs("/e/" + s.token + "/card?v=" + s.createdAt), width: 1200, height: 630, alt: s.title }];
+    const images = [{ url: abs("/e/" + s.token + "/card?v=" + (s.updatedAt ?? s.createdAt)), width: 1200, height: 630, alt: s.title }];
     return { ...base, openGraph: { title: s.title, description: DESCRIPTION, type: "website", images }, twitter: { card: "summary_large_image", images } };
   }
   const video = abs("/api/share/" + s.token + "/video");
@@ -47,7 +48,8 @@ export default async function WatchPage({ params }: { params: { slug: string } }
   if (!s) notFound();
 
   if (s.kind === "live") {
-    const project = await getLiveProject(s.token).catch(() => null);
+    // A storage error throws (an error page that is not cached); only a missing project is "not found".
+    const project = await getLiveProject(s.token);
     if (!project) notFound();
     // Free links carry a watermark while paid links are on; paying revalidates this page (api/pay/verify).
     const watermark = PAYMENTS && !(await isPaid(s.token));

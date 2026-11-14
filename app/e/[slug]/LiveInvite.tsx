@@ -182,8 +182,16 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
 
   useEffect(() => {
     const key = ownerKeyFor(name);
+    const fresh = !!key && takeJustCreated(name);
     setOwnerKey(key);
-    setWelcome(!!key && takeJustCreated(name));
+    setWelcome(fresh);
+    // The couple coming BACK to a link that still has the watermark: show their options on the cover, not only after
+    // the invite ends. (Every payment so far was started from this sheet, and half the couples never reach the end.)
+    // Straight after "Get link" they watch it first, as before.
+    if (key && watermark && !fresh && !sheetShown.current) {
+      sheetShown.current = true;
+      setSheet(true);
+    }
     startAnalytics("guest_page", { invite_id: name && inviteId(name), template_id: project.templateId, is_watermarked: watermark, is_owner: !!key });
   }, [name, project, watermark]);
   useEffect(() => {
@@ -370,7 +378,7 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
   // "49 days to go" on the cover: worked out in the browser (the cover HTML is cached for everyone).
   const [countdown, setCountdown] = useState("");
   useEffect(() => {
-    const ev = inviteDetails(project.templateId, project.data).events.find((e) => daysUntil(e.date) >= 0);
+    const ev = inviteDetails(project.templateId, project.data, project.sample).events.find((e) => daysUntil(e.date) >= 0);
     setCountdown(ev ? countdownText(daysUntil(ev.date)) : "");
   }, [project]);
 

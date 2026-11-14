@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
+import { pageMeta } from "@/lib/seo";
 import { LINK_PRICE_INR } from "@/lib/features";
 import { LEGAL } from "@/lib/legal";
 
-export const metadata: Metadata = {
-  title: "Refund & Cancellation Policy · " + BRAND,
-  description: `Refunds, cancellations and delivery for the ${BRAND} Premium plan.`,
-};
+export const metadata: Metadata = pageMeta("Refund & Cancellation Policy · " + BRAND, `Refunds, cancellations and delivery for the ${BRAND} Premium plan.`, "/refunds");
 
 export default function Refunds() {
   const mail = <a href={"mailto:" + LEGAL.email}>{LEGAL.email}</a>;

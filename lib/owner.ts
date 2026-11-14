@@ -30,6 +30,15 @@ export function rememberOwned(name: string, key: string) {
 /** The owner key for this link, if it was made on this device. */
 export const ownerKeyFor = (name?: string) => (name ? read()[name]?.key ?? null : null);
 
+/** The link this device made most recently, with its owner key: the one "Get link" updates when the couple edits
+    their invite again (components/editor/ShareDialog.tsx). */
+export function lastOwned(): { name: string; key: string } | null {
+  const all = Object.entries(read()).filter(([, v]) => v && typeof v.key === "string");
+  if (!all.length) return null;
+  const [name, v] = all.sort((a, b) => (b[1].at || 0) - (a[1].at || 0))[0];
+  return { name, key: v.key };
+}
+
 /** True once, on the first visit right after the studio made this link (the welcome on the cover). */
 export function takeJustCreated(name?: string): boolean {
   try {

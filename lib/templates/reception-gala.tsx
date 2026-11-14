@@ -79,7 +79,7 @@ export const receptionGala: TemplateDef = {
     venueAddress: "Bandstand, Bandra West\nMumbai",
     programme: "Cocktails — 7:30 PM\nCouple's entry — 8:30 PM\nDinner — 9:00 PM\nDJ & dancing — 10:00 PM",
     dressCode: "Black tie / Indo-western",
-    rsvp: "RSVP by 25 Nov · +91 98200 11223",
+    rsvp: "", // no sample number: a mobile here becomes a live "RSVP on WhatsApp" button for guests
   },
 
   backdrop: ({ T, theme, W, H, vertical }) => (

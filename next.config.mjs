@@ -3,8 +3,9 @@ const videoExport = (process.env.VIDEO_EXPORT ?? (process.env.VERCEL ? "0" : "1"
 // Mixpanel analytics: on for the production deployment only, so local dev and preview deploys keep test
 // clicks out of the real numbers. Force with MIXPANEL=1/0; MIXPANEL_TOKEN points it at another project.
 const mixpanel = (process.env.MIXPANEL ?? (process.env.VERCEL_ENV === "production" ? "1" : "0")) === "1";
-// Meta Pixel (ad measurement): same rule. Force with META_PIXEL=1/0; META_PIXEL_ID points it at another pixel.
-const metaPixel = (process.env.META_PIXEL ?? (process.env.VERCEL_ENV === "production" ? "1" : "0")) === "1";
+// Meta Pixel (ad measurement): OFF unless META_PIXEL=1, since no Meta ads run (owner, 2026-11-14). Before turning it
+// back on, restore the "Advertising measurement" paragraph on /privacy. META_PIXEL_ID points it at another pixel.
+const metaPixel = process.env.META_PIXEL === "1";
 // Google Analytics (GA4) and Google AdSense: same rule. Force with GA=1/0 and ADSENSE=1/0; GA_ID and
 // ADSENSE_CLIENT point them at another property / publisher.
 const ga = (process.env.GA ?? (process.env.VERCEL_ENV === "production" ? "1" : "0")) === "1";

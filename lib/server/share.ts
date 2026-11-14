@@ -20,7 +20,8 @@ import { EXPORT_DIR } from "./paths";
  *   blob  - Vercel Blob, same layout under shares/<name>/. In this mode the
  *           editor uploads media straight to Blob first (Vercel limits request
  *           bodies to 4.5 MB), so the project arrives with Blob URLs.
- * Shares never change after creation: the watch page is cached forever.
+ * A share changes only when its owner republishes it from the studio (updateLiveShare, since 2026-11-14): the
+ * watch page is cached forever and re-rendered by revalidatePath after an update or a payment.
  * A name is claimed by writing project.json with no-overwrite, so two couples
  * can never end up on one link. Live shares get readable names (chosen in the
  * editor); MP4 shares keep random tokens, as export file names are guessable.
@@ -32,7 +33,8 @@ export type Card = { bg: string; bg2: string; ink: string; soft: string; accent:
 export type Share =
   /** origin: the site the share was created on (e.g. https://x.vercel.app), for the absolute preview-card URL. */
   /** ownerHash: sha256 of the key only the creator's browser got back (see ownerKey below); missing on older links. */
-  | { token: string; kind: "live"; title: string; createdAt: number; card: Card; origin?: string; ownerHash?: string }
+  /** updatedAt: set when the owner republished the invite to this same link; versions the preview card. */
+  | { token: string; kind: "live"; title: string; createdAt: number; updatedAt?: number; card: Card; origin?: string; ownerHash?: string }
   | { token: string; kind: "video"; title: string; createdAt: number; file: string; vertical: boolean };
 
 export const SHARE_DIR = path.join(EXPORT_DIR, "shares");
@@ -49,6 +51,12 @@ function blobStoreId() {
 /** Public URL prefix of this project's Blob store. */
 export const blobBase = () => "https://" + blobStoreId() + ".public.blob.vercel-storage.com/";
 
+/* "Not there" and "could not ask" are different answers. A timeout, a rate limit or a paused store must never be
+   read as "no such invite" (the page would cache a 404 for a real, maybe paid, link) or "no such order" (a paid
+   customer would be told the payment is for another link, and Razorpay's webhook would stop retrying). So readJSON
+   and exists return null / false only when the file is really missing, and throw on anything else. */
+const missing = (e: any) => e instanceof BlobNotFoundError || e?.code === "ENOENT" || e?.code === "ENOTDIR";
+
 const store = {
   async readJSON<T>(key: string): Promise<T | null> {
     try {
@@ -61,23 +69,32 @@ const store = {
         return r?.statusCode === 200 ? ((await new Response(r.stream).json()) as T) : null;
       }
       return JSON.parse(await fs.readFile(path.join(SHARE_DIR, key), "utf8")) as T;
-    } catch {
-      return null;
+    } catch (e) {
+      if (missing(e)) return null;
+      throw e;
     }
   },
-  /** Never overwrites: fails if the file exists (Blob's default, "wx" on disk). That is what claims a name. */
-  async writeJSON(key: string, value: unknown) {
+  /** Never overwrites unless asked: fails if the file exists (Blob's default, "wx" on disk). That is what claims a
+      name. `overwrite` is only for an owner republishing their own invite (readJSON's ?fresh= query gets past the
+      CDN copy of the old file). */
+  async writeJSON(key: string, value: unknown, overwrite = false) {
     const body = JSON.stringify(value);
     if (SHARE_STORE === "blob") {
-      await put("shares/" + key, body, { access: "public", contentType: "application/json", addRandomSuffix: false, cacheControlMaxAge: 31536000 });
+      await put("shares/" + key, body, { access: "public", contentType: "application/json", addRandomSuffix: false, allowOverwrite: overwrite, cacheControlMaxAge: 31536000 });
       return;
     }
     await fs.mkdir(path.dirname(path.join(SHARE_DIR, key)), { recursive: true });
-    await fs.writeFile(path.join(SHARE_DIR, key), body, { flag: "wx" });
+    await fs.writeFile(path.join(SHARE_DIR, key), body, { flag: overwrite ? "w" : "wx" });
   },
   async exists(key: string): Promise<boolean> {
-    if (SHARE_STORE === "blob") return head("shares/" + key).then(() => true, () => false);
-    return fs.access(path.join(SHARE_DIR, key)).then(() => true, () => false);
+    try {
+      if (SHARE_STORE === "blob") await head("shares/" + key);
+      else await fs.access(path.join(SHARE_DIR, key));
+      return true;
+    } catch (e) {
+      if (missing(e)) return false;
+      throw e;
+    }
   },
   /** Stores one media file of a share and returns the URL the watch page loads it from. */
   async writeMedia(token: string, buf: Buffer, mime: string): Promise<string> {
@@ -202,18 +219,7 @@ export async function createLiveShare(project: Project, title: string, card: Par
   const hadDir = SHARE_STORE === "disk" && (await store.exists(name));
   let stored: Project;
   try {
-    stored = await mapDataUrls(project, async (src) => {
-      const mime = mimeOfDataUrl(src);
-      if (!MEDIA_TYPES[mime]) throw new Error("Unsupported media type " + (mime || "unknown"));
-      const comma = src.indexOf(",");
-      const meta = src.slice(0, comma);
-      const body = src.slice(comma + 1);
-      const buf = meta.endsWith(";base64") ? Buffer.from(body, "base64") : Buffer.from(decodeURIComponent(body));
-      return store.writeMedia(token, buf, mime);
-    });
-    const ours = (SHARE_STORE === "blob" ? blobBase() : "/api/share/" + token + "/media/").toLowerCase(); // host names ignore case
-    const foreign = allSrcs(stored).find((s) => !s.toLowerCase().startsWith(ours));
-    if (foreign) throw new Error("Media must be uploaded to this app, not linked from " + foreign.slice(0, 60));
+    stored = await storeMedia(project, token);
     try {
       await store.writeJSON(token + "/project.json", stored); // claims the name
     } catch (e) {
@@ -227,13 +233,6 @@ export async function createLiveShare(project: Project, title: string, card: Par
     throw e;
   }
 
-  const firstImage = (v: any): string | undefined => {
-    if (Array.isArray(v)) return v.map(firstImage).find(Boolean);
-    if (!v || typeof v !== "object") return undefined;
-    if (v.kind === "image" && typeof v.src === "string") return v.src;
-    return Object.values(v).map(firstImage).find(Boolean);
-  };
-  const pick = (k: keyof Card, fallback: string) => (typeof card[k] === "string" && COLOR.test(card[k] as string) ? (card[k] as string) : fallback);
   const share: Share = {
     token,
     kind: "live",
@@ -241,14 +240,60 @@ export async function createLiveShare(project: Project, title: string, card: Par
     createdAt: Date.now(),
     origin: origin && /^https?:\/\/[\w.-]+(:\d+)?$/.test(origin) ? origin : undefined,
     ownerHash,
-    card: {
-      bg: pick("bg", "#4a0d1c"), bg2: pick("bg2", "#22050d"), ink: pick("ink", "#fff4e6"),
-      soft: pick("soft", "#e8cfc0"), accent: pick("accent", "#e9c46a"), line: pick("line", "#c9a24a"),
-      date: typeof card.date === "string" ? card.date.slice(0, 60) : undefined,
-      photo: firstImage(stored.data),
-    },
+    card: cardOf(card, stored),
   };
   await store.writeJSON(token + "/share.json", share);
+  return share;
+}
+
+/** Data URLs become stored files of this share; every other media URL must already be in this app's storage. */
+async function storeMedia(project: Project, token: string): Promise<Project> {
+  const stored = await mapDataUrls(project, async (src) => {
+    const mime = mimeOfDataUrl(src);
+    if (!MEDIA_TYPES[mime]) throw new Error("Unsupported media type " + (mime || "unknown"));
+    const comma = src.indexOf(",");
+    const meta = src.slice(0, comma);
+    const body = src.slice(comma + 1);
+    const buf = meta.endsWith(";base64") ? Buffer.from(body, "base64") : Buffer.from(decodeURIComponent(body));
+    return store.writeMedia(token, buf, mime);
+  });
+  const ours = (SHARE_STORE === "blob" ? blobBase() : "/api/share/" + token + "/media/").toLowerCase(); // host names ignore case
+  const foreign = allSrcs(stored).find((s) => !s.toLowerCase().startsWith(ours));
+  if (foreign) throw new Error("Media must be uploaded to this app, not linked from " + foreign.slice(0, 60));
+  return stored;
+}
+
+/** The preview card's colours, date and first photo, with safe fallbacks for anything the editor did not send. */
+function cardOf(card: Partial<Card>, stored: Project): Card {
+  const firstImage = (v: any): string | undefined => {
+    if (Array.isArray(v)) return v.map(firstImage).find(Boolean);
+    if (!v || typeof v !== "object") return undefined;
+    if (v.kind === "image" && typeof v.src === "string") return v.src;
+    return Object.values(v).map(firstImage).find(Boolean);
+  };
+  const pick = (k: keyof Card, fallback: string) => (typeof card[k] === "string" && COLOR.test(card[k] as string) ? (card[k] as string) : fallback);
+  return {
+    bg: pick("bg", "#4a0d1c"), bg2: pick("bg2", "#22050d"), ink: pick("ink", "#fff4e6"),
+    soft: pick("soft", "#e8cfc0"), accent: pick("accent", "#e9c46a"), line: pick("line", "#c9a24a"),
+    date: typeof card.date === "string" ? card.date.slice(0, 60) : undefined,
+    photo: firstImage(stored.data),
+  };
+}
+
+/**
+ * The owner republishes their invite to the SAME link (a corrected time, a new photo): guests who already have the
+ * link see the new version, and a paid link stays paid (paid.json is untouched). Only the browser that made the
+ * link holds its owner key; anyone else gets 403. The caller revalidates /e/<name>.
+ */
+export async function updateLiveShare(name: string, key: unknown, project: Project, title: string, card: Partial<Card>): Promise<Share> {
+  assertWritable();
+  const found = await getShare(name);
+  if (!found || found.kind !== "live" || !isOwnerKey(found, key)) throw new ShareError(403, "Only the person who made this invite can change it");
+  const stored = await storeMedia(project, found.token);
+  const { path: _path, ...old } = found;
+  const share: Share = { ...old, title: title.slice(0, 120), updatedAt: Date.now(), card: cardOf(card, stored) };
+  await store.writeJSON(found.token + "/project.json", stored, true);
+  await store.writeJSON(found.token + "/share.json", share, true);
   return share;
 }
 
@@ -273,23 +318,26 @@ export async function orderBelongsTo(name: string, orderId: string) {
  * the watermark for good (it is cached forever). Throws if the check itself fails, for the same reason.
  */
 export async function isPaid(name: string): Promise<boolean> {
-  if (!ID.test(name)) return false;
-  if (SHARE_STORE !== "blob") return store.exists(name + "/paid.json");
-  try {
-    await head("shares/" + name + "/paid.json");
-    return true;
-  } catch (e) {
-    if (e instanceof BlobNotFoundError) return false;
-    throw e;
-  }
+  return ID.test(name) && store.exists(name + "/paid.json");
 }
 
-/** Written once (no-overwrite): the first confirmed payment wins, a repeat (checkout + webhook) is a no-op. */
+const PAYMENT_ID = /^pay_\w{6,40}$/;
+
+/**
+ * Written once (no-overwrite): the first confirmed payment wins, a repeat (checkout + webhook) is a no-op.
+ * A DIFFERENT payment for a link that is already paid (two people paid at the same moment) is money to give back:
+ * it is kept as extra-payment-<id>.json beside paid.json and logged, so it can be found and refunded.
+ */
 export async function markPaid(name: string, paid: Paid) {
   try {
     await store.writeJSON(name + "/paid.json", paid);
   } catch (e) {
     if (!(await store.exists(name + "/paid.json"))) throw e;
+    const first = await store.readJSON<Paid>(name + "/paid.json").catch(() => null);
+    if (first && paid.paymentId && first.paymentId && first.paymentId !== paid.paymentId && PAYMENT_ID.test(paid.paymentId)) {
+      console.error("REFUND NEEDED: second payment " + paid.paymentId + " for already paid link " + name + " (first: " + first.paymentId + ")");
+      await store.writeJSON(name + "/extra-payment-" + paid.paymentId + ".json", paid).catch(() => {}); // already noted
+    }
   }
 }
 

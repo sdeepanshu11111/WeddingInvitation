@@ -6,7 +6,7 @@ import { BRAND } from "./brand";
 
 export const LEGAL = {
   /** Business or proprietor name, exactly as on the Razorpay KYC. Not GST-registered (see /terms, Premium price). */
-  entity: "",
+  entity: "Deepanshu Sharma", // sole proprietor; set on the owner's word, 2026-11-14
   /** Inbox people write to for support, refunds, privacy and deletion requests. */
   email: "neverhatespeople@gmail.com",
   phone: "+91 70117 09892",
@@ -15,9 +15,9 @@ export const LEGAL = {
   /** City whose courts handle disputes (Terms, "Governing law"). */
   city: "Gurugram, Haryana",
   /** Grievance Officer (IT Rules 2021, DPDP Act 2023). Defaults to the support inbox when no name is set. */
-  grievanceName: "",
+  grievanceName: "Deepanshu Sharma",
   /** Date the current versions of the policies took effect. Change it whenever a policy changes. */
-  updated: "13 November 2026",
+  updated: "14 November 2026",
 };
 
 /** "FutureProof" or "FutureProof (operated by X)". */

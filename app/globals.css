@@ -756,3 +756,7 @@ li.lead.out { opacity: 0.6; }
 .gd-head .gd-count { margin-left: auto; }
 .gd-x { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 50%; background: transparent; color: rgba(255, 255, 255, 0.75); font-size: 12px; }
 .gd-pill { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 99px; background: rgba(15, 14, 16, 0.8); color: #fff; font-size: 14px; font-weight: 600; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: pop-in 0.25s ease both; }
+
+/* An empty photo or clip slot says "ADD A PHOTO" in the studio. Guests must never read that on someone's invite:
+   there it is a plain panel in the design's own colour (the slot's parent already paints theme.bg2). */
+.guest-ui .ph { color: transparent !important; background-image: none !important; }

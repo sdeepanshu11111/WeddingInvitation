@@ -10,15 +10,16 @@ import { BRAND } from "@/lib/brand";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
 import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
 import { SITE_URL } from "@/lib/site";
+import { pageMeta } from "@/lib/seo";
 import { TEMPLATES } from "@/lib/templates";
 
 const HOST = SITE_URL.replace(/^https?:\/\//, "");
 
-export const metadata: Metadata = {
-  title: BRAND + " · Animated wedding invitation website",
-  description:
-    "Turn your wedding invitation into an animated website with your names, dates, photos and music. Preview it free, then send one link on WhatsApp.",
-};
+export const metadata: Metadata = pageMeta(
+  BRAND + " · Animated wedding invitation website",
+  "Turn your wedding invitation into an animated website with your names, dates, photos and music. Preview it free, then send one link on WhatsApp.",
+  "/",
+);
 
 export default function Home() {
   return (
