@@ -1,5 +1,4 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
-import { LINK_PRICE_INR } from "../features";
 
 /* =====================================================================
  * Razorpay (Orders API + Checkout), called with fetch: no SDK needed.
@@ -9,7 +8,6 @@ import { LINK_PRICE_INR } from "../features";
  * ===================================================================== */
 
 const API = "https://api.razorpay.com/v1";
-export const PRICE_PAISE = LINK_PRICE_INR * 100;
 
 const keyId = () => process.env.RAZORPAY_KEY_ID ?? "";
 const auth = () => "Basic " + Buffer.from(keyId() + ":" + (process.env.RAZORPAY_KEY_SECRET ?? "")).toString("base64");
@@ -30,9 +28,10 @@ export type RzpOrder = { id: string; amount: number; amount_paid: number; curren
 /** contact and email: what the buyer typed into Checkout (kept as a lead, see lib/server/leads.ts). */
 export type RzpPayment = { id: string; order_id: string; amount: number; currency: string; status: string; contact?: string; email?: string };
 
-/** An order for removing the watermark from one share. notes.share ties the money to that link. */
-export function createOrder(name: string) {
-  return api<RzpOrder>("POST", "/orders", { amount: PRICE_PAISE, currency: "INR", receipt: name.slice(0, 40), notes: { share: name } });
+/** An order for removing the watermark from one share, for the amount still due on it (paise; the design's price,
+    lib/pricing.ts). notes.share ties the money to that link. */
+export function createOrder(name: string, amountPaise: number) {
+  return api<RzpOrder>("POST", "/orders", { amount: amountPaise, currency: "INR", receipt: name.slice(0, 40), notes: { share: name } });
 }
 
 /**

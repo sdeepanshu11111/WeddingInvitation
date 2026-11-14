@@ -4,7 +4,8 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { useDemoTimeline, useNearViewport } from "@/components/LivePreview";
 import { CATEGORIES, countIn } from "@/lib/catalog";
-import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
+import { PAYMENTS } from "@/lib/features";
+import { priceOf } from "@/lib/pricing";
 import { sceneForField } from "@/lib/fieldScene";
 import { SIZES, type StartNames } from "@/lib/project";
 import { TEMPLATES } from "@/lib/templates";
@@ -92,7 +93,15 @@ export function Hero() {
         </ul>
         {PAYMENTS ? (
           <p className="hero-price">
-            Like it? Remove the watermark for <b>₹{LINK_PRICE_INR}</b>, one time. No subscription.
+            {priceOf(t.id) ? (
+              <>
+                Like it? Remove the watermark for <b>₹{priceOf(t.id)}</b>, one time. No subscription.
+              </>
+            ) : (
+              <>
+                This design is <b>free</b>: no watermark, nothing to pay.
+              </>
+            )}
           </p>
         ) : null}
       </div>

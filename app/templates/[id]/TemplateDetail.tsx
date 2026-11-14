@@ -12,7 +12,8 @@ import { TemplateCard, templateKind } from "@/components/site/TemplateCard";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
 import { fmt } from "@/lib/anim";
 import { sceneForField } from "@/lib/fieldScene";
-import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
+import { PAYMENTS } from "@/lib/features";
+import { priceOf } from "@/lib/pricing";
 import { SIZES, type StartNames } from "@/lib/project";
 import { TEMPLATES, getTemplate } from "@/lib/templates";
 import type { Orientation, TemplateDef } from "@/lib/types";
@@ -102,10 +103,15 @@ export function TemplateDetail({ id }: { id: string }) {
               <b>Free</b>
               <span>preview &amp; share link</span>
             </div>
-            {PAYMENTS ? (
+            {PAYMENTS && priceOf(t.id) ? (
               <div>
-                <b>₹{LINK_PRICE_INR}</b>
+                <b>₹{priceOf(t.id)}</b>
                 <span>one time, removes the watermark</span>
+              </div>
+            ) : PAYMENTS ? (
+              <div>
+                <b>No watermark</b>
+                <span>this design is free</span>
               </div>
             ) : null}
           </div>
@@ -158,7 +164,7 @@ export function TemplateDetail({ id }: { id: string }) {
             <span className="step-n">3</span>
             <h3>Send</h3>
             <p>
-              Post the link on WhatsApp.{PAYMENTS ? " Remove the watermark for ₹" + LINK_PRICE_INR + " whenever you're ready, on the same link." : ""}
+              Post the link on WhatsApp.{PAYMENTS && priceOf(t.id) ? " Remove the watermark for ₹" + priceOf(t.id) + " whenever you're ready, on the same link." : PAYMENTS ? " This design is free: no watermark, nothing to pay." : ""}
             </p>
           </article>
         </div>

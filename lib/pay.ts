@@ -2,7 +2,6 @@
    The server creates the order and verifies the payment (app/api/pay/*). */
 
 import { BRAND } from "./brand";
-import { LINK_PRICE_INR } from "./features";
 import { inviteId, track } from "./analytics";
 import { savedEmail, savedPhone } from "./contact";
 
@@ -28,9 +27,10 @@ function loadCheckout(): Promise<void> {
  * Opens Checkout for removing the watermark from /e/<name>.
  * Resolves "paid" once the server has confirmed the payment, "cancelled" if the buyer closed Checkout.
  */
-export async function payToRemoveWatermark(name: string, title: string): Promise<"paid" | "cancelled"> {
+export async function payToRemoveWatermark(name: string, title: string, priceInr: number): Promise<"paid" | "cancelled"> {
   const invite_id = inviteId(name);
-  track("payment_started", { invite_id, amount_inr: LINK_PRICE_INR });
+  // priceInr is what the page showed; the amount actually charged is the server's (app/api/pay/order).
+  track("payment_started", { invite_id, amount_inr: priceInr });
   try {
     const r = await checkout(name, title, invite_id);
     if (r === "cancelled") track("payment_cancelled", { invite_id });

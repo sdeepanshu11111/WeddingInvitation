@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 import { pageMeta } from "@/lib/seo";
-import { LINK_PRICE_INR } from "@/lib/features";
+import { FREE_COUNT, PRICE_MIN, PRICE_RANGE } from "@/lib/pricing";
 import { LEGAL, OPERATOR } from "@/lib/legal";
 
 export const metadata: Metadata = pageMeta("Terms of Service · " + BRAND, `The terms for using ${BRAND} invitation links and the Premium plan.`, "/terms");
@@ -74,7 +74,9 @@ export default function Terms() {
       <h2>6. Premium plan and payment</h2>
       <ul>
         <li>
-          Premium costs ₹{LINK_PRICE_INR} per invitation link, paid once. That is the full price: we are not registered for GST, so no GST is
+          Premium is paid once per invitation link. The price depends on the design ({PRICE_RANGE}
+          {FREE_COUNT ? "; some designs are free and carry no watermark" : ""}) and is shown on the design and again before you pay. If you
+          later move a paid link to a design that costs more, you pay only the difference. That is the full price: we are not registered for GST, so no GST is
           added. There is no subscription and nothing renews automatically. The price is shown before you pay and may change for future purchases.
         </li>
         <li>
@@ -106,7 +108,7 @@ export default function Terms() {
       <p>
         To the extent the law allows, we are not liable for indirect or consequential losses, such as loss of data, a missed event or a guest not seeing
         an invitation. Our total liability for any claim about the service is limited to the amount you paid us for the invitation concerned, or ₹
-        {LINK_PRICE_INR} if you paid nothing. Nothing in these terms limits rights you have under the Consumer Protection Act, 2019.
+        {PRICE_MIN} if you paid nothing. Nothing in these terms limits rights you have under the Consumer Protection Act, 2019.
       </p>
 
       <h2>10. Indemnity</h2>

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { BRAND } from "@/lib/brand";
-import { LEADS, LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
+import { LEADS, PAYMENTS } from "@/lib/features";
 import { formatPhone } from "@/lib/contact";
 import { type Lead, listLeads } from "@/lib/server/leads";
 import { SITE_URL } from "@/lib/site";
@@ -25,7 +25,7 @@ function message(l: Lead, url: string) {
   if (!PAYMENTS) return `Hi! This is ${BRAND} 🙏 Thanks for making your ${invite}: ${url}\n\nNeed any help with it? Just reply here.`;
   return (
     `Hi! This is ${BRAND} 🙏 Thanks for making your ${invite}: ${url}\n\n` +
-    `Right now your guests will see a "Preview" watermark on it. To remove it, open your link and tap "Pay ₹${LINK_PRICE_INR}" at the bottom. ` +
+    `Right now your guests will see a "Preview" watermark on it. To remove it, open your link and tap "Remove watermark" at the bottom. ` +
     `Same link, nothing to resend.\n\nAny questions? Just reply. (Reply STOP and we won't message you again.)`
   );
 }

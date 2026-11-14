@@ -11,7 +11,7 @@ npm run dev        # http://localhost:4321
 
 | | |
 |---|---|
-| **17 templates** | Built for the Indian market, every function covered (see the table below) |
+| **23 templates** | Built for the Indian market, every function covered (see the table below) |
 | **Categories** | Wedding · All Functions · Engagement · Haldi · Mehendi · Sangeet · Reception · Save the Date, plus community filters (Hindu / North Indian, South Indian, Muslim, Sikh, Christian, Modern). The gallery plays each template live on hover |
 | **Scripts** | Devanagari, Gurmukhi (ੴ), Arabic (Bismillah, wedding dua), Tamil, Telugu, Malayalam, Kannada |
 | **4 palettes each** | One click recolours the whole video |

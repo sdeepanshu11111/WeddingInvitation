@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { clamp, transitionStyle } from "@/lib/anim";
 import type { Slot } from "@/lib/anim";
@@ -80,31 +80,41 @@ export function Frame({
   );
 }
 
+/** useLayoutEffect in the browser; a plain effect on the server, where layout effects only log a warning. */
+const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
+
 /** Scales a W×H design surface to fit whatever box it is placed in. */
 export function Stage({ W, H, children, pad = 0 }: { W: number; H: number; children: ReactNode; pad?: number }) {
   const box = useRef<HTMLDivElement | null>(null);
-  const [k, setK] = useState(0.3);
+  // null until the box has been measured. The surface stays hidden until then: it used to be drawn at a guessed
+  // 0.3 first and jump to the real scale a frame later, which showed as a flicker every time a player mounted
+  // (each design change in the home hero, every card scrolling in, the studio, the invite).
+  const [k, setK] = useState<number | null>(null);
 
-  useEffect(() => {
+  // Layout effect: measured before the browser paints, so the first visible frame already has the right scale.
+  useIsoLayoutEffect(() => {
     const el = box.current;
     if (!el) return;
-    const ro = new ResizeObserver(() => {
+    const fit = () => {
       const r = el.getBoundingClientRect();
-      setK(Math.max(0.05, Math.min((r.width - pad * 2) / W, (r.height - pad * 2) / H)));
-    });
+      if (r.width > 0 && r.height > 0) setK(Math.max(0.05, Math.min((r.width - pad * 2) / W, (r.height - pad * 2) / H)));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
     ro.observe(el);
     return () => ro.disconnect();
   }, [W, H, pad]);
+  const scale = k ?? 0.3;
 
   return (
     <div ref={box} style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", overflow: "hidden" }}>
-      <div style={{ width: W * k, height: H * k, position: "relative" }}>
+      <div style={{ width: W * scale, height: H * scale, position: "relative", visibility: k === null ? "hidden" : "visible" }}>
         <div
           className="stage-surface"
           style={{
             width: W,
             height: H,
-            transform: "scale(" + k + ")",
+            transform: "scale(" + scale + ")",
             transformOrigin: "0 0",
             position: "absolute",
             left: 0,

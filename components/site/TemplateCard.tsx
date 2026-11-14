@@ -3,6 +3,8 @@ import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 import { LazyPreview } from "@/components/LivePreview";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
+import { PAYMENTS } from "@/lib/features";
+import { priceOf } from "@/lib/pricing";
 import type { Orientation, TemplateDef } from "@/lib/types";
 
 /** "Wedding · Hindu / North Indian": the card's subtitle. */
@@ -45,6 +47,7 @@ export function TemplateCard({ t, orientation = "vertical" }: { t: TemplateDef; 
       <div className={"t-prev " + orientation}>
         <LazyPreview t={t} orientation={orientation} active={on} />
         {t.isNew ? <span className="t-new">New</span> : null}
+        {PAYMENTS ? <span className={"t-price" + (priceOf(t.id) ? "" : " free")}>{priceOf(t.id) ? "₹" + priceOf(t.id) : "Free"}</span> : null}
         <span className="t-use">
           Use this design
         </span>

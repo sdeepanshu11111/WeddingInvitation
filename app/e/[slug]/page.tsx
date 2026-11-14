@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PAYMENTS } from "@/lib/features";
-import { getLiveProject, getShare, isPaid } from "@/lib/server/share";
+import { isFree, priceOf } from "@/lib/pricing";
+import { amountDue, getLiveProject, getShare } from "@/lib/server/share";
 import { SITE_URL } from "@/lib/site";
 import { LiveInvite } from "./LiveInvite";
 import { BRAND } from "@/lib/brand";
@@ -52,8 +53,9 @@ export default async function WatchPage({ params }: { params: { slug: string } }
     const project = await getLiveProject(s.token);
     if (!project) notFound();
     // Free links carry a watermark while paid links are on; paying revalidates this page (api/pay/verify).
-    const watermark = PAYMENTS && !(await isPaid(s.token));
-    return <LiveInvite project={project} title={s.title} name={s.token} watermark={watermark} />;
+    // What is still due is the design's price (lib/pricing.ts) minus what was paid; free designs never have one.
+    const due = PAYMENTS ? await amountDue(s.token, priceOf(project.templateId)) : 0;
+    return <LiveInvite project={project} title={s.title} name={s.token} watermark={due > 0} price={due} free={PAYMENTS && isFree(project.templateId)} />;
   }
 
   const video = "/api/share/" + s.token + "/video";

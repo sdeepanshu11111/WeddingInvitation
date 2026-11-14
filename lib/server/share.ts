@@ -299,7 +299,10 @@ export async function updateLiveShare(name: string, key: unknown, project: Proje
 
 /* ---------------- paid links (watermark removed) ---------------- */
 
-export type Paid = { orderId: string; paymentId: string; amount: number; paidAt: number };
+/** paymentId / orderId / amount (paise) / paidAt: the first payment. covers: rupees paid on this link in all
+    (payments lists every confirmed payment id). A record without `covers` is from before per-design prices
+    (2026-11-14) and counts as paid in full, whatever its design costs today. */
+export type Paid = { orderId: string; paymentId: string; amount: number; paidAt: number; covers?: number; payments?: string[] };
 const ORDER_ID = /^order_\w{6,40}$/;
 
 /** Remembers which share a Razorpay order was made for, so one payment unlocks exactly one link. */
@@ -321,24 +324,44 @@ export async function isPaid(name: string): Promise<boolean> {
   return ID.test(name) && store.exists(name + "/paid.json");
 }
 
-const PAYMENT_ID = /^pay_\w{6,40}$/;
+/**
+ * Rupees still to pay before this link loses its watermark, for a design that costs `price` (lib/pricing.ts).
+ * 0 = clear: a free design, paid in full, or paid before per-design prices existed. After moving a paid link to a
+ * dearer design it is the difference.
+ */
+export async function amountDue(name: string, price: number): Promise<number> {
+  if (price <= 0 || !ID.test(name)) return 0;
+  if (!(await isPaid(name))) return price; // the API answer first: readJSON below goes through the CDN
+  const paid = await store.readJSON<Paid>(name + "/paid.json");
+  if (!paid) return price;
+  if (typeof paid.covers !== "number") return 0;
+  return Math.max(0, price - paid.covers);
+}
 
 /**
- * Written once (no-overwrite): the first confirmed payment wins, a repeat (checkout + webhook) is a no-op.
- * A DIFFERENT payment for a link that is already paid (two people paid at the same moment) is money to give back:
- * it is kept as extra-payment-<id>.json beside paid.json and logged, so it can be found and refunded.
+ * Records a confirmed payment (checkout callback or webhook; the same payment twice is a no-op). The first one
+ * creates paid.json with no-overwrite; a later, different payment (the difference after moving to a dearer design)
+ * adds to `covers`. `price` is what the link's design costs now: money beyond it is a double payment to give back,
+ * and is logged as REFUND NEEDED.
  */
-export async function markPaid(name: string, paid: Paid) {
+export async function markPaid(name: string, paid: Paid, price: number) {
+  const rupees = Math.round(paid.amount / 100);
   try {
-    await store.writeJSON(name + "/paid.json", paid);
+    await store.writeJSON(name + "/paid.json", { ...paid, covers: rupees, payments: [paid.paymentId] });
+    return;
   } catch (e) {
     if (!(await store.exists(name + "/paid.json"))) throw e;
-    const first = await store.readJSON<Paid>(name + "/paid.json").catch(() => null);
-    if (first && paid.paymentId && first.paymentId && first.paymentId !== paid.paymentId && PAYMENT_ID.test(paid.paymentId)) {
-      console.error("REFUND NEEDED: second payment " + paid.paymentId + " for already paid link " + name + " (first: " + first.paymentId + ")");
-      await store.writeJSON(name + "/extra-payment-" + paid.paymentId + ".json", paid).catch(() => {}); // already noted
-    }
   }
+  const first = await store.readJSON<Paid>(name + "/paid.json");
+  if (!first || !paid.paymentId) return;
+  const seen = first.payments ?? [first.paymentId];
+  if (seen.includes(paid.paymentId)) return;
+  const legacy = typeof first.covers !== "number"; // paid in full under the old single price
+  const before = legacy ? price : first.covers!;
+  if (before + rupees > price) console.error("REFUND NEEDED: payment " + paid.paymentId + " (Rs " + rupees + ") on link " + name + " which had Rs " + before + " of Rs " + price + " covered");
+  const next: Paid = { ...first, payments: [...seen, paid.paymentId] };
+  if (!legacy) next.covers = before + rupees;
+  await store.writeJSON(name + "/paid.json", next, true);
 }
 
 /** Path of one media file inside a disk share, or null if the name is not a plain file name. */

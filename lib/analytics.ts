@@ -16,7 +16,8 @@
 
 import type { Mixpanel } from "mixpanel-browser";
 import type { Orientation } from "./types";
-import { GA_ID, LINK_PRICE_INR, META_PIXEL_ID, MIXPANEL_API_HOST, MIXPANEL_TOKEN, PAYMENTS } from "./features";
+import { GA_ID, META_PIXEL_ID, MIXPANEL_API_HOST, MIXPANEL_TOKEN } from "./features";
+import { priceOf } from "./pricing";
 
 /** The tracking plan. Names are snake_case and fixed: never build an event or property name at runtime. */
 type Events = {
@@ -110,12 +111,12 @@ export function track<E extends keyof Events>(event: E, ...props: {} extends Eve
     send the same event without Meta counting it twice, so it must be computable on the server too. */
 type MetaEvent = [string, Record<string, unknown>, string?];
 const product = (template_id: string) => ({ content_ids: [template_id], content_type: "product" });
-const price = () => (PAYMENTS ? { value: LINK_PRICE_INR, currency: "INR" } : {});
+const price = (template_id: string) => (priceOf(template_id) ? { value: priceOf(template_id), currency: "INR" } : {});
 
 /** Which tracking-plan events also go to Meta. No names or link names: only template ids and amounts. */
 const META: { [E in keyof Events]?: (p: Events[E]) => MetaEvent | null } = {
   template_selected: (p) => ["ViewContent", product(p.template_id)],
-  share_dialog_opened: (p) => ["AddToCart", { ...product(p.template_id), ...price() }],
+  share_dialog_opened: (p) => ["AddToCart", { ...product(p.template_id), ...price(p.template_id) }],
   payment_started: (p) => ["InitiateCheckout", { value: p.amount_inr, currency: "INR" }],
   // One payment per invite (paid.json is write-once), so the invite id is a stable dedup key.
   payment_completed: (p) => ["Purchase", { value: p.amount_inr, currency: "INR" }, "purchase-" + p.invite_id],

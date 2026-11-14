@@ -2,6 +2,12 @@ import type { TemplateDef } from "../types";
 import { royalMandala } from "./royal-mandala";
 import { shaadiUtsav } from "./shaadi-utsav";
 import { southKalyanam } from "./south-kalyanam";
+import { tamilThirumanam } from "./tamil-thirumanam";
+import { teluguPelli } from "./telugu-pelli";
+import { keralaVivaham } from "./kerala-vivaham";
+import { kannadaMaduve } from "./kannada-maduve";
+import { hindiShubhVivah } from "./hindi-shubh-vivah";
+import { punjabiViah } from "./punjabi-viah";
 import { nikahMubarak } from "./nikah-mubarak";
 import { anandKaraj } from "./anand-karaj";
 import { sagaiRings } from "./sagai-rings";
@@ -24,12 +30,18 @@ import { auroraModern } from "./aurora-modern";
  */
 export const TEMPLATES: TemplateDef[] = [
   royalMandala,
+  hindiShubhVivah,
   shaadiUtsav,
   southKalyanam,
+  tamilThirumanam,
+  teluguPelli,
+  keralaVivaham,
+  kannadaMaduve,
   shubhMangal,
   shubhoBibaho,
   nikahMubarak,
   anandKaraj,
+  punjabiViah,
   holyMatrimony,
   sagaiRings,
   haldiMarigold,

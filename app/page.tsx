@@ -8,7 +8,8 @@ import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { BRAND } from "@/lib/brand";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
-import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
+import { PAYMENTS } from "@/lib/features";
+import { FREE_COUNT, PRICE_MIN, PRICE_RANGE } from "@/lib/pricing";
 import { SITE_URL } from "@/lib/site";
 import { pageMeta } from "@/lib/seo";
 import { TEMPLATES } from "@/lib/templates";
@@ -227,7 +228,7 @@ export default function Home() {
         <SectionHead label="Pricing" center>
           {PAYMENTS ? (
             <>
-              Free to make. <em>₹{LINK_PRICE_INR}</em> to make it yours.
+              Free to make. <em>From ₹{PRICE_MIN}</em> to make it yours.
             </>
           ) : (
             <>
@@ -237,7 +238,7 @@ export default function Home() {
         </SectionHead>
         <p className="sec-lead centered">
           {PAYMENTS
-            ? "Try every design with your own details for as long as you like. Pay once, only when you're happy with it."
+            ? "Try every design with your own details for as long as you like. Pay once, only when you're happy with it." + (FREE_COUNT ? " " + FREE_COUNT + " designs are free, with no watermark at all." : "")
             : "Every design, your own details, one link for all your guests."}
         </p>
         <div className={"price-grid" + (PAYMENTS ? "" : " one")}>
@@ -249,7 +250,7 @@ export default function Home() {
               <li>Every design and colour palette</li>
               <li>Names, dates, photos and music</li>
               <li>Share link for WhatsApp</li>
-              {PAYMENTS ? <li className="minus">Watermark on the invitation</li> : null}
+              {PAYMENTS ? <li className="minus">Watermark on the invitation{FREE_COUNT ? " (none on the free designs)" : ""}</li> : null}
             </ul>
             <Link href="/templates" className="ghost-btn block">
               Start free
@@ -259,8 +260,13 @@ export default function Home() {
             <div className="price-card best">
               <span className="best-tag">One-time · per invitation</span>
               <span className="kicker">Premium</span>
-              <div className="price-num">₹{LINK_PRICE_INR}</div>
-              <p>The watermark comes off the same link, instantly. Guests keep the link they already have.</p>
+              <div className="price-num">
+                <small>from</small> ₹{PRICE_MIN}
+              </div>
+              <p>
+                {PRICE_RANGE} by design; each design shows its price. The watermark comes off the same link, instantly. Guests keep the link they
+                already have.
+              </p>
               <ul>
                 <li>No watermark, for every guest</li>
                 <li>Same link, nothing to resend</li>

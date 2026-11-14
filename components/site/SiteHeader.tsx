@@ -3,7 +3,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import { CATEGORIES } from "@/lib/catalog";
-import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
+import { PAYMENTS } from "@/lib/features";
+import { PRICE_MIN } from "@/lib/pricing";
 
 /** The Mangalam lockup (public/brand/mangalam-logo.png, 546×290, transparent). Its height comes from CSS. */
 export function Logo() {
@@ -54,7 +55,7 @@ export function SiteHeader() {
         <span className="promo-long">
           {PAYMENTS ? (
             <>
-              Preview your invitation free with your own names. Remove the watermark for just <b>₹{LINK_PRICE_INR}</b>, one time.
+              Preview your invitation free with your own names. Remove the watermark from <b>₹{PRICE_MIN}</b>, one time.
             </>
           ) : (
             <>Create your invitation free and share it on WhatsApp in minutes.</>
@@ -63,7 +64,7 @@ export function SiteHeader() {
         <span className="promo-short">
           {PAYMENTS ? (
             <>
-              Preview free · remove the watermark for <b>₹{LINK_PRICE_INR}</b>
+              Preview free · remove the watermark from <b>₹{PRICE_MIN}</b>
             </>
           ) : (
             <>Create free · share on WhatsApp</>

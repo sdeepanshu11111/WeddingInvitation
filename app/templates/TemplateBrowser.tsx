@@ -3,7 +3,8 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { TemplateCard } from "@/components/site/TemplateCard";
 import { CATEGORIES, COMMUNITIES, countIn, filterTemplates, type Filter } from "@/lib/catalog";
-import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
+import { PAYMENTS } from "@/lib/features";
+import { FREE_COUNT, PRICE_MIN } from "@/lib/pricing";
 import { TEMPLATES } from "@/lib/templates";
 import type { Orientation } from "@/lib/types";
 
@@ -51,7 +52,7 @@ export function TemplateBrowser({ initial }: { initial: Partial<Filter> }) {
           <span>✓ Preview free</span>
           <span>✓ Phone and TV</span>
           <span>✓ Ready in minutes</span>
-          {PAYMENTS ? <span>₹{LINK_PRICE_INR} one time to remove the watermark</span> : null}
+          {PAYMENTS ? <span>{FREE_COUNT ? FREE_COUNT + " free designs · others " : ""}from ₹{PRICE_MIN}, one time, to remove the watermark</span> : null}
         </div>
       </section>
 

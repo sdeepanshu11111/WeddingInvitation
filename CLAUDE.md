@@ -185,13 +185,14 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   `public/ads.txt`. **Neither may reach `/e/`, `/render`, `/client-render` or `/admin`: don't move them to the root layout or
   link into `/e/` with `next/link`.**
 
-## Templates (17), in `lib/templates/`, registered in `index.ts`
+## Templates (23), in `lib/templates/`, registered in `index.ts`
 
 | id | Category | Community | Notes |
 |---|---|---|---|
 | royal-mandala | wedding | hindu | Devanagari header, mandala, filigree |
 | shaadi-utsav | multi-event, wedding | hindu | `events` field → one scene per function + overview; icon picked from the event name |
 | south-kalyanam | wedding | south-indian | language select (Tamil/Telugu/Malayalam/Kannada), Chi./Sow., Muhurtham range, compliments |
+| tamil-thirumanam, telugu-pelli, kerala-vivaham, kannada-maduve, hindi-shubh-vivah (hindu), punjabi-viah (sikh, hindu) | wedding | south-indian | 2026-11-14. Written IN Tamil / Telugu / Malayalam / Kannada / Hindi / Punjabi (title, honorifics, muhurtham, venue, invitation line: all editable fields). One shared builder `native-wedding.tsx` (`makeNativeWedding`); each file supplies font, words, palettes and ornaments (`backdrop`, `centerpiece`, `emblem`, drawn smaller via `k`). The native wording was not reviewed by a native speaker. A further language = one small file |
 | nikah-mubarak | wedding, reception | muslim | Bismillah + wedding dua in Amiri (RTL), mehrab arch photo, optional Walima |
 | anand-karaj | wedding | sikh | ੴ + sunburst, Gurmukhi, phulkari band, Milni/Laavan/Langar schedule, Fateh close |
 | sagai-rings | engagement | all | interlocking rings |
@@ -232,6 +233,17 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 - **Untouched sample date / venue**: Get link stores `project.sample` (`sampleKeys()`), and `inviteDetails(id, data, sample)` skips those
   fields, so guests get no calendar or directions button for a made-up wedding. Pass `project.sample` at every call.
 - **Empty photo / clip slots** carry class `ph`; `.guest-ui .ph` (globals.css) hides the "ADD A PHOTO" hint on a guest's invite.
+- **Per-design prices** (2026-11-14, owner: some designs free, paid ones ₹30-600): `lib/pricing.ts` is the one table (`priceOf(id)`,
+  0 = free; unlisted = `LINK_PRICE_INR`). Dependency-free, so the server reads it without the templates. The amount charged is
+  always the server's: `/api/pay/order` reads the link's `templateId` and charges `amountDue()` (price minus `Paid.covers`).
+  `paid.json` now holds `covers` (rupees) and `payments`; one WITHOUT `covers` predates this and counts as paid in full. Moving a
+  paid link to a dearer design brings the watermark back for the difference only. Free designs: no watermark, no pay UI, and
+  their guests see "Make your own invitation". The invite page gets `price` (rupees due) and `free` as props. Never print
+  `LINK_PRICE_INR` in UI: use `priceOf`, `PRICE_MIN`, `PRICE_RANGE`, `FREE_COUNT`. A new template needs a line in `pricing.ts`.
+- **`Stage` measures before paint** (`components/Frame.tsx`, layout effect, hidden until measured). It used to draw at scale 0.3
+  and jump a frame later: the flicker on every player mount.
+- **Template pages carry real text**: `lib/templateCopy.ts` (who it is for, what is on it, search phrases) is rendered on the
+  server on `/templates/<id>` with schema.org Product JSON-LD (name, price). A new template needs an entry; keep claims true.
 - **A link can be edited by its owner** (2026-11-14, owner's decision): Get link in the studio republishes to the link this browser
   made last when the couple's names give the same base (`lastOwned()` in `lib/owner.ts`, `POST /api/share {update, key}` →
   `updateLiveShare`, which overwrites project.json / share.json, sets `updatedAt` (versions the preview card) and keeps `paid.json`).
@@ -268,7 +280,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   No hand-drawn Khanda or Ganesha (too easy to get wrong); text glyphs like ੴ are used instead.
 
 ## Status & next ideas
-Done: 17 templates, categories + gallery, events field, both orientations, music, pacing, autosave, MP4 export (720p/1080p/4K, 24/30/60fps),
+Done: 23 templates, categories + gallery, events field, both orientations, music, pacing, autosave, MP4 export (720p/1080p/4K, 24/30/60fps),
 exports folder, CLI render, snapshot QA script, production build passes. Hosted on Vercel with live share links (`/e/<name>`),
 Razorpay paid links (watermark removal), Mixpanel analytics, share success screen (iPhone mockups of the guest journey,
 WhatsApp chat preview, Preview link / After payment toggle).

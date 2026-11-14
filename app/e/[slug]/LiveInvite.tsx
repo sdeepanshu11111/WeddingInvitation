@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Frame, Stage } from "@/components/Frame";
 import { SIZES, buildTimeline, inviteDate } from "@/lib/project";
 import type { Orientation, Project } from "@/lib/types";
-import { LEADS, LINK_PRICE_INR } from "@/lib/features";
+import { LEADS } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
 import { inviteId, startAnalytics, track } from "@/lib/analytics";
 import { BRAND } from "@/lib/brand";
@@ -150,7 +150,9 @@ export function Watermark() {
   );
 }
 
-export function LiveInvite({ project, title, name, watermark = false }: { project: Project; title: string; name?: string; watermark?: boolean }) {
+/** price: rupees still due to remove the watermark (the design's price, or the difference after an upgrade).
+    free: a free design (no watermark, nothing to pay): its guests get the "Make your own invitation" link. */
+export function LiveInvite({ project, title, name, watermark = false, price = 0, free = false }: { project: Project; title: string; name?: string; watermark?: boolean; price?: number; free?: boolean }) {
   const [phase, setPhase] = useState<Phase>("cover");
   const [o, setO] = useState<Orientation>(project.orientation);
   const [T, setT] = useState(0);
@@ -460,9 +462,9 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
       {phase === "ended" ? (
         <div className="end-shade">
           <GuestDetails project={project} title={title} name={name} onReplay={toggle} />
-          {/* Free links only (they already carry our name): guests planning a function of their own find the maker.
-              Paid links stay clean. The utm tags attribute the visit (lib/analytics keeps them); no invite details go along. */}
-          {marked && !ownerKey ? (
+          {/* Unpaid links (they already carry our name) and free designs: guests planning a function of their own
+              find the maker. Paid links stay clean. The utm tags attribute the visit (lib/analytics keeps them); no invite details go along. */}
+          {(marked || free) && !ownerKey ? (
             <a className="end-make" href={"/templates/" + project.templateId + "?utm_source=invite&utm_medium=guest_page"}>
               Make your own invitation →
             </a>
@@ -542,13 +544,13 @@ export function LiveInvite({ project, title, name, watermark = false }: { projec
       ) : null}
       {ownerKey && name ? (
         <>
-          <OwnerBar title={title} name={name} watermark={marked} onOpen={() => setSheet(true)} />
+          <OwnerBar title={title} name={name} watermark={marked} price={price} onOpen={() => setSheet(true)} />
           {sheet ? (
-            <OwnerSheet title={title} name={name} ownerKey={ownerKey} watermark={marked} onPaid={() => setPaidHere(true)} onClose={() => setSheet(false)} />
+            <OwnerSheet title={title} name={name} ownerKey={ownerKey} watermark={marked} price={price} onPaid={() => setPaidHere(true)} onClose={() => setSheet(false)} />
           ) : null}
         </>
       ) : (
-        <GuestBar title={title} name={name} watermark={marked} onPaid={() => setPaidHere(true)} />
+        <GuestBar title={title} name={name} watermark={marked} price={price} onPaid={() => setPaidHere(true)} />
       )}
     </main>
   );
@@ -564,7 +566,7 @@ function shareOnWhatsApp(title: string, name: string) {
 }
 
 /** The couple's bar at the bottom: the one next step (remove the watermark, or share) and WhatsApp. Opens the sheet. */
-function OwnerBar({ title, name, watermark, onOpen }: { title: string; name: string; watermark: boolean; onOpen: () => void }) {
+function OwnerBar({ title, name, watermark, price, onOpen }: { title: string; name: string; watermark: boolean; price: number; onOpen: () => void }) {
   return (
     <div className="guest-bar owner-bar">
       <button className="gb-pay ob-main" onClick={onOpen}>
@@ -575,7 +577,7 @@ function OwnerBar({ title, name, watermark, onOpen }: { title: string; name: str
           <b>{watermark ? "Remove the watermark" : "Your invite is live"}</b>
           <span>{watermark ? "Before you send it · one-time" : "Send it to your guests"}</span>
         </span>
-        <span className="btn primary sm">{watermark ? "₹" + LINK_PRICE_INR : "Share"}</span>
+        <span className="btn primary sm">{watermark ? "₹" + price : "Share"}</span>
       </button>
       <button className="gb-wa" onClick={() => shareOnWhatsApp(title, name)} aria-label="Send on WhatsApp" title="Send on WhatsApp">
         <WhatsAppIcon size={26} />
@@ -595,6 +597,7 @@ function OwnerSheet({
   name,
   ownerKey,
   watermark,
+  price,
   onPaid,
   onClose,
 }: {
@@ -602,6 +605,7 @@ function OwnerSheet({
   name: string;
   ownerKey: string;
   watermark: boolean;
+  price: number;
   onPaid: () => void;
   onClose: () => void;
 }) {
@@ -615,7 +619,7 @@ function OwnerSheet({
     setPay("paying");
     try {
       // Paid: the server has refreshed this link for everyone; here the watermark goes at once (no reload).
-      if ((await payToRemoveWatermark(name, title)) === "paid") {
+      if ((await payToRemoveWatermark(name, title, price)) === "paid") {
         onPaid();
         setPay("paid");
       } else setPay("idle");
@@ -651,7 +655,7 @@ function OwnerSheet({
               everyone.
             </p>
             <div className="os-price">
-              <b>₹{LINK_PRICE_INR}</b>
+              <b>₹{price}</b>
               <span>one-time · no subscription</span>
             </div>
             <ul className="os-ticks">
@@ -666,7 +670,7 @@ function OwnerSheet({
                 </>
               ) : (
                 <>
-                  <LockIcon /> Remove watermark · ₹{LINK_PRICE_INR}
+                  <LockIcon /> Remove watermark · ₹{price}
                 </>
               )}
             </button>
@@ -813,7 +817,7 @@ function OwnerContact({ name, ownerKey, watermark }: { name: string; ownerKey: s
  * Always-on actions at the bottom of the invite: share on WhatsApp, and on a free
  * (watermarked) link, remove the watermark. Paying refreshes this same link for everyone.
  */
-function GuestBar({ title, name, watermark, onPaid }: { title: string; name?: string; watermark: boolean; onPaid: () => void }) {
+function GuestBar({ title, name, watermark, price, onPaid }: { title: string; name?: string; watermark: boolean; price: number; onPaid: () => void }) {
   const [msg, setMsg] = useState<string | null>(null);
   const busy = msg === "Opening payment...";
   const whatsapp = () => {
@@ -827,7 +831,7 @@ function GuestBar({ title, name, watermark, onPaid }: { title: string; name?: st
     try {
       // Paid: the server has refreshed this link for every guest. Here the watermark goes at once, without a
       // reload that could still be answered by the old copy while the refresh spreads.
-      if ((await payToRemoveWatermark(name, title)) === "paid") onPaid();
+      if ((await payToRemoveWatermark(name, title, price)) === "paid") onPaid();
       setMsg(null);
     } catch (e: any) {
       setMsg(e?.message || String(e));
@@ -846,7 +850,7 @@ function GuestBar({ title, name, watermark, onPaid }: { title: string; name?: st
           </div>
           <button className="btn primary sm" onClick={pay} disabled={busy}>
             {busy ? <span className="spin" aria-hidden /> : null}
-            Pay ₹{LINK_PRICE_INR}
+            Pay ₹{price}
           </button>
         </div>
       ) : (

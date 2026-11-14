@@ -3,7 +3,8 @@ import { revalidatePath } from "next/cache";
 import { LEADS, PAYMENTS } from "@/lib/features";
 import { checkoutSignatureValid, confirmPayment } from "@/lib/server/razorpay";
 import { savePaymentLead } from "@/lib/server/leads";
-import { markPaid, orderBelongsTo } from "@/lib/server/share";
+import { priceOf } from "@/lib/pricing";
+import { getLiveProject, markPaid, orderBelongsTo } from "@/lib/server/share";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -22,7 +23,8 @@ export async function POST(req: Request) {
     // Inside the try: if storage cannot be asked right now, answer 502 so the browser retries (a 4xx is final).
     if (!(await orderBelongsTo(name, orderId))) return NextResponse.json({ error: "That payment is for a different link" }, { status: 400 });
     const p = await confirmPayment(orderId, paymentId);
-    await markPaid(name, { orderId, paymentId, amount: p.amount, paidAt: Date.now() });
+    const project = await getLiveProject(name);
+    await markPaid(name, { orderId, paymentId, amount: p.amount, paidAt: Date.now() }, priceOf(project?.templateId ?? ""));
     if (LEADS) await savePaymentLead(name, p).catch((e) => console.error("Lead not saved:", e?.message));
   } catch (e: any) {
     return NextResponse.json({ error: "Could not confirm the payment: " + (e?.message || e) }, { status: 502 });
