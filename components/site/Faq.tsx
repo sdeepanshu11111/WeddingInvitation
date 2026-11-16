@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LEADS, PAYMENTS, VIDEO_EXPORT } from "@/lib/features";
-import { FREE_COUNT, PRICE_RANGE } from "@/lib/pricing";
+import { FREE_COUNT, PACK_COVERS, PACK_PRICE_INR, PRICE_RANGE } from "@/lib/pricing";
 
 export type QA = { q: string; a: ReactNode };
 
@@ -39,6 +39,17 @@ export function faqItems(): QA[] {
         <>
           A one-time payment per invitation ({PRICE_RANGE}, shown on each design{FREE_COUNT ? "; " + FREE_COUNT + " designs are free and have no watermark" : ""})
           removes the watermark from that link, instantly, at the same address your guests already have. If you pay and the watermark stays, we fix it or refund you. Details in our <Link href="/refunds">refund policy</Link>.
+        </>
+      ),
+    });
+  if (PAYMENTS)
+    items.push({
+      q: "We have several functions. Do we pay for each invite?",
+      a: (
+        <>
+          You can, or take the Wedding pack: ₹{PACK_PRICE_INR} once, from any of your invites, and every invite you make for the same couple on that
+          phone has no watermark: engagement, haldi, mehendi, sangeet, wedding and reception, each on a link of its own. Each invite is covered up to
+          ₹{PACK_COVERS}, so Shaadi Utsav and Cinematic Reel need only the difference.
         </>
       ),
     });

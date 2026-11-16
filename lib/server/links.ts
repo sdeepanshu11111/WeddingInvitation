@@ -26,7 +26,7 @@ import { getLiveProject, getShare, listShareNames, paidRecord } from "./share";
  * `$min: paid_at` keeps the first payment's time; normalize() supplies the defaults when reading.
  * ===================================================================== */
 
-export type LinkPayment = { payment_id: string; order_id: string; amount_inr: number; at: string; via: "checkout" | "webhook" | "import" };
+export type LinkPayment = { payment_id: string; order_id: string; amount_inr: number; at: string; via: "checkout" | "webhook" | "import" | "pack" }; // pack: cleared by the couple's wedding pack (no money of its own)
 /** A checkout that was opened. device: the buyer's anonymous Mixpanel id, so the server can attribute `payment_confirmed`. */
 export type LinkCheckout = { order_id: string; amount_inr: number; at: string; device: string | null };
 
@@ -223,7 +223,7 @@ export async function checkoutDevice(link: string, orderId: string): Promise<str
  * A confirmed payment (from the checkout callback or the webhook; both report every payment). Idempotent by
  * payment id. paid_inr is the total paid on the link and paid_at the first payment's time.
  */
-export async function recordPayment(link: string, p: { paymentId: string; orderId: string; amountInr: number; via: "checkout" | "webhook" }) {
+export async function recordPayment(link: string, p: { paymentId: string; orderId: string; amountInr: number; via: "checkout" | "webhook" | "pack" }) {
   const payment_id = p.paymentId || p.orderId;
   if (LEADS === "mongo") {
     const c = await col();

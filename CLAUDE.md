@@ -69,7 +69,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   in the middle band of the screen. `/templates` is the browser (`?category=`, Refine sidebar, sticky chips on phones); `/templates/<id>`
   has a big player with the visitor's names, palettes, and "Customize this design" = `/create?template=&palette=&o=`. Pinned bottom CTA on
   phones: `MobileCta` (`spacer={false}` when rendered mid-page). Free guest invites show "Make your own invitation" on the end screen
-  (`/templates/<id>?utm_source=invite&utm_medium=guest_page`); paid ones don't. Shared parts: `components/site/` (SiteHeader, SiteFooter, TemplateCard, Faq with
+  (`/templates/<id>?utm_source=invite&utm_medium=guest_page`); paid ones show a small "Made with FutureProof · Make yours" line there instead (`end-credit`, `utm_medium=guest_credit`, owner 2026-11-17; never on the invite itself, Terms section 6 says so). Shared parts: `components/site/` (SiteHeader, SiteFooter, TemplateCard, Faq with
   `faqItems()` that follows the feature flags, Landing) and `components/LivePreview.tsx` (demo timeline, loop clock, `LazyPreview` mounts
   only near the viewport). Styles: `app/site.css`; the studio restyle is `app/studio.css`, loaded after `globals.css`. The guest page wraps
   itself in `.guest-ui`, which restores the old dark/gold tokens, because it frames the couple's invitation, not our brand. Public pages
@@ -283,6 +283,15 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   (`components/LanguagePicker.tsx`; `template_selected` source `language`). Price = the design's (`priceOf` falls back to `baseOf`);
   `inviteDetails` and `MAIN` use `baseOf`. A new version language = a block in `languages.tsx` + `LANGUAGES` + a region.
   `scripts/snapshot.mjs --only=` takes lists and `*` patterns (`--only=*-tamil`).
+- **Wedding pack** (owner, 2026-11-17: ₹199 for all of a couple's functions; `PACK_PRICE_INR`, `PACK_COVERS` = 149 in `lib/pricing.ts`).
+  Offered under "Remove watermark" in the owner sheet when the design is one it covers (`packCovers`). `POST /api/pay/order {pack: true}`
+  charges the pack price and records `pack: true` on the order (Razorpay `notes.kind`); verify and webhook then `markPack()` →
+  `shares/<name>/pack.json` (markPaid gets price MAX so no false REFUND NEEDED). The browser remembers which link holds the couple's pack
+  (`fp.packs` by `coupleBase`, `lib/pack.ts`) and clears the couple's other links via `POST /api/pay/pack {from, fromKey, to[]}`: both
+  owner keys required and the same `coupleBase` (link name minus number and function suffix, `lib/slug.ts`), so it never works for
+  another couple or device. `coverByPack()` writes paid.json with `covers` 149 and `pack`; no money, `recordPayment(via "pack", ₹0)`.
+  Cleared: at purchase (all owned links of the couple), at Get link for a new one, and on the owner's visit to a still-marked link.
+  Terms section 6, Refunds, FAQ and the home pricing card describe it; change them together.
 - **Per-design prices** (2026-11-14, owner: some designs free, paid ones ₹29-600; the floor went from ₹30 to ₹29 on 2026-11-16 when
   Haldi, Mehendi and Polaroid dropped from ₹49 to ₹29): `lib/pricing.ts` is the one table (`priceOf(id)`,
   0 = free; unlisted = `LINK_PRICE_INR`). Dependency-free, so the server reads it without the templates. The amount charged is

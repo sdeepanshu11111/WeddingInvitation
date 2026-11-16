@@ -27,12 +27,13 @@ function loadCheckout(): Promise<void> {
  * Opens Checkout for removing the watermark from /e/<name>.
  * Resolves "paid" once the server has confirmed the payment, "cancelled" if the buyer closed Checkout.
  */
-export async function payToRemoveWatermark(name: string, title: string, priceInr: number): Promise<"paid" | "cancelled"> {
+export async function payToRemoveWatermark(name: string, title: string, priceInr: number, pack = false): Promise<"paid" | "cancelled"> {
   const invite_id = inviteId(name);
   // priceInr is what the page showed; the amount actually charged is the server's (app/api/pay/order).
+  // pack: the wedding pack (lib/pricing.ts): this invite now, the couple's others from it (lib/pack.ts).
   track("payment_started", { invite_id, amount_inr: priceInr });
   try {
-    const r = await checkout(name, title, invite_id);
+    const r = await checkout(name, title, invite_id, pack);
     if (r === "cancelled") track("payment_cancelled", { invite_id });
     return r;
   } catch (e) {
@@ -41,13 +42,15 @@ export async function payToRemoveWatermark(name: string, title: string, priceInr
   }
 }
 
-async function checkout(name: string, title: string, invite_id: string): Promise<"paid" | "cancelled"> {
+async function checkout(name: string, title: string, invite_id: string, pack: boolean): Promise<"paid" | "cancelled"> {
   // device: this browser's anonymous analytics id, so the server's own "payment_confirmed" lands on the same visitor
   // even if this tab is gone by then (a UPI app switch can close it). Null when analytics is off or blocked.
   const device = await deviceId();
-  const res = await fetch("/api/pay/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, device }) });
+  const res = await fetch("/api/pay/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, device, pack }) });
   const order = await res.json();
   if (!res.ok) throw new Error(order.error || "Could not start the payment");
+  // Nothing due: this link is clean already. For a pack that means nothing was bought, so say so instead of "paid".
+  if (order.paid && pack) throw new Error("This invite is already paid. Get the pack from one of your other invites.");
   if (order.paid) return "paid";
   await loadCheckout();
   return new Promise((resolve, reject) => {
@@ -57,7 +60,7 @@ async function checkout(name: string, title: string, invite_id: string): Promise
       amount: order.amount,
       currency: order.currency,
       name: BRAND,
-      description: "Premium invite link (no watermark): " + title,
+      description: (pack ? "Wedding pack (every invite, no watermark): " : "Premium invite link (no watermark): ") + title,
       theme: { color: "#d9b77c" },
       // What they gave in the Share step on this device: less to type.
       prefill: { contact: savedPhone() || undefined, email: savedEmail() || undefined },

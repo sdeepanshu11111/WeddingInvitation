@@ -302,13 +302,57 @@ export async function updateLiveShare(name: string, key: unknown, project: Proje
 /** paymentId / orderId / amount (paise) / paidAt: the first payment. covers: rupees paid on this link in all
     (payments lists every confirmed payment id). A record without `covers` is from before per-design prices
     (2026-11-14) and counts as paid in full, whatever its design costs today. */
-export type Paid = { orderId: string; paymentId: string; amount: number; paidAt: number; covers?: number; payments?: string[] };
+export type Paid = { orderId: string; paymentId: string; amount: number; paidAt: number; covers?: number; payments?: string[]; pack?: string };
 const ORDER_ID = /^order_\w{6,40}$/;
 
-/** Remembers which share a Razorpay order was made for, so one payment unlocks exactly one link. */
-export async function recordOrder(name: string, orderId: string) {
+/** Remembers which share a Razorpay order was made for, so one payment unlocks exactly one link. `pack`: the order is
+    for the wedding pack (lib/pricing.ts), so its payment also makes this link the couple's pack (markPack). */
+export async function recordOrder(name: string, orderId: string, pack = false) {
   if (!ID.test(name) || !ORDER_ID.test(orderId)) throw new Error("Bad order");
-  await store.writeJSON(name + "/order-" + orderId + ".json", { orderId, createdAt: Date.now() });
+  await store.writeJSON(name + "/order-" + orderId + ".json", { orderId, createdAt: Date.now(), ...(pack ? { pack: true } : null) });
+}
+
+/** Whether an order recorded on this link was for the wedding pack. */
+export async function orderIsPack(name: string, orderId: string) {
+  if (!ID.test(name) || !ORDER_ID.test(orderId)) return false;
+  return (await store.readJSON<{ pack?: boolean }>(name + "/order-" + orderId + ".json"))?.pack === true;
+}
+
+/* ---- Wedding pack: one link holds it (pack.json, written once its payment is confirmed); every other link of the
+   same couple made on the same device is cleared from it (app/api/pay/pack, coverByPack). ---- */
+
+/** Makes this link the holder of a paid wedding pack. Idempotent (verify and webhook both call it). */
+export async function markPack(name: string, p: { orderId: string; paymentId: string }) {
+  try {
+    await store.writeJSON(name + "/pack.json", { ...p, paidAt: Date.now() });
+  } catch (e) {
+    if (!(await store.exists(name + "/pack.json"))) throw e;
+  }
+}
+
+/** Asked from the Blob API like isPaid: the pack is checked right after it was bought. */
+export async function hasPack(name: string): Promise<boolean> {
+  return ID.test(name) && store.exists(name + "/pack.json");
+}
+
+/**
+ * Clears a link from the couple's pack: paid.json with `covers` (the pack covers each invite up to that) and no money
+ * of its own. A link already covered as much or more (paid itself, or before covers existed) is left alone.
+ * Returns true when the link changed.
+ */
+export async function coverByPack(name: string, packLink: string, covers: number): Promise<boolean> {
+  const id = "pack:" + packLink;
+  const rec: Paid = { orderId: "pack", paymentId: id, amount: 0, paidAt: Date.now(), covers, payments: [id], pack: packLink };
+  try {
+    await store.writeJSON(name + "/paid.json", rec);
+    return true;
+  } catch (e) {
+    if (!(await store.exists(name + "/paid.json"))) throw e;
+  }
+  const first = await store.readJSON<Paid>(name + "/paid.json");
+  if (!first || typeof first.covers !== "number" || first.covers >= covers) return false;
+  await store.writeJSON(name + "/paid.json", { ...first, covers, payments: [...(first.payments ?? [first.paymentId]), id], pack: packLink }, true);
+  return true;
 }
 
 export async function orderBelongsTo(name: string, orderId: string) {

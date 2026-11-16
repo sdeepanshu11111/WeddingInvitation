@@ -9,7 +9,7 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { BRAND } from "@/lib/brand";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
 import { PAYMENTS } from "@/lib/features";
-import { FREE_COUNT, PRICE_MIN, PRICE_RANGE } from "@/lib/pricing";
+import { FREE_COUNT, PACK_PRICE_INR, PRICE_MIN, PRICE_RANGE } from "@/lib/pricing";
 import { SITE_URL } from "@/lib/site";
 import { pageMeta } from "@/lib/seo";
 import { DESIGNS } from "@/lib/templates";
@@ -293,7 +293,28 @@ export default async function Home() {
               </div>
             </div>
           ) : null}
+          {PAYMENTS ? (
+            <div className="price-card">
+              <span className="kicker">Wedding pack</span>
+              <div className="price-num">₹{PACK_PRICE_INR}</div>
+              <p>One payment for every function&apos;s invite: engagement, haldi, mehendi, sangeet, wedding and reception.</p>
+              <ul>
+                <li>No watermark on any of them</li>
+                <li>Each function on a link of its own</li>
+                <li>Your names carry over to every invite</li>
+                <li>Buy it from any of your invites</li>
+              </ul>
+              <Link href="/templates" className="ghost-btn block">
+                Start with your wedding invite
+              </Link>
+            </div>
+          ) : null}
         </div>
+        {PAYMENTS ? (
+          <p className="price-note">
+            The pack covers the invites you make on the same phone for the same couple. Shaadi Utsav and Cinematic Reel need only the difference.
+          </p>
+        ) : null}
       </section>
 
       {/* ---------- FAQ ---------- */}

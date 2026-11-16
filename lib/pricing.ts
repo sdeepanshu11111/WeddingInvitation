@@ -61,3 +61,12 @@ export const PRICE_MAX = paid.length ? Math.max(...paid) : LINK_PRICE_INR;
 export const FREE_COUNT = Object.keys(PRICES).filter((id) => priceOf(id) === 0).length;
 /** "₹29" or "₹29 to ₹399": the paid range in words, for copy and the policy pages. */
 export const PRICE_RANGE = PRICE_MIN === PRICE_MAX ? "₹" + PRICE_MIN : "₹" + PRICE_MIN + " to ₹" + PRICE_MAX;
+
+/* ---- Wedding pack (owner, 2026-11-17): one payment for every invite of one couple's wedding. ----
+   Bought on any of their invites (app/api/pay/order with pack: true); it then clears every invite this same phone
+   makes for the same couple's names (app/api/pay/pack, both links' owner keys required). Each invite in the pack is
+   covered up to PACK_COVERS: every design but Shaadi Utsav and Cinematic Reel, which then need only the difference. */
+export const PACK_PRICE_INR = 199;
+export const PACK_COVERS = 149;
+/** True when the pack can be offered on an invite of this price: payments on, and a design the pack covers in full. */
+export const packCovers = (price: number) => PAYMENTS && price > 0 && price <= PACK_COVERS;

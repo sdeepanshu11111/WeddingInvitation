@@ -30,8 +30,9 @@ export type RzpPayment = { id: string; order_id: string; amount: number; currenc
 
 /** An order for removing the watermark from one share, for the amount still due on it (paise; the design's price,
     lib/pricing.ts). notes.share ties the money to that link. */
-export function createOrder(name: string, amountPaise: number) {
-  return api<RzpOrder>("POST", "/orders", { amount: amountPaise, currency: "INR", receipt: name.slice(0, 40), notes: { share: name } });
+export function createOrder(name: string, amountPaise: number, pack = false) {
+  // notes.kind shows a wedding pack in the Razorpay Dashboard; our own order record is what the code trusts.
+  return api<RzpOrder>("POST", "/orders", { amount: amountPaise, currency: "INR", receipt: name.slice(0, 40), notes: { share: name, kind: pack ? "pack" : "link" } });
 }
 
 /**

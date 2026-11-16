@@ -5,6 +5,8 @@ import { SIZES, buildTimeline, inviteDate } from "@/lib/project";
 import type { Orientation, Project } from "@/lib/types";
 import { LEADS } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
+import { claimPack, packFor, rememberPack } from "@/lib/pack";
+import { PACK_PRICE_INR, packCovers, priceOf } from "@/lib/pricing";
 import { inviteId, startAnalytics, track, isInternal } from "@/lib/analytics";
 import { BRAND } from "@/lib/brand";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
@@ -182,6 +184,13 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
   const [welcome, setWelcome] = useState(false); // they just came from "Get link"
   const [sheet, setSheet] = useState(false);
   const sheetShown = useRef(false);
+
+  // The couple's wedding pack (lib/pack.ts) covers this invite but it still has the watermark (made after the pack, or
+  // the clearing failed last time): clear it now, from this phone, which holds both owner keys.
+  useEffect(() => {
+    if (!name || !watermark || !ownerKeyFor(name) || !packFor(name)) return;
+    claimPack(name, [name]).then((c) => c.includes(name) && setPaidHere(true));
+  }, [name, watermark]);
 
   useEffect(() => {
     const key = ownerKeyFor(name);
@@ -482,6 +491,14 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
               Make your own invitation →
             </a>
           ) : null}
+          {/* Paid links (owner, 2026-11-17): one quiet credit line after the invite has ended, never on the invite itself
+              (that is what the payment removes; the Terms say so). Shown to the couple too, so their page is exactly
+              what guests see. Every invite reaches hundreds of guests, some planning their own wedding. */}
+          {!marked && !free ? (
+            <a className="end-credit" href={"/templates/" + project.templateId + "?utm_source=invite&utm_medium=guest_credit"} onClick={() => track("guest_action_clicked", { action: "make_own" })}>
+              Made with {BRAND} · Make yours
+            </a>
+          ) : null}
         </div>
       ) : null}
 
@@ -608,7 +625,7 @@ function OwnerBar({ title, name, watermark, price, onOpen }: { title: string; na
   );
 }
 
-type PayState = "idle" | "paying" | "paid" | { error: string };
+type PayState = "idle" | "paying" | "paying-pack" | "paid" | { error: string };
 
 /**
  * The couple's sheet: remove the watermark (free links), share the link, and optionally leave a WhatsApp number or
@@ -652,6 +669,26 @@ function OwnerSheet({
     }
   };
 
+  // Wedding pack (lib/pricing.ts): offered when the pack covers this design and the couple has none on this phone yet.
+  const [packed, setPacked] = useState(false); // a pack covers this couple (bought now or before)
+  const [cleared, setCleared] = useState(0); // their other invites the pack just cleared
+  useEffect(() => setPacked(!!packFor(name)), [name]);
+  const offerPack = packCovers(priceOf(project.templateId)) && !packed;
+  const buyPack = async () => {
+    setPay("paying-pack");
+    try {
+      if ((await payToRemoveWatermark(name, title, PACK_PRICE_INR, true)) === "paid") {
+        rememberPack(name);
+        setPacked(true);
+        onPaid();
+        setPay("paid");
+        setCleared((await claimPack(name)).length); // the invites they already made for this couple on this phone
+      } else setPay("idle");
+    } catch (e: any) {
+      setPay({ error: e?.message || String(e) });
+    }
+  };
+
   const copy = async () => {
     track("invite_shared", { channel: "copy", invite_id: inviteId(name) });
     try {
@@ -687,7 +724,7 @@ function OwnerSheet({
               <li>Clean for every guest</li>
               <li>Done in seconds</li>
             </ul>
-            <button className="btn primary os-cta" onClick={removeWatermark} disabled={pay === "paying"}>
+            <button className="btn primary os-cta" onClick={removeWatermark} disabled={pay === "paying" || pay === "paying-pack"}>
               {pay === "paying" ? (
                 <>
                   <span className="spin" aria-hidden /> Waiting for payment…
@@ -698,14 +735,49 @@ function OwnerSheet({
                 </>
               )}
             </button>
+            {offerPack ? (
+              <div className="os-pack">
+                <div className="os-or">
+                  <span>or, for all your functions</span>
+                </div>
+                <div className="os-pack-head">
+                  <b>Wedding pack</b>
+                  <span>₹{PACK_PRICE_INR} once</span>
+                </div>
+                <p>
+                  This invite and every other one you make for {title}: engagement, haldi, mehendi, sangeet, wedding and reception. No
+                  watermark on any of them.
+                </p>
+                <button className="btn os-pack-cta" onClick={buyPack} disabled={pay === "paying" || pay === "paying-pack"}>
+                  {pay === "paying-pack" ? (
+                    <>
+                      <span className="spin" aria-hidden /> Waiting for payment…
+                    </>
+                  ) : (
+                    <>Get the wedding pack · ₹{PACK_PRICE_INR}</>
+                  )}
+                </button>
+                <small>For invites made on this phone with the same names. Shaadi Utsav and Cinematic Reel need only the difference.</small>
+              </div>
+            ) : null}
             {typeof pay === "object" ? <p className="os-err">{pay.error}</p> : null}
             <TrustRow />
             <AgreeNote paying />
           </section>
         ) : (
           <section className="os-done">
-            <h3>{pay === "paid" ? "Watermark removed 🎉" : "Your invite is ready to send"}</h3>
-            <p>{pay === "paid" ? "Every guest now sees the clean invite, on this same link." : "Share this link with your family and guests."}</p>
+            <h3>{pay === "paid" ? (packed ? "Wedding pack active 🎉" : "Watermark removed 🎉") : "Your invite is ready to send"}</h3>
+            <p>
+              {pay === "paid"
+                ? packed
+                  ? "This invite is clean" +
+                    (cleared ? ", and " + cleared + " more of your invites too" : "") +
+                    ". Every invite you make for " +
+                    title +
+                    " on this phone will have no watermark."
+                  : "Every guest now sees the clean invite, on this same link."
+                : "Share this link with your family and guests."}
+            </p>
           </section>
         )}
 
@@ -734,7 +806,7 @@ function OwnerSheet({
           </div>
         </section>
 
-        {!watermark ? <OwnerNext project={project} /> : null}
+        {!watermark ? <OwnerNext project={project} packed={packed} /> : null}
         {LEADS && !watermark ? <OwnerReview name={name} ownerKey={ownerKey} title={title} /> : null}
         {LEADS ? <OwnerContact name={name} ownerKey={ownerKey} watermark={watermark} /> : null}
       </div>
@@ -747,7 +819,7 @@ function OwnerSheet({
  * language and named for their state's ritual. Opens the studio on that design with their names already in (the
  * draft on this device); Get link then gives it its own link, never replacing this one.
  */
-function OwnerNext({ project }: { project: Project }) {
+function OwnerNext({ project, packed }: { project: Project; packed: boolean }) {
   const list = useMemo(() => nextInvites(project.templateId, project.data), [project.templateId, project.data]);
   if (!list.length) return null;
   return (
@@ -764,7 +836,7 @@ function OwnerNext({ project }: { project: Project }) {
           >
             <span className="os-next-thumb">{x.template.thumb(x.template.palettes[0])}</span>
             <b>{x.label}</b>
-            <small>{x.price ? "₹" + x.price : "Free"}</small>
+            <small>{!x.price ? "Free" : packed && packCovers(x.price) ? "In your pack" : "₹" + x.price}</small>
           </a>
         ))}
       </div>

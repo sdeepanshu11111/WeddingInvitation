@@ -39,6 +39,9 @@ export function noteFunction(name: string, fn: string) {
   } catch {}
 }
 
+/** Every link this device made (for the wedding pack: its other invites for the same couple, lib/pack.ts). */
+export const ownedNames = () => Object.keys(read());
+
 /** The owner key for this link, if it was made on this device. */
 export const ownerKeyFor = (name?: string) => (name ? read()[name]?.key ?? null : null);
 

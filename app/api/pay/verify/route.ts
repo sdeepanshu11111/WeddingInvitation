@@ -5,7 +5,7 @@ import { checkoutSignatureValid, confirmPayment } from "@/lib/server/razorpay";
 import { savePaymentLead } from "@/lib/server/leads";
 import { afterPayment } from "@/lib/server/afterPayment";
 import { priceOf } from "@/lib/pricing";
-import { getLiveProject, markPaid, orderBelongsTo } from "@/lib/server/share";
+import { getLiveProject, markPack, markPaid, orderBelongsTo, orderIsPack } from "@/lib/server/share";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -25,7 +25,10 @@ export async function POST(req: Request) {
     if (!(await orderBelongsTo(name, orderId))) return NextResponse.json({ error: "That payment is for a different link" }, { status: 400 });
     const p = await confirmPayment(orderId, paymentId);
     const project = await getLiveProject(name);
-    const fresh = await markPaid(name, { orderId, paymentId, amount: p.amount, paidAt: Date.now() }, priceOf(project?.templateId ?? ""));
+    // A wedding pack pays more than this one design costs on purpose: no "REFUND NEEDED" for it (markPaid).
+    const pack = await orderIsPack(name, orderId);
+    const fresh = await markPaid(name, { orderId, paymentId, amount: p.amount, paidAt: Date.now() }, pack ? Number.MAX_SAFE_INTEGER : priceOf(project?.templateId ?? ""));
+    if (pack) await markPack(name, { orderId, paymentId }); // this link now holds the couple's pack (app/api/pay/pack)
     if (LEADS) await savePaymentLead(name, p).catch((e) => console.error("Lead not saved:", e?.message));
     await afterPayment(name, { paymentId, orderId, amountInr: Math.round(p.amount / 100), templateId: project?.templateId ?? "", via: "checkout" }, fresh);
   } catch (e: any) {

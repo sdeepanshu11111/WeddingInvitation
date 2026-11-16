@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 import { pageMeta } from "@/lib/seo";
-import { FREE_COUNT, PRICE_MIN, PRICE_RANGE } from "@/lib/pricing";
+import { FREE_COUNT, PACK_COVERS, PACK_PRICE_INR, PRICE_MIN, PRICE_RANGE } from "@/lib/pricing";
 import { LEGAL, OPERATOR } from "@/lib/legal";
 
 export const metadata: Metadata = pageMeta("Terms of Service · " + BRAND, `The terms for using ${BRAND} invitation links and the Premium plan.`, "/terms");
@@ -84,7 +84,18 @@ export default function Terms() {
           card or bank details.
         </li>
         <li>
-          The watermark is removed from that link as soon as the payment is confirmed, usually within seconds. One payment applies to one link only.
+          The watermark is removed from that link as soon as the payment is confirmed, usually within seconds. One payment applies to one link only,
+          except the Wedding pack below.
+        </li>
+        <li>
+          <b>Wedding pack</b> (₹{PACK_PRICE_INR}, once): bought from one of your invitation links, it removes the watermark from that link and from every
+          other invitation link made on the same device for the same couple&rsquo;s names (for example their engagement, haldi, mehendi, sangeet and
+          reception invitations), including ones made later. Each link is covered up to ₹{PACK_COVERS}; a design that costs more needs only the
+          difference. It does not carry over to another device or to another couple.
+        </li>
+        <li>
+          After a paid invitation has finished playing, its last screen (with the date, directions and RSVP buttons) shows a small &ldquo;Made with{" "}
+          {BRAND}&rdquo; link. The invitation itself carries no watermark or branding.
         </li>
         <li>
           Cancellations and refunds are covered by our <Link href="/refunds">Refund &amp; Cancellation Policy</Link>.

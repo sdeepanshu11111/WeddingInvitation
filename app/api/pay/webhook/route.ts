@@ -5,7 +5,7 @@ import { afterPayment } from "@/lib/server/afterPayment";
 import { savePaymentLead } from "@/lib/server/leads";
 import { webhookSignatureValid } from "@/lib/server/razorpay";
 import { priceOf } from "@/lib/pricing";
-import { getLiveProject, markPaid, orderBelongsTo } from "@/lib/server/share";
+import { getLiveProject, markPack, markPaid, orderBelongsTo, orderIsPack } from "@/lib/server/share";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -28,7 +28,9 @@ export async function POST(req: Request) {
   const name = order?.notes?.share;
   if (typeof name !== "string" || !(await orderBelongsTo(name, order.id))) return NextResponse.json({ ignored: "unknown order" });
   const project = await getLiveProject(name);
-  const fresh = await markPaid(name, { orderId: order.id, paymentId: payment?.id ?? "", amount: order.amount_paid ?? 0, paidAt: Date.now() }, priceOf(project?.templateId ?? ""));
+  const pack = await orderIsPack(name, order.id);
+  const fresh = await markPaid(name, { orderId: order.id, paymentId: payment?.id ?? "", amount: order.amount_paid ?? 0, paidAt: Date.now() }, pack ? Number.MAX_SAFE_INTEGER : priceOf(project?.templateId ?? ""));
+  if (pack) await markPack(name, { orderId: order.id, paymentId: payment?.id ?? "" });
   if (LEADS) await savePaymentLead(name, { contact: payment?.contact, email: payment?.email, amount: order.amount_paid ?? 0 }).catch((e) => console.error("Lead not saved:", e?.message));
   await afterPayment(name, { paymentId: payment?.id ?? "", orderId: order.id, amountInr: Math.round((order.amount_paid ?? 0) / 100), templateId: project?.templateId ?? "", via: "webhook" }, fresh);
   revalidatePath("/e/" + name);

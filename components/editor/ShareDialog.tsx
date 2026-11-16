@@ -9,6 +9,7 @@ import { priceOf } from "@/lib/pricing";
 import { MEDIA_TYPES, allSrcs, mapDataUrls } from "@/lib/media";
 import { sampleKeys, withoutSamplePhones } from "@/lib/inviteDetails";
 import { noteFunction, ownedFor, rememberOwned } from "@/lib/owner";
+import { claimPack, packFor } from "@/lib/pack";
 import { slugify } from "@/lib/slug";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { Confetti, DrawnCheck } from "@/components/Celebrate";
@@ -149,6 +150,8 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
       if (!res.ok || !r.token) throw new Error(r.error || "Could not create the link");
       if (r.ownerKey) rememberOwned(r.token, r.ownerKey, fn);
       else if (same) noteFunction(same.name, fn); // an update: note its function now (older links had none)
+      // A new invite for a couple whose wedding pack is on this phone (lib/pack.ts): clear it before they first see it.
+      if (r.ownerKey && packFor(r.token)) await claimPack(r.token, [r.token]);
       if (r.updated) {
         track("invite_link_updated", { invite_id: inviteId(r.token), template_id: project.templateId });
         setLeft(REDIRECT_S);
