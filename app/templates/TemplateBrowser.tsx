@@ -8,6 +8,7 @@ import { PAYMENTS } from "@/lib/features";
 import { FREE_COUNT, PRICE_MIN } from "@/lib/pricing";
 import { forRegion, regionById } from "@/lib/regions";
 import { DESIGNS, TEMPLATES } from "@/lib/templates";
+import { ritualList } from "@/lib/templates/languages";
 import type { Orientation } from "@/lib/types";
 
 /** /templates: breadcrumb + title for the chosen function or state, the state picker, a "Refine" sidebar (chips on
@@ -66,7 +67,7 @@ export function TemplateBrowser({ initial, initialState = null }: { initial: Par
           {cat
             ? cat.blurb + ". Tap a design to watch it with your names."
             : state
-              ? "Designs written in " + state.language + " for weddings in " + state.label + ", then designs for every function. Tap a design to watch it with your names."
+              ? state.language + " invitations for " + ritualList(state.designs) + ", written in " + state.language + " for families in " + state.label + ". Tap a design to watch it with your names."
               : "Animated invitations for the wedding and every function around it. Tap a design to watch it with your names."}
         </p>
         <div className="facts">

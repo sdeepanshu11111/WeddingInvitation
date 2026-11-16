@@ -21,7 +21,11 @@ const when = (iso: string) =>
 function message(l: Lead, url: string) {
   const invite = l.title ? `invitation "${l.title}"` : "invitation";
   if (l.paid_inr != null)
-    return `Hi! This is ${BRAND} 🙏 Thank you for going Premium. Your ${invite} is live without the watermark: ${url}\n\nIf anything isn't working, just reply here.`;
+    return (
+      `Hi! This is ${BRAND} 🙏 Thank you for going Premium. Your ${invite} is live without the watermark: ${url}\n\n` +
+      `Inviting for your other functions too (Haldi, Mehendi, Sangeet, Reception)? Open your invite on the phone you made it on and tap Share: ` +
+      `each one is ready in a minute with your names already in, on a link of its own.\n\nIf anything isn't working, just reply here.`
+    );
   if (!PAYMENTS) return `Hi! This is ${BRAND} 🙏 Thanks for making your ${invite}: ${url}\n\nNeed any help with it? Just reply here.`;
   return (
     `Hi! This is ${BRAND} 🙏 Thanks for making your ${invite}: ${url}\n\n` +

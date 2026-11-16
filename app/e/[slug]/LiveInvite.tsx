@@ -13,6 +13,7 @@ import { AgreeNote, LockIcon, TrustRow } from "@/components/PayTrust";
 import { normalizeEmail, normalizePhone, rememberContact, savedEmail, savedPhone, typingPhone } from "@/lib/contact";
 import { ownerKeyFor, takeJustCreated } from "@/lib/owner";
 import { countdownText, daysUntil, inviteDetails } from "@/lib/inviteDetails";
+import { nextInvites } from "@/lib/nextInvites";
 import { GuestDetails } from "./GuestDetails";
 
 /* The guest's view of a live share: the same <Frame/> as the editor, driven by
@@ -567,7 +568,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
             }}
           />
           {sheet ? (
-            <OwnerSheet title={title} name={name} ownerKey={ownerKey} watermark={marked} price={price} onPaid={() => setPaidHere(true)} onClose={() => setSheet(false)} />
+            <OwnerSheet title={title} name={name} project={project} ownerKey={ownerKey} watermark={marked} price={price} onPaid={() => setPaidHere(true)} onClose={() => setSheet(false)} />
           ) : null}
         </>
       ) : (
@@ -616,6 +617,7 @@ type PayState = "idle" | "paying" | "paid" | { error: string };
 function OwnerSheet({
   title,
   name,
+  project,
   ownerKey,
   watermark,
   price,
@@ -624,6 +626,7 @@ function OwnerSheet({
 }: {
   title: string;
   name: string;
+  project: Project;
   ownerKey: string;
   watermark: boolean;
   price: number;
@@ -731,10 +734,41 @@ function OwnerSheet({
           </div>
         </section>
 
+        {!watermark ? <OwnerNext project={project} /> : null}
         {LEADS && !watermark ? <OwnerReview name={name} ownerKey={ownerKey} title={title} /> : null}
         {LEADS ? <OwnerContact name={name} ownerKey={ownerKey} watermark={watermark} /> : null}
       </div>
     </div>
+  );
+}
+
+/**
+ * Their other functions (lib/nextInvites.ts), once this invite is done: each is a purchase of its own, in their
+ * language and named for their state's ritual. Opens the studio on that design with their names already in (the
+ * draft on this device); Get link then gives it its own link, never replacing this one.
+ */
+function OwnerNext({ project }: { project: Project }) {
+  const list = useMemo(() => nextInvites(project.templateId, project.data), [project.templateId, project.data]);
+  if (!list.length) return null;
+  return (
+    <section className="os-next">
+      <span className="os-label">Inviting for your other functions too?</span>
+      <p className="os-next-sub">Same names, a link of its own for each. Ready in a minute.</p>
+      <div className="os-next-row">
+        {list.map((x) => (
+          <a
+            key={x.id}
+            className="os-next-card"
+            href={"/create?template=" + x.id}
+            onClick={() => track("next_invite_clicked", { template_id: x.id, from_template_id: project.templateId })}
+          >
+            <span className="os-next-thumb">{x.template.thumb(x.template.palettes[0])}</span>
+            <b>{x.label}</b>
+            <small>{x.price ? "₹" + x.price : "Free"}</small>
+          </a>
+        ))}
+      </div>
+    </section>
   );
 }
 

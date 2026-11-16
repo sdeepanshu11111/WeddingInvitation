@@ -121,3 +121,11 @@ const built = LANGUAGES.flatMap((lang) =>
 export const LANGUAGE_VERSIONS: TemplateDef[] = built.map((b) => b.def);
 /** Their page copy for /templates/<id> (the designs' own is in lib/templateCopy.ts). */
 export const VERSION_COPY: Record<string, TemplateCopy> = Object.fromEntries(built.map((b) => [b.def.id, b.copy]));
+
+/** "the wedding, Gaye Holud, Bou Bhat, Ashirbad, Mehendi and Sangeet": a state's functions by their ritual names, in
+    the state's order (lib/regions.ts). Server-rendered on its page, so a search for the ritual finds it. */
+export function ritualList(designs: string[]): string {
+  const rituals = designs.map((id) => LANGUAGE_VERSIONS.find((t) => t.id === id)?.ritual).filter((r): r is string => !!r);
+  const names = ["the wedding", ...new Set(rituals)];
+  return names.length > 1 ? names.slice(0, -1).join(", ") + " and " + names[names.length - 1] : names[0];
+}

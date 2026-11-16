@@ -295,8 +295,16 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   and jump a frame later: the flicker on every player mount.
 - **Template pages carry real text**: `lib/templateCopy.ts` (who it is for, what is on it, search phrases) is rendered on the
   server on `/templates/<id>` with schema.org Product JSON-LD (name, price). A new template needs an entry; keep claims true.
+- **One link per couple per function** (2026-11-17): Get link names a link with its function (`1-aarav-ananya-haldi`; the wedding,
+  any wedding design or Shaadi Utsav, has none: `functionOf` in ShareDialog.tsx) and republishes only to this browser's link for the
+  same names AND function (`ownedFor()` in `lib/owner.ts`, which also keeps `fn` per link). Before, the match was on names alone, so a
+  couple's Haldi replaced their (paid) wedding invite and a second purchase was impossible. Links from before keep matching plain
+  names for the wedding only; any other function gets a new link rather than risk an overwrite. Once an invite is clean, the owner
+  sheet offers the other functions (`OwnerNext`, `lib/nextInvites.ts`: same language and state rituals; opens `/create?template=`
+  with the names carried from the device's draft; event `next_invite_clicked`). This is the main organic revenue lever (owner,
+  2026-11-17: sell organically, no ads).
 - **A link can be edited by its owner** (2026-11-14, owner's decision): Get link in the studio republishes to the link this browser
-  made last when the couple's names give the same base (`lastOwned()` in `lib/owner.ts`, `POST /api/share {update, key}` →
+  made for the same couple and function (`ownedFor()` in `lib/owner.ts`, see above; `POST /api/share {update, key}` →
   `updateLiveShare`, which overwrites project.json / share.json, sets `updatedAt` (versions the preview card) and keeps `paid.json`).
   Wrong or missing key = 403 and the studio falls back to a new link. Event `invite_link_updated`, not `invite_link_created`.
   Terms section 5 describes this. One paid link could be reused for a different invite by the same browser: accepted for now.

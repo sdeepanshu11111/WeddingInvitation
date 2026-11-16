@@ -31,6 +31,8 @@ type Events = {
   state_selected: { state: string };
   /** The couple rated their invite in the owner sheet (app/api/review). The stars only: never the words or names. */
   review_submitted: { rating: number; has_text: boolean; is_public: boolean };
+  /** The couple tapped one of their other functions in the owner sheet (lib/nextInvites.ts): a second purchase starting. */
+  next_invite_clicked: { template_id: string; from_template_id: string };
   /** The studio (/create) finished loading a project. has_design_param: arrived with a chosen design
       (?template=); has_draft: this browser had a saved invite; has_names: names typed on the site came along. */
   studio_opened: { template_id: string; has_design_param: boolean; has_draft: boolean; has_names: boolean };

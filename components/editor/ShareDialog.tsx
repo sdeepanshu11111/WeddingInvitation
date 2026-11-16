@@ -8,7 +8,7 @@ import { inviteId, track, visitorOrigin } from "@/lib/analytics";
 import { priceOf } from "@/lib/pricing";
 import { MEDIA_TYPES, allSrcs, mapDataUrls } from "@/lib/media";
 import { sampleKeys, withoutSamplePhones } from "@/lib/inviteDetails";
-import { lastOwned, rememberOwned } from "@/lib/owner";
+import { noteFunction, ownedFor, rememberOwned } from "@/lib/owner";
 import { slugify } from "@/lib/slug";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { Confetti, DrawnCheck } from "@/components/Celebrate";
@@ -29,6 +29,21 @@ const autoBase = (title: string) => {
     .filter(Boolean)
     .join("-");
   return firsts.slice(0, 40).replace(/-+$/, "") || "invite";
+};
+
+/** Which function an invite is for, as it goes into its link name: "" for the wedding (any wedding design, or the
+    all-functions one), else "haldi", "mehendi", "sangeet", "reception", "engagement" or "save-the-date". A couple
+    gets one link per function (lib/owner.ts, ownedFor). */
+export const functionOf = (templateId: string) => {
+  const c = getTemplate(templateId).categories[0];
+  return c === "wedding" || c === "multi-event" ? "" : c;
+};
+
+/** The link name without its number: the couple's first names, then the function ("aarav-ananya-haldi"), kept
+    within the 50 characters a name may have (lib/slug.ts) with room for a two-digit number. */
+const linkBase = (title: string, fn: string) => {
+  const names = autoBase(title);
+  return fn ? names.slice(0, 46 - fn.length - 1).replace(/-+$/, "") + "-" + fn : names;
 };
 
 const inviteText = (title: string) => title + " - you're invited!";
@@ -122,15 +137,18 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
       const card = { bg: t.bg, bg2: t.bg2, ink: t.ink, soft: t.soft, accent: t.accent, line: t.line, date: inviteDate(project.data) };
       const post = (extra: Record<string, unknown>) =>
         fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: shared, title, card, meta: visitorOrigin(), ...extra }) });
-      // Editing an invite they already have a link for (same couple, made on this device): publish to that SAME
-      // link, so guests who have it see the correction and a paid link stays paid. Anything else is a new link.
-      const mine = lastOwned();
-      const same = mine && mine.name.replace(/^\d+-/, "") === autoBase(title) ? mine : null;
+      // Editing an invite they already have a link for (same couple AND same function, made on this device): publish
+      // to that SAME link, so guests who have it see the correction and a paid link stays paid. Another function
+      // (their Haldi after their wedding) is a new invite with a link of its own: 1-aarav-ananya-haldi.
+      const fn = functionOf(project.templateId);
+      const base = linkBase(title, fn);
+      const same = ownedFor(base, fn);
       let res = same ? await post({ update: same.name, key: same.key }) : null;
-      if (!res || res.status === 403 || res.status === 404) res = await post({ name: "1-" + autoBase(title), auto: true });
+      if (!res || res.status === 403 || res.status === 404) res = await post({ name: "1-" + base, auto: true });
       const r = await res.json().catch(() => ({}));
       if (!res.ok || !r.token) throw new Error(r.error || "Could not create the link");
-      if (r.ownerKey) rememberOwned(r.token, r.ownerKey);
+      if (r.ownerKey) rememberOwned(r.token, r.ownerKey, fn);
+      else if (same) noteFunction(same.name, fn); // an update: note its function now (older links had none)
       if (r.updated) {
         track("invite_link_updated", { invite_id: inviteId(r.token), template_id: project.templateId });
         setLeft(REDIRECT_S);

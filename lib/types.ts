@@ -101,6 +101,8 @@ export type TemplateDef = {
       code of its language ("ta"). Listed only on its state's page, never among "all designs". */
   variantOf?: string;
   lang?: string;
+  /** A language version's ritual, in English letters ("Gaye Holud", "Nalangu", or just "Haldi"). */
+  ritual?: string;
   palettes: Palette[];
   fonts: { display: string; script: string; body: string };
   groups: FieldGroup[];

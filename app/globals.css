@@ -747,6 +747,17 @@ li.review.hidden { opacity: 0.6; }
 .os-check input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: #d9b77c; }
 .os-review .os-save { justify-self: start; }
 .owner-sheet .os-review .os-note { margin-top: 0; }
+/* Their other functions (OwnerNext): cards that scroll sideways, each opening the studio on that design. */
+.os-next { margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.os-next .os-label { margin-bottom: 2px; }
+.os-next-sub { margin: 0 0 10px; color: rgba(236, 232, 227, 0.65); font-size: 13px; }
+.os-next-row { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; padding: 2px 4px 4px; }
+.os-next-row::-webkit-scrollbar { display: none; }
+.os-next-card { flex: 0 0 auto; width: 92px; display: grid; gap: 4px; color: #fff; text-decoration: none; text-align: center; }
+.os-next-thumb { display: grid; aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14); }
+.os-next-card b { font-size: 12.5px; font-weight: 600; line-height: 1.25; }
+.os-next-card small { color: #d9b77c; font-size: 12px; font-weight: 600; }
+.os-next-card:hover .os-next-thumb { box-shadow: 0 0 0 2px #d9b77c; }
 
 /* ================================================================== *
  * Invite page, interactive (app/e/[slug]/LiveInvite.tsx + GuestDetails.tsx): story-style segments and

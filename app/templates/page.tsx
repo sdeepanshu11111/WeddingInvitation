@@ -6,6 +6,7 @@ import { BRAND } from "@/lib/brand";
 import { pageMeta } from "@/lib/seo";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
 import { regionById } from "@/lib/regions";
+import { ritualList } from "@/lib/templates/languages";
 import type { CategoryId, CommunityId } from "@/lib/types";
 import { TemplateBrowser } from "./TemplateBrowser";
 
@@ -21,7 +22,7 @@ export function generateMetadata({ searchParams }: { searchParams: Search }): Me
   if (s && !c)
     return pageMeta(
       s.language + " wedding invitation templates · " + BRAND,
-      "Animated wedding invitations written in " + s.language + " for weddings in " + s.label + ", plus designs for every function. Preview free with your names, share one link on WhatsApp.",
+      "Animated " + s.language + " invitations for " + ritualList(s.designs) + ", written in " + s.language + " for families in " + s.label + ". Preview free with your names, share one link on WhatsApp.",
       "/templates?state=" + s.id,
     );
   return pageMeta(

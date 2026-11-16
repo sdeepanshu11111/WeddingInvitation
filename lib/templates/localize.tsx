@@ -47,6 +47,7 @@ export function localize(base: TemplateDef, look: Look, kit: Kit, v: Version, sa
     communities: [...new Set([...kit.communities, ...base.communities])],
     isNew: true,
     variantOf: base.id,
+    ritual: v.ritual,
     lang: kit.code,
     fonts: { display: stack(base.fonts.display), script: stack(base.fonts.script), body: stack(base.fonts.body) },
     thumb: (p) => base.thumb(p, { text: v.thumb, font: kit.font }),
