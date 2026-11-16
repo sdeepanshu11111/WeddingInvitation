@@ -5,7 +5,7 @@ import { SIZES, buildTimeline, inviteDate } from "@/lib/project";
 import type { Orientation, Project } from "@/lib/types";
 import { LEADS } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
-import { inviteId, startAnalytics, track } from "@/lib/analytics";
+import { inviteId, startAnalytics, track, isInternal } from "@/lib/analytics";
 import { BRAND } from "@/lib/brand";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { Confetti } from "@/components/Celebrate";
@@ -190,22 +190,33 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     // The couple coming BACK to a link that still has the watermark: show their options on the cover, not only after
     // the invite ends. (Every payment so far was started from this sheet, and half the couples never reach the end.)
     // Straight after "Get link" they watch it first, as before.
-    if (key && watermark && !fresh && !sheetShown.current) {
+    const onCover = !!key && watermark && !fresh && !sheetShown.current;
+    if (onCover) {
       sheetShown.current = true;
       setSheet(true);
     }
     startAnalytics("guest_page", { invite_id: name && inviteId(name), template_id: project.templateId, is_watermarked: watermark, is_owner: !!key });
+    if (onCover) track("owner_sheet_opened", { trigger: "cover" }); // after startAnalytics: it carries the invite's properties
   }, [name, project, watermark]);
+
+  // One more open / one more watch to the end on this link's record (/admin/links): a count, nothing about the
+  // visitor. Not the couple's own views, not the owner's test devices, not automated browsers.
+  const count = (kind: "open" | "watched") => {
+    if (!name || ownerKey || isInternal() || navigator.webdriver) return;
+    fetch("/api/share/" + name + "/seen", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind }), keepalive: true }).catch(() => {});
+  };
   useEffect(() => {
     if (phase !== "ended") return;
     // The couple has just watched their invite: now is the moment for the owner sheet (once per visit).
     if (ownerKey && !sheetShown.current) {
       sheetShown.current = true;
       setSheet(true);
+      track("owner_sheet_opened", { trigger: "end" });
     }
     if (watched.current) return;
     watched.current = true; // "Watch again" doesn't count twice
     track("invite_watched");
+    count("watched");
   }, [phase, ownerKey]);
 
   // Both layouts are hand-tuned, so phones get 9:16 and laptops/TVs 16:9.
@@ -280,6 +291,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
   const open = async () => {
     unlockAudio();
     track("invite_opened", { orientation: o });
+    count("open");
     setPhase("opening");
     await Promise.race([Promise.all([fonts.current!.promise, images.current]), new Promise((r) => setTimeout(r, 6000))]);
     setT(0);
@@ -465,7 +477,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
           {/* Unpaid links (they already carry our name) and free designs: guests planning a function of their own
               find the maker. Paid links stay clean. The utm tags attribute the visit (lib/analytics keeps them); no invite details go along. */}
           {(marked || free) && !ownerKey ? (
-            <a className="end-make" href={"/templates/" + project.templateId + "?utm_source=invite&utm_medium=guest_page"}>
+            <a className="end-make" href={"/templates/" + project.templateId + "?utm_source=invite&utm_medium=guest_page"} onClick={() => track("guest_action_clicked", { action: "make_own" })}>
               Make your own invitation →
             </a>
           ) : null}
@@ -544,7 +556,16 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
       ) : null}
       {ownerKey && name ? (
         <>
-          <OwnerBar title={title} name={name} watermark={marked} price={price} onOpen={() => setSheet(true)} />
+          <OwnerBar
+            title={title}
+            name={name}
+            watermark={marked}
+            price={price}
+            onOpen={() => {
+              track("owner_sheet_opened", { trigger: "bar" });
+              setSheet(true);
+            }}
+          />
           {sheet ? (
             <OwnerSheet title={title} name={name} ownerKey={ownerKey} watermark={marked} price={price} onPaid={() => setPaidHere(true)} onClose={() => setSheet(false)} />
           ) : null}

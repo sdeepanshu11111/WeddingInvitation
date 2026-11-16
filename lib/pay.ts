@@ -2,7 +2,7 @@
    The server creates the order and verifies the payment (app/api/pay/*). */
 
 import { BRAND } from "./brand";
-import { inviteId, track } from "./analytics";
+import { deviceId, inviteId, track } from "./analytics";
 import { savedEmail, savedPhone } from "./contact";
 
 let checkoutScript: Promise<void> | null = null;
@@ -42,7 +42,10 @@ export async function payToRemoveWatermark(name: string, title: string, priceInr
 }
 
 async function checkout(name: string, title: string, invite_id: string): Promise<"paid" | "cancelled"> {
-  const res = await fetch("/api/pay/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name }) });
+  // device: this browser's anonymous analytics id, so the server's own "payment_confirmed" lands on the same visitor
+  // even if this tab is gone by then (a UPI app switch can close it). Null when analytics is off or blocked.
+  const device = await deviceId();
+  const res = await fetch("/api/pay/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, device }) });
   const order = await res.json();
   if (!res.ok) throw new Error(order.error || "Could not start the payment");
   if (order.paid) return "paid";
@@ -71,6 +74,7 @@ async function checkout(name: string, title: string, invite_id: string): Promise
       modal: { ondismiss: () => resolve("cancelled") },
     });
     rzp.open();
+    track("checkout_opened", { invite_id, amount_inr: order.amount / 100 });
   });
 }
 

@@ -108,7 +108,7 @@ On Vercel you get the editor, **Share** links (the invitation plays in the guest
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | you (Razorpay → Account & Settings → API Keys) | Turns on paid links: free links get a "Preview" watermark, removing it costs `LINK_PRICE_INR` |
 | `RAZORPAY_WEBHOOK_SECRET` | you (Razorpay → Webhooks) | Backup confirmation if the buyer closes the tab mid-payment. Webhook URL `<site>/api/pay/webhook`, event **order.paid**, same secret |
 | `LINK_PRICE_INR` | you (optional) | Price of a link without watermark, default `99` |
-| `MONGODB_URI` | you (MongoDB Atlas → Connect → Drivers) | Turns on lead capture in MongoDB: WhatsApp number or email in the Share step, payers' contacts, `/admin/leads` |
+| `MONGODB_URI` | you (MongoDB Atlas → Connect → Drivers) | Turns on the private database. Collection `links`: a record of every invite link (address, design, source, checkouts, payments, guest opens), listed on `/admin/links`. Collection `leads`, lead capture: WhatsApp number or email in the Share step, payers' contacts, `/admin/leads` |
 | `MONGODB_DB` | you (optional) | Database name for leads, default `invite_studio` |
 | `ADMIN_PASSWORD` | you | Password for `/admin/leads`. Without it `/admin` is a 404 on Vercel |
 | `ADMIN_USER` | you (optional) | User name for `/admin/leads`, default `admin` |

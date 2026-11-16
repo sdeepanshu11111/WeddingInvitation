@@ -233,6 +233,21 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 - **Untouched sample date / venue**: Get link stores `project.sample` (`sampleKeys()`), and `inviteDetails(id, data, sample)` skips those
   fields, so guests get no calendar or directions button for a made-up wedding. Pass `project.sample` at every call.
 - **Empty photo / clip slots** carry class `ph`; `.guest-ui .ph` (globals.css) hides the "ADD A PHOTO" hint on a guest's invite.
+- **Link records** (2026-11-16, `lib/server/links.ts`): MongoDB collection `links`, one document for EVERY link (`_id` = link name,
+  like `leads`, which keeps only contact details). Written by `POST /api/share` (`recordLinkCreated` / `recordLinkUpdated`),
+  `/api/pay/order` (`recordCheckout`: an order with no payment after it = "Tried to pay"), verify + webhook (`recordPayment`,
+  idempotent by payment id) and the guest page's counter `POST /api/share/<name>/seen` (`opens`, `watched`; counts only, never
+  the couple's own views). Same store as leads (`LEADS` mode: mongo / `exports/links.json` on disk / off); the shared connection
+  is `lib/server/db.ts`. **Every write is best effort**: callers `.catch` and log, a record never fails a link or a payment.
+  Fields are only `$set` / `$inc` / `$push` / `$min`, never pre-filled with null or 0 (operators would conflict); `normalize()`
+  supplies defaults. `/admin/links` lists them (search also takes a Mixpanel `invite_id`; "Import existing links" reads older
+  links back from storage in batches, `importLinks`). `/admin` marks the browser internal (`components/AdminNav.tsx`):
+  its events carry `is_internal` and its links are flagged as tests.
+- **`payment_confirmed` is sent by the server**, once per payment (`markPaid()` returns true for whoever records it first →
+  `lib/server/afterPayment.ts` → `lib/server/mixpanel.ts`). The browser's `payment_completed` stays but can be lost with the tab.
+  Route files may only export handlers and config, which is why `afterPayment` is not in `verify/route.ts`.
+- **Mixpanel stays name-free** (owner, 2026-11-16): the link's address is in the `links` record, matched by `invite_id`
+  (`lib/inviteId.ts`, shared by browser and server). `source` / `first_source` on every event come from `trafficSource()`.
 - **Per-design prices** (2026-11-14, owner: some designs free, paid ones ₹30-600): `lib/pricing.ts` is the one table (`priceOf(id)`,
   0 = free; unlisted = `LINK_PRICE_INR`). Dependency-free, so the server reads it without the templates. The amount charged is
   always the server's: `/api/pay/order` reads the link's `templateId` and charges `amountDue()` (price minus `Paid.covers`).

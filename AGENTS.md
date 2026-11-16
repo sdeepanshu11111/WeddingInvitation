@@ -24,7 +24,7 @@ tool, SDK or tracking library unless the owner asks for it. Project context and 
 | **Platform** | Next.js 14 (App Router), React 18, TypeScript strict, hosted on Vercel |
 | **Mixpanel SDK** | `mixpanel-browser`, core build only (`mixpanel-browser/src/loaders/loader-module-core`, no session replay) |
 | **SDK version** | 2.84.0 (pinned) |
-| **Tracking method** | client-side only |
+| **Tracking method** | client-side, plus ONE server-side event: `payment_confirmed` (`lib/server/mixpanel.ts`, HTTP `/track`) |
 | **CDP (if any)** | none |
 | **Consent required** | no (India only) |
 | **Data residency** | US (project 4072400) via `MIXPANEL_API_HOST` (default `https://api-js.mixpanel.com`). To move to an India project set `MIXPANEL_TOKEN` + `MIXPANEL_API_HOST=https://api-in.mixpanel.com` in Vercel and redeploy. A host that does not match the residency returns status 1 but drops the events. |
@@ -67,6 +67,10 @@ on sign-up, login and session restore, `reset()` on logout, and track a `sign_up
 Invites are joined across events by `invite_id` = `inviteId(<link name>)` (a cyrb53 hash, so the names don't show).
 Use the helper; never send the link name, couple names, dates, venue, phone or email.
 
+**From an event to its link:** the private link record (`lib/server/links.ts`, MongoDB collection `links`) stores the
+same `invite_id` next to the link's address. Paste an `invite_id` from a Mixpanel event into the search box on
+`/admin/links` to find the invite (owner's decision, 2026-11-16: Mixpanel stays name-free, the address lives in MongoDB).
+
 ---
 
 ## Mixpanel Tracking Plan
@@ -87,6 +91,9 @@ wrong property, so update that type first.
 | `surface` | all | `site`, `editor`, `guest_page` |
 | `invite_id`, `template_id`, `is_watermarked` | guest page | which invite the guest is looking at |
 | `is_owner` | guest page | `true` when the viewer is the couple who made the link (its owner key is in this browser, `lib/owner.ts`). Filter it out to count real guests; since 2026-10-21 the couple lands on their own invite right after "Get link" |
+| `source` | all | where this visit came from, one word: `google`, `chatgpt`, `perplexity`, `gemini`, `bing`, `whatsapp`, `instagram`, `facebook`, `youtube`, `invite` (a guest tapped "Make your own invitation"), `direct`, or the raw `utm_source` / referring domain. `trafficSource()` in `lib/analytics.ts`: the link's `utm_source` first (ChatGPT adds `utm_source=chatgpt.com`), else the referring site. Kept for the visit in sessionStorage (`fp.src`); a page arriving with its own `utm_source` starts a new one |
+| `first_source` | all | the `source` of the device's first visit ever (`register_once`, also `fp.src1` in localStorage). Use this one to ask "which channel brings people who end up making a link or paying" |
+| `is_internal` | devices that have opened `/admin` | `true`. Opening `/admin` (password) marks the browser (`fp.internal`, `components/AdminNav.tsx`): the owner's and testers' devices. Filter `is_internal != true` in every report |
 | `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` | after a visit from a tagged link (an ad) | the link's tags; kept on later events and visits until a link with other tags arrives (last touch) |
 
 ### Current Mixpanel events
@@ -94,19 +101,25 @@ wrong property, so update that type first.
 | Event | Trigger | Key properties | File |
 |---|---|---|---|
 | `$mp_web_page_view` | A site page (each route), the editor or a guest page loaded | (super properties) | `lib/analytics.ts` |
+| `studio_opened` | The studio (`/create`) finished loading a project: the step between the site and Get link | `template_id`, `has_design_param` (arrived with a chosen design), `has_draft` (a saved invite was in this browser), `has_names` (names typed on the site) | `app/create/page.tsx` |
+| `invite_edit_started` | The first field changed in a studio visit (once per visit): this visitor is making an invite, not only looking | `template_id`, `field` (the field's key, never its content) | `app/create/page.tsx` (`setField`) |
 | `template_selected` | Couple picks a template (in the editor, or arrives from "Customize" on a template page with a different one) | `template_id`, `source` (`sidebar`/`gallery`/`template_page`) | `app/create/page.tsx` |
 | `share_dialog_opened` | Couple taps Get link (the link is created right away, no dialog to fill in since 2026-10-21) | `template_id` | `app/create/page.tsx` |
-| `invite_link_created` ★ | Share link saved (value moment) | `invite_id`, `template_id`, `palette_id`, `orientation`, `plan` (`free`/`premium`, only with payments on), `is_custom_name`, `has_music`, `photo_count`, `has_video`, `duration_seconds` | `components/editor/ShareDialog.tsx` |
+| `invite_link_failed` | Get link did not produce a link | `template_id`, `stage` (`upload` = sending photos/music, `create` = making the link) | `ShareDialog.tsx` (`GetLink`) |
+| `invite_link_created` ★ | Share link saved (value moment) | `invite_id`, `template_id`, `palette_id`, `orientation`, `plan` (`free`/`premium`, only with payments on), `is_custom_name`, `has_music`, `photo_count`, `has_video`, `duration_seconds`, `price_inr` (the design's price, 0 = free design), `is_free`, `sample_field_count` (date / venue fields still holding the template's sample) | `components/editor/ShareDialog.tsx` |
 | `invite_link_updated` | The couple edited their invite and Get link published it to the link they already had (same address, stays paid) | `invite_id`, `template_id` | `ShareDialog.tsx` (`GetLink`) |
 | `video_export_clicked` | "Export MP4" clicked (only where export is on; the hosted site hides the button) | `is_available` | `app/create/page.tsx` |
 | `payment_started` | Pay ₹ clicked: the couple's owner sheet on their invite (since 2026-10-21) or a guest's "Remove · ₹" | `invite_id`, `amount_inr` | `lib/pay.ts` |
+| `checkout_opened` | Razorpay Checkout is on screen (the order was created). `payment_started` without it = the order or Checkout failed to load | `invite_id`, `amount_inr` (what the server will charge) | `lib/pay.ts` |
+| `payment_confirmed` ★ **(server)** | A payment was recorded, exactly once per payment, by whichever of `/api/pay/verify` and `/api/pay/webhook` came first. **The true count of sales**: `payment_completed` below is lost when the buyer's tab dies before Checkout's callback | `invite_id`, `template_id`, `amount_inr`, `via` (`checkout`/`webhook`), `has_device` (false = the buyer's device id was not known, the event sits under `invite:<invite_id>`), `surface: server` | `lib/server/mixpanel.ts`, `lib/server/afterPayment.ts` |
 | `payment_completed` | Server verified the Razorpay payment | `invite_id`, `amount_inr` (from the order, paise / 100) | `lib/pay.ts` |
 | `payment_cancelled` | Buyer closed Razorpay Checkout | `invite_id` | `lib/pay.ts` |
 | `payment_failed` | Order, Checkout load or verification failed | `invite_id` | `lib/pay.ts` |
 | `invite_opened` | Guest tapped "Open invitation" | `orientation` | `app/e/[slug]/LiveInvite.tsx` |
 | `invite_watched` | Guest reached the end (once per visit) | (super properties) | `app/e/[slug]/LiveInvite.tsx` |
 | `invite_shared` | Link sent on: WhatsApp, the phone's share sheet (after it succeeds), or copy | `channel` (`whatsapp`/`native_share`/`copy`), `invite_id` | `ShareDialog.tsx` (`GetLink` copy, `SharePanel`), `LiveInvite.tsx` (`GuestBar`, `OwnerBar`, `OwnerSheet`) |
-| `guest_action_clicked` | A guest used the card at the end of an invite | `action` (`calendar`/`directions`/`rsvp`) | `app/e/[slug]/GuestDetails.tsx` |
+| `guest_action_clicked` | A guest used the card at the end of an invite, or tapped "Make your own invitation" | `action` (`calendar`/`directions`/`rsvp`/`make_own`) | `app/e/[slug]/GuestDetails.tsx`, `LiveInvite.tsx` |
+| `owner_sheet_opened` | The couple's sheet (remove watermark, share) came up on their invite: every payment starts from it | `trigger` (`cover` = by itself on a return visit, `end` = by itself when the invite ended, `bar` = they tapped their bar) | `app/e/[slug]/LiveInvite.tsx` |
 
 ---
 
@@ -132,6 +145,25 @@ Mixpanel stays the product analytics tool.
 - Adding either to a new page type, or sending events to GA, means updating `/privacy` (sections 2, 4, 5).
 
 ---
+
+## Funnels to build in Mixpanel (all with `is_internal != true`)
+
+- **Creator funnel:** `$mp_web_page_view` (surface `site`) → `studio_opened` → `invite_edit_started` → `share_dialog_opened` →
+  `invite_link_created`. Break down by `first_source` (google / chatgpt / invite / direct) and by `$os`.
+- **Sales funnel:** `invite_link_created` → `owner_sheet_opened` → `payment_started` → `checkout_opened` → `payment_confirmed`.
+  A gap between `checkout_opened` and `payment_confirmed` is an abandoned or failed payment; the link is on `/admin/links`
+  under "Tried to pay".
+- **Guests:** `invite_opened` → `invite_watched` → `guest_action_clicked`, filtered to `is_owner != true`.
+- **Bots:** automated browsers (`navigator.webdriver`) send nothing since 2026-11-16. Data-centre visits before that date are
+  still in the project (US / Sweden / Ireland page views with no other event).
+
+## Link records and guest counts (MongoDB, not Mixpanel)
+
+Every link is also written to the private database (`lib/server/links.ts`, collection `links`, list on `/admin/links`): address,
+design, price, created / edited times, `source` and `visit_source` (the same words as above, sent once in `meta` of
+`POST /api/share`), OS, every checkout attempt, every payment, and two counters (`opens`, `watched`) that the guest page
+increments through `POST /api/share/<name>/seen` (a count only; not the couple's own views, not internal devices). That is
+where to look for one specific invite; Mixpanel is where to look for behaviour across invites.
 
 ## Vercel Web Analytics
 

@@ -760,3 +760,17 @@ li.lead.out { opacity: 0.6; }
 /* An empty photo or clip slot says "ADD A PHOTO" in the studio. Guests must never read that on someone's invite:
    there it is a plain panel in the design's own colour (the slot's parent already paints theme.bg2). */
 .guest-ui .ph { color: transparent !important; background-image: none !important; }
+
+/* ---------- /admin/links and the admin nav ---------- */
+.admin-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; max-width: 860px; margin: 0 auto; padding: 16px 16px 0; font-size: 13px; }
+.admin-nav a { padding: 6px 14px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); text-decoration: none; }
+.admin-nav a.on { border-color: var(--text); background: var(--text); color: var(--bg); }
+.admin-nav span { color: var(--muted); font-size: 12px; }
+.admin-sum { margin: 0 0 12px; color: var(--muted); }
+.admin-sum b { color: var(--text); }
+.admin-search { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 16px; }
+.admin-search input[name="q"] { flex: 1 1 260px; min-width: 0; padding: 8px 12px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel); color: var(--text); font-size: 14px; }
+.admin-import { display: inline-flex; align-items: center; gap: 8px; }
+.admin-import em { color: var(--muted); font-size: 12.5px; font-style: normal; }
+.lead-chip.tried { background: rgba(230, 160, 60, 0.2); color: var(--danger); }
+.admin .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }

@@ -35,7 +35,10 @@ export default function Privacy() {
         </li>
         <li>
           <b>Shared invitations</b>: when you tap &ldquo;Get link&rdquo; and create a link, we upload that invitation&rsquo;s content and media to our
-          servers so your guests can open it. The link name you choose (for example <i>/e/aarav-ananya</i>) is part of the web address.
+          servers so your guests can open it. The link name (for example <i>/e/1-aarav-ananya</i>) is part of the web address.
+          {LEADS
+            ? " We also keep a private record of each link: its address, the design, when it was made and changed, the kind of device it was made on, the site that brought you to us (for example a search engine), and its payment status."
+            : ""}
         </li>
         {LEADS ? (
           <li>
@@ -64,8 +67,15 @@ export default function Privacy() {
           <b>Usage analytics</b>: we use Mixpanel to understand how the product is used, for example which templates are chosen and whether links are
           created. It records events with an anonymous device ID stored in your browser, your browser and device type, and an approximate location
           (city or region) derived from your IP address. We do not send names, photos, venues, link names or any other invitation content to Mixpanel,
-          and we do not record your screen.
+          and we do not record your screen. When a payment is confirmed, our server sends Mixpanel one event with the amount and the
+          anonymous device ID, so sales are counted correctly.
         </li>
+        {LEADS ? (
+          <li>
+            <b>Invitation opens</b>: we count how many times each invitation is opened and watched to the end, to see how far it travelled.
+            It is a number only: nothing about the guest is stored with it.
+          </li>
+        ) : null}
         <li>
           <b>Website analytics</b>: we use Google Analytics on our website pages and in the editor to count visits and to see which pages are viewed
           and where visitors come from. It uses cookies and records the page address, your browser and device type and an approximate location
@@ -129,7 +139,7 @@ export default function Privacy() {
         <li>
           <b>Service providers</b> who process data for us under their own privacy and security terms: Vercel Inc. (website hosting, file storage and
           visit counts, servers in the United States), Razorpay Software Pvt. Ltd. (payments, India), Mixpanel Inc. (analytics, United States)
-          {LEADS === "mongo" ? ", MongoDB, Inc. (the private database for contact details, servers in India)" : ""}
+          {LEADS === "mongo" ? ", MongoDB, Inc. (the private database for link records and contact details, servers in India)" : ""}
           {META_PIXEL_ID ? ", Meta Platforms, Inc. (advertising measurement)" : ""} and Google LLC (website analytics and the advertisements on our website, United States).
           {LEADS ? " When we contact you, WhatsApp or our email provider (Google) carries the message." : ""}
         </li>

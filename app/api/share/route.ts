@@ -4,6 +4,8 @@ import { LEADS, VIDEO_EXPORT, exportOff } from "@/lib/features";
 import { CONTACT_NOTICE, normalizeEmail, normalizePhone } from "@/lib/contact";
 import { slugify } from "@/lib/slug";
 import { saveShareLead } from "@/lib/server/leads";
+import { linkFacts, linkOrigin, recordLinkCreated, recordLinkUpdated } from "@/lib/server/links";
+import { SITE_URL } from "@/lib/site";
 import { ShareError, createLiveShare, createVideoShare, lanOrigin, newOwnerKey, nextNumberedName, numberedBase, ownerKeyHash, updateLiveShare } from "@/lib/server/share";
 
 export const runtime = "nodejs";
@@ -13,6 +15,7 @@ export const dynamic = "force-dynamic";
  * POST { project, title, card, name?, auto?, phone?, email? } -> live invitation at /e/<name> (default: 1-<first names>,
  *      the first free number for that couple; auto: true = name is that automatic one, so a clash takes the next number).
  *      phone, email: how to reach the couple (lead capture), stored privately, never in the published project
+ *      meta: { source, visit_source, internal } = where the maker came from (lib/analytics.ts), kept with the link's record
  * POST { project, title, card, update: name, key }     -> the owner republishes their invite to the same link /e/<name>
  *      (key = the owner key that link's creator got back; 403 without it). Returns the same shape plus updated: true.
  * POST { file, title }                                 -> link to a finished MP4 in ./exports
@@ -61,6 +64,15 @@ export async function POST(req: Request) {
   // Losing a lead must never cost the couple their link, so a database error is only logged (without their details).
   if ((phone || email) && share.kind === "live")
     await saveShareLead(share.token, title, { phone, email }, CONTACT_NOTICE).catch((e) => console.error("Lead not saved:", e?.message));
+  // The link's record (lib/server/links.ts): every link, with its address, design and where its maker came from.
+  // Like the lead, best effort: a database error is logged and the couple still gets their link.
+  if (share.kind === "live") {
+    const facts = linkFacts(body.project, share.title, (process.env.SITE_URL ? SITE_URL : origin) + "/e/" + share.token);
+    await (updating
+      ? recordLinkUpdated(share.token, facts, share.createdAt)
+      : recordLinkCreated(share.token, facts, linkOrigin(body.meta, req.headers.get("user-agent")), share.createdAt)
+    ).catch((e) => console.error("Link record not saved:", e?.message));
+  }
   // Names are guessable, so someone may have opened this one before it existed: drop any cached "not found".
   revalidatePath("/e/" + share.token);
   const lan = lanOrigin(origin);

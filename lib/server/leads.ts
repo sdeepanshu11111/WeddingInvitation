@@ -1,8 +1,9 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import { type Collection, MongoClient } from "mongodb";
+import type { Collection } from "mongodb";
 import { LEADS } from "../features";
 import { normalizeEmail, normalizePhone } from "../contact";
+import { mongoDb } from "./db";
 import { EXPORT_DIR } from "./paths";
 
 /* =====================================================================
@@ -48,8 +49,7 @@ const g = globalThis as unknown as { __leadsMongo?: Promise<Collection<LeadDoc>>
 /** The leads collection, connected once per server instance. */
 async function mongo() {
   g.__leadsMongo ??= (async () => {
-    const client = await new MongoClient(process.env.MONGODB_URI!, { serverSelectionTimeoutMS: 8000, maxPoolSize: 5 }).connect();
-    const col = client.db(process.env.MONGODB_DB || "invite_studio").collection<LeadDoc>("leads");
+    const col = (await mongoDb()).collection<LeadDoc>("leads"); // the shared connection (lib/server/db.ts)
     await col.createIndex({ created_at: -1 });
     return col;
   })().catch((e) => {

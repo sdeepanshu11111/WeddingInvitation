@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { LEADS, PAYMENTS } from "@/lib/features";
 import { checkoutSignatureValid, confirmPayment } from "@/lib/server/razorpay";
 import { savePaymentLead } from "@/lib/server/leads";
+import { afterPayment } from "@/lib/server/afterPayment";
 import { priceOf } from "@/lib/pricing";
 import { getLiveProject, markPaid, orderBelongsTo } from "@/lib/server/share";
 
@@ -24,8 +25,9 @@ export async function POST(req: Request) {
     if (!(await orderBelongsTo(name, orderId))) return NextResponse.json({ error: "That payment is for a different link" }, { status: 400 });
     const p = await confirmPayment(orderId, paymentId);
     const project = await getLiveProject(name);
-    await markPaid(name, { orderId, paymentId, amount: p.amount, paidAt: Date.now() }, priceOf(project?.templateId ?? ""));
+    const fresh = await markPaid(name, { orderId, paymentId, amount: p.amount, paidAt: Date.now() }, priceOf(project?.templateId ?? ""));
     if (LEADS) await savePaymentLead(name, p).catch((e) => console.error("Lead not saved:", e?.message));
+    await afterPayment(name, { paymentId, orderId, amountInr: Math.round(p.amount / 100), templateId: project?.templateId ?? "", via: "checkout" }, fresh);
   } catch (e: any) {
     return NextResponse.json({ error: "Could not confirm the payment: " + (e?.message || e) }, { status: 502 });
   }

@@ -4,7 +4,8 @@ import type { Project } from "@/lib/types";
 import { buildTimeline, coupleTitle, inviteDate, makeTheme } from "@/lib/project";
 import { getTemplate } from "@/lib/templates";
 import { PAYMENTS, SHARE_STORE } from "@/lib/features";
-import { inviteId, track } from "@/lib/analytics";
+import { inviteId, track, visitorOrigin } from "@/lib/analytics";
+import { priceOf } from "@/lib/pricing";
 import { MEDIA_TYPES, allSrcs, mapDataUrls } from "@/lib/media";
 import { sampleKeys, withoutSamplePhones } from "@/lib/inviteDetails";
 import { lastOwned, rememberOwned } from "@/lib/owner";
@@ -85,6 +86,7 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
 
   const create = async () => {
     setStage({ kind: "working", step: "Getting your invite ready…" });
+    let failedAt: "upload" | "create" = "upload"; // for invite_link_failed
     try {
       // What gets published: no leftover sample RSVP number, and a note of which date / venue fields are still the
       // template's sample, so guests get no calendar or directions button for them (lib/inviteDetails.ts).
@@ -113,12 +115,13 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
         });
         uploaded.current = shared;
       }
+      failedAt = "create";
       setStage({ kind: "working", step: "Creating your link…" });
       // Colours and date for the link-preview card, so the server never loads the templates.
       const t = makeTheme(getTemplate(project.templateId), project.paletteId);
       const card = { bg: t.bg, bg2: t.bg2, ink: t.ink, soft: t.soft, accent: t.accent, line: t.line, date: inviteDate(project.data) };
       const post = (extra: Record<string, unknown>) =>
-        fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: shared, title, card, ...extra }) });
+        fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: shared, title, card, meta: visitorOrigin(), ...extra }) });
       // Editing an invite they already have a link for (same couple, made on this device): publish to that SAME
       // link, so guests who have it see the correction and a paid link stays paid. Anything else is a new link.
       const mine = lastOwned();
@@ -146,10 +149,14 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
         photo_count: media.filter((m) => m.kind === "image").length,
         has_video: media.some((m) => m.kind === "video"),
         duration_seconds: Math.round(buildTimeline(project).total / (project.speed || 1) / 100) / 10,
+        price_inr: priceOf(project.templateId),
+        is_free: priceOf(project.templateId) === 0,
+        sample_field_count: clean.sample?.length ?? 0,
       });
       setLeft(REDIRECT_S);
       setStage({ kind: "done", token: r.token, url: r.url, lanUrl: r.lanUrl ?? null });
     } catch (e: any) {
+      track("invite_link_failed", { template_id: project.templateId, stage: failedAt });
       setStage({ kind: "error", message: e?.message || String(e) });
     }
   };

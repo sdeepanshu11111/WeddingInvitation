@@ -2,7 +2,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
-import { BlobNotFoundError, get, head, put } from "@vercel/blob";
+import { BlobNotFoundError, get, head, list, put } from "@vercel/blob";
 import type { Project } from "../types";
 import { SHARE_STORE } from "../features";
 import { MEDIA_TYPES, allSrcs, mapDataUrls, mimeOfDataUrl } from "../media";
@@ -343,25 +343,48 @@ export async function amountDue(name: string, price: number): Promise<number> {
  * creates paid.json with no-overwrite; a later, different payment (the difference after moving to a dearer design)
  * adds to `covers`. `price` is what the link's design costs now: money beyond it is a double payment to give back,
  * and is logged as REFUND NEEDED.
+ * Returns true when this payment was not recorded before: the checkout callback and the webhook both report every
+ * payment, and whoever comes first gets true (that is what sends the one `payment_confirmed` event).
  */
-export async function markPaid(name: string, paid: Paid, price: number) {
+export async function markPaid(name: string, paid: Paid, price: number): Promise<boolean> {
   const rupees = Math.round(paid.amount / 100);
   try {
     await store.writeJSON(name + "/paid.json", { ...paid, covers: rupees, payments: [paid.paymentId] });
-    return;
+    return true;
   } catch (e) {
     if (!(await store.exists(name + "/paid.json"))) throw e;
   }
   const first = await store.readJSON<Paid>(name + "/paid.json");
-  if (!first || !paid.paymentId) return;
+  if (!first || !paid.paymentId) return false;
   const seen = first.payments ?? [first.paymentId];
-  if (seen.includes(paid.paymentId)) return;
+  if (seen.includes(paid.paymentId)) return false;
   const legacy = typeof first.covers !== "number"; // paid in full under the old single price
   const before = legacy ? price : first.covers!;
   if (before + rupees > price) console.error("REFUND NEEDED: payment " + paid.paymentId + " (Rs " + rupees + ") on link " + name + " which had Rs " + before + " of Rs " + price + " covered");
   const next: Paid = { ...first, payments: [...seen, paid.paymentId] };
   if (!legacy) next.covers = before + rupees;
   await store.writeJSON(name + "/paid.json", next, true);
+  return true;
+}
+
+/** The payment record of a link, or null when it is not paid (for the import into the link records). */
+export const paidRecord = (name: string) => (ID.test(name) ? store.readJSON<Paid>(name + "/paid.json") : Promise.resolve(null));
+
+/** The name of every share in storage, for the one-time import into the link records (lib/server/links.ts). */
+export async function listShareNames(): Promise<string[]> {
+  if (SHARE_STORE !== "blob") return (await fs.readdir(SHARE_DIR).catch(() => [] as string[])).filter((n) => ID.test(n));
+  const out: string[] = [];
+  let cursor: string | undefined;
+  do {
+    // folded: one entry per folder under shares/, instead of every file of every share.
+    const r = await list({ prefix: "shares/", mode: "folded", cursor, limit: 1000 });
+    for (const f of r.folders) {
+      const n = f.slice("shares/".length).replace(/\/$/, "");
+      if (n !== "uploads" && ID.test(n)) out.push(n);
+    }
+    cursor = r.hasMore ? r.cursor : undefined;
+  } while (cursor);
+  return out;
 }
 
 /** Path of one media file inside a disk share, or null if the name is not a plain file name. */

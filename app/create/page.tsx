@@ -17,7 +17,7 @@ import { VIDEO_EXPORT } from "@/lib/features";
 import { LegalLinks } from "@/components/LegalLinks";
 import { PalettePicker } from "@/components/PalettePicker";
 import { Logo } from "@/components/site/SiteHeader";
-import { startAnalytics, track } from "@/lib/analytics";
+import { startAnalytics, track, setPageProps } from "@/lib/analytics";
 import type { CategoryId, Orientation, Project } from "@/lib/types";
 
 type View = Orientation | "both";
@@ -76,8 +76,16 @@ export default function Editor() {
         setProject(proj);
         setView(proj.orientation);
         setPlaying(true); // start on a moving invite, not a blank first frame
+        // The studio step of the funnel, and the design on every later studio event.
+        setPageProps({ template_id: proj.templateId });
+        track("studio_opened", { template_id: proj.templateId, has_design_param: !!want, has_draft: !!p, has_names: !!names });
       })
-      .catch(() => setProject(defaultProject(TEMPLATES[0].id)));
+      .catch(() => {
+        const proj = defaultProject(TEMPLATES[0].id); // no IndexedDB (private mode): a fresh invite
+        setProject(proj);
+        setPageProps({ template_id: proj.templateId });
+        track("studio_opened", { template_id: proj.templateId, has_design_param: false, has_draft: false, has_names: false });
+      });
   }, []);
 
   useEffect(() => {
@@ -177,7 +185,15 @@ export default function Editor() {
   }, [togglePlay, total]);
 
   const update = (patch: Partial<Project>) => setProject((p) => (p ? { ...p, ...patch } : p));
-  const setField = (key: string, value: any) => setProject((p) => (p ? { ...p, data: { ...p.data, [key]: value } } : p));
+  const edited = useRef(false);
+  const setField = (key: string, value: any) => {
+    // The first change of the visit: this visitor is making an invite, not only looking (the key, never the value).
+    if (!edited.current && project) {
+      edited.current = true;
+      track("invite_edit_started", { template_id: project.templateId, field: key });
+    }
+    setProject((p) => (p ? { ...p, data: { ...p.data, [key]: value } } : p));
+  };
 
   const chooseView = (v: View) => {
     setView(v);
@@ -187,6 +203,7 @@ export default function Editor() {
   const chooseTemplate = (id: string, source: "sidebar" | "gallery") => {
     if (!project || id === project.templateId) return;
     track("template_selected", { template_id: id, source });
+    setPageProps({ template_id: id });
     setProject(defaultProject(id, project));
     setT(0);
     setPlaying(true);

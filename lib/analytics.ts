@@ -7,7 +7,13 @@
    queued in order. Off unless MIXPANEL_TOKEN is set (production deploys, see next.config.mjs).
 
    Nobody signs in, so everyone is an anonymous device: no identify(), and no names, emails or phone
-   numbers. Guest pages also drop the URL and page title, which carry the couple's names.
+   numbers. Guest pages also drop the URL and page title, which carry the couple's names. A link is known here
+   only by its invite_id (a hash, lib/inviteId.ts); the address itself is in the private link record
+   (lib/server/links.ts, /admin/links), which stores the same invite_id so the two can be matched.
+
+   Every event carries `source` (where this visit came from: google, chatgpt, whatsapp, invite, direct...) and
+   `first_source` (where the device first came from), see trafficSource(). Devices that have opened /admin carry
+   is_internal: true, and automated browsers send nothing.
 
    Ad measurement (Meta Pixel) rides on the same events: track() also sends the few that matter to Meta
    (see META below). The pixel runs on the site pages only (startPixel, from <MetaPixel> in the root
@@ -21,8 +27,15 @@ import { priceOf } from "./pricing";
 
 /** The tracking plan. Names are snake_case and fixed: never build an event or property name at runtime. */
 type Events = {
+  /** The studio (/create) finished loading a project. has_design_param: arrived with a chosen design
+      (?template=); has_draft: this browser had a saved invite; has_names: names typed on the site came along. */
+  studio_opened: { template_id: string; has_design_param: boolean; has_draft: boolean; has_names: boolean };
+  /** The first field the couple changed in this studio visit (the field's key, never its content). */
+  invite_edit_started: { template_id: string; field: string };
   template_selected: { template_id: string; source: "sidebar" | "gallery" | "template_page" };
   share_dialog_opened: { template_id: string };
+  /** Get link did not produce a link: media upload or link creation failed (stage). */
+  invite_link_failed: { template_id: string; stage: "upload" | "create" };
   /** The value moment: the couple has a link guests can open. */
   invite_link_created: {
     invite_id: string;
@@ -35,12 +48,17 @@ type Events = {
     photo_count: number;
     has_video: boolean;
     duration_seconds: number;
+    price_inr: number; // what removing the watermark costs for this design (0 = free design)
+    is_free: boolean;
+    sample_field_count: number; // date / venue fields still holding the template's sample
   };
   /** The couple changed their invite and published it again to the link they already had (no new link). */
   invite_link_updated: { invite_id: string; template_id: string };
   /** "Export MP4" (only where export is on: the hosted site hides it and doesn't mention video). */
   video_export_clicked: { is_available: boolean };
   payment_started: { invite_id: string; amount_inr: number };
+  /** Razorpay Checkout is on screen (the order exists). Started without opened = the order or Checkout failed. */
+  checkout_opened: { invite_id: string; amount_inr: number };
   payment_completed: { invite_id: string; amount_inr: number };
   payment_cancelled: { invite_id: string };
   payment_failed: { invite_id: string };
@@ -49,9 +67,12 @@ type Events = {
   /** A guest watched to the end (once per visit). */
   invite_watched: {};
   invite_shared: { channel: "whatsapp" | "native_share" | "copy"; invite_id?: string };
-  /** A guest used the card at the end of an invite (app/e/[slug]/GuestDetails.tsx). */
-  guest_action_clicked: { action: "calendar" | "directions" | "rsvp" };
+  /** A guest used the card at the end of an invite (app/e/[slug]/GuestDetails.tsx), or "Make your own invitation". */
+  guest_action_clicked: { action: "calendar" | "directions" | "rsvp" | "make_own" };
+  /** The couple's sheet (remove watermark, share) came up: by itself on the cover or at the end, or from their bar. */
+  owner_sheet_opened: { trigger: "cover" | "end" | "bar" };
 };
+/* `payment_confirmed` is NOT here: the server sends it, once per payment (lib/server/mixpanel.ts). */
 
 type Surface = "site" | "editor" | "guest_page";
 /** Registered on every event of the page: which page it came from and, on a guest page, which invite and whether
@@ -65,12 +86,105 @@ const blacklist = (surface: Surface) => (surface === "guest_page" ? ["$current_u
 
 let sdk: Promise<Mixpanel | null> | null = null;
 
+/* ---- where the visitor came from ---- */
+
+const SRC_VISIT = "fp.src"; // sessionStorage: this visit
+const SRC_FIRST = "fp.src1"; // localStorage: the first visit ever on this device
+const INTERNAL = "fp.internal"; // localStorage: this device has opened /admin
+const store = (kind: "local" | "session") => {
+  try {
+    return kind === "local" ? localStorage : sessionStorage;
+  } catch {
+    return null; // private mode or blocked storage
+  }
+};
+
+/**
+ * One readable word for where a visit came from: the link's utm_source if it has one (ChatGPT adds
+ * utm_source=chatgpt.com to the links it gives; our guest pages add utm_source=invite), else the site that linked
+ * here. Known names are folded together (google.co.in and google.com are "google"); anything else is the tag or the
+ * domain itself; no tag and no other site = "direct" (typed, a bookmark, or an app that hides where it came from,
+ * as WhatsApp does).
+ */
+export function trafficSource(search: string, referrer: string, host: string): string {
+  const utm = (new URLSearchParams(search).get("utm_source") || "").trim().toLowerCase();
+  let ref = "";
+  try {
+    ref = referrer ? new URL(referrer).hostname.toLowerCase() : "";
+  } catch {}
+  const s = utm || (ref && ref !== host.toLowerCase() ? ref : "");
+  if (!s) return "direct";
+  const known: [RegExp, string][] = [
+    [/chatgpt|openai/, "chatgpt"],
+    [/perplexity/, "perplexity"],
+    [/gemini|bard\./, "gemini"],
+    [/copilot/, "copilot"],
+    [/claude\.ai|anthropic/, "claude"],
+    [/(^|\.)google\.|^google$/, "google"],
+    [/(^|\.)bing\.|^bing$/, "bing"],
+    [/duckduckgo/, "duckduckgo"],
+    [/yahoo/, "yahoo"],
+    [/whatsapp|^wa\.me$/, "whatsapp"],
+    [/instagram/, "instagram"],
+    [/facebook|^fb\.|(^|\.)fb\.com$|^meta$/, "facebook"],
+    [/youtube|youtu\.be/, "youtube"],
+    [/^t\.co$|twitter|(^|\.)x\.com$/, "x"],
+    [/linkedin|lnkd\.in/, "linkedin"],
+    [/telegram|^t\.me$/, "telegram"],
+  ];
+  return (known.find(([re]) => re.test(s))?.[1] ?? s.replace(/[^\w.:-]/g, "").slice(0, 40)) || "other";
+}
+
+/** This visit's source and the device's first one, remembered so later pages of the visit (and the link record
+    made at the end of it) keep them. A page that arrives with its own utm_source starts a new visit source. */
+function sources(): { visit: string; first: string } {
+  if (typeof window === "undefined") return { visit: "direct", first: "direct" };
+  const session = store("session");
+  const local = store("local");
+  const tagged = new URLSearchParams(location.search).has("utm_source");
+  let visit = tagged ? null : session?.getItem(SRC_VISIT) ?? null;
+  if (!visit) {
+    visit = trafficSource(location.search, document.referrer, location.hostname);
+    try {
+      session?.setItem(SRC_VISIT, visit);
+    } catch {}
+  }
+  let first = local?.getItem(SRC_FIRST) ?? null;
+  if (!first) {
+    first = visit;
+    try {
+      local?.setItem(SRC_FIRST, first);
+    } catch {}
+  }
+  return { visit, first };
+}
+
+/** True on a device that has opened /admin (components/MarkInternal.tsx): the owner's own testing. */
+export const isInternal = () => store("local")?.getItem(INTERNAL) === "1";
+export function markInternal() {
+  try {
+    store("local")?.setItem(INTERNAL, "1");
+  } catch {}
+}
+
+/** What POST /api/share stores with a new link's record: where its maker came from, and whether it is a test. */
+export const visitorOrigin = () => {
+  const { visit, first } = sources();
+  return { source: first, visit_source: visit, internal: isInternal() };
+};
+
+/** An automated browser (crawlers that run scripts, screenshot and monitoring services): not a visitor. */
+const automated = () => typeof navigator !== "undefined" && navigator.webdriver === true;
+
 /**
  * Loads Mixpanel once and records a page view. Called again after a client-side navigation to another kind
  * of page (site → editor), it switches the super properties over to the new page.
  */
 export function startAnalytics(surface: Surface, props: Super = {}) {
-  if (!MIXPANEL_TOKEN) return;
+  // Before anything else: the editor strips its query string right after this call, and the link record wants the
+  // source even where Mixpanel is off.
+  const src = sources();
+  if (!MIXPANEL_TOKEN || automated()) return;
   // Read now: the editor strips its query string right after this call (its effect runs first).
   const q = new URLSearchParams(location.search);
   sdk ??= import("mixpanel-browser/src/loaders/loader-module-core")
@@ -91,9 +205,23 @@ export function startAnalytics(surface: Surface, props: Super = {}) {
     for (const k of PAGE_KEYS) if (props[k] === undefined) mp.unregister(k);
     // An ad's tags stay on every later event (editor, payment) and visit, until a link with other tags arrives.
     if (UTM.some((k) => q.get(k))) for (const k of UTM) q.get(k) ? mp.register({ [k]: q.get(k) }) : mp.unregister(k);
-    mp.register(present({ surface, ...props }));
+    mp.register(present({ surface, source: src.visit, is_internal: isInternal() || undefined, ...props }));
+    mp.register_once({ first_source: src.first });
     mp.track_pageview(); // after register, so the page view carries the super properties too
   });
+}
+
+/** More about the page for every later event, once it is known (the editor learns its design after loading). */
+export function setPageProps(props: Super) {
+  sdk?.then((mp) => mp?.register(present(props)));
+}
+
+/** This browser's anonymous Mixpanel id, for the server's `payment_confirmed` (lib/server/mixpanel.ts). Null when
+    Mixpanel is off, blocked or still loading after a moment: Checkout must never wait on analytics. */
+export function deviceId(): Promise<string | null> {
+  if (!sdk) return Promise.resolve(null);
+  const id = sdk.then((mp) => (mp?.get_distinct_id?.() as string | undefined) ?? null).catch(() => null);
+  return Promise.race([id, new Promise<null>((r) => setTimeout(() => r(null), 700))]);
 }
 
 /** The public site pages: not the editor, a guest's invite, the headless export pages or /admin. */
@@ -198,19 +326,5 @@ export function gaPageView() {
 /** Mixpanel wants a missing property left out, not sent as null or "". */
 const present = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null && v !== ""));
 
-/**
- * A stable id for an invite that does not show the couple's names (its link name does), so reports can
- * join a link's creation, its guests' views and its payment. cyrb53, base 36.
- */
-export function inviteId(name: string) {
-  let h1 = 0xdeadbeef;
-  let h2 = 0x41c6ce57;
-  for (let i = 0; i < name.length; i++) {
-    const c = name.charCodeAt(i);
-    h1 = Math.imul(h1 ^ c, 2654435761);
-    h2 = Math.imul(h2 ^ c, 1597334677);
-  }
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
-}
+/** The invite's id in Mixpanel (a hash of its link name): lib/inviteId.ts. */
+export { inviteId } from "./inviteId";
