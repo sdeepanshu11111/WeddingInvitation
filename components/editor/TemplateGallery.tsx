@@ -2,7 +2,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import { LazyPreview } from "@/components/LivePreview";
 import { CATEGORIES, COMMUNITIES, countIn, filterTemplates, type Filter } from "@/lib/catalog";
-import { TEMPLATES } from "@/lib/templates";
+import { DESIGNS } from "@/lib/templates";
+import { baseOf } from "@/lib/variants";
 import type { Orientation } from "@/lib/types";
 
 export function TemplateGallery({
@@ -21,7 +22,7 @@ export function TemplateGallery({
   const [f, setF] = useState<Filter>({ category: "all", community: "all", q: "", ...initial });
   const [hover, setHover] = useState<string | null>(null);
   const [o, setO] = useState<Orientation>(orientation);
-  const list = filterTemplates(TEMPLATES, f);
+  const list = filterTemplates(DESIGNS, f);
   const search = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
@@ -37,7 +38,7 @@ export function TemplateGallery({
         <div>
           <h2>Templates</h2>
           <p>
-            {TEMPLATES.length} designs for every function. Hover a card to play it.
+            {DESIGNS.length} designs for every function. Hover a card to play it.
           </p>
         </div>
         <input ref={search} className="input" placeholder="Search: haldi, south indian, nikah, gold..." value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} style={{ maxWidth: 320 }} />
@@ -57,7 +58,7 @@ export function TemplateGallery({
       <div className="cat-tabs" role="tablist">
         {(["all", ...CATEGORIES.map((c) => c.id)] as const).map((id) => {
           const c = CATEGORIES.find((x) => x.id === id);
-          const n = countIn(TEMPLATES, id);
+          const n = countIn(DESIGNS, id);
           return (
             <button key={id} role="tab" aria-selected={f.category === id} className={"cat-tab" + (f.category === id ? " on" : "")} onClick={() => setF({ ...f, category: id })} title={c?.blurb}>
               <span>{c ? c.label : "All"}</span>
@@ -81,7 +82,7 @@ export function TemplateGallery({
         {list.map((t) => (
           <button
             key={t.id}
-            className={"g-card" + (t.id === current ? " on" : "")}
+            className={"g-card" + (t.id === baseOf(current) ? " on" : "")}
             onMouseEnter={() => setHover(t.id)}
             onMouseLeave={() => setHover((h) => (h === t.id ? null : h))}
             onFocus={() => setHover(t.id)}
@@ -90,7 +91,7 @@ export function TemplateGallery({
             <div className={"g-prev " + o}>
               <LazyPreview t={t} orientation={o} active={hover === t.id} />
               {t.isNew ? <span className="badge-new">NEW</span> : null}
-              {t.id === current ? <span className="badge-cur">In use</span> : null}
+              {t.id === baseOf(current) ? <span className="badge-cur">In use</span> : null}
             </div>
             <div className="g-meta">
               <b>{t.name}</b>

@@ -56,6 +56,15 @@ export default function Privacy() {
             : "We receive and keep only the order ID, payment ID, amount, time and the invitation the payment was for."}{" "}
           We never see or store your full card or bank details.
         </li>
+        {LEADS ? (
+          <li>
+            <b>Reviews</b>: your invitation page (on the device you made it on) lets you rate your invitation. It is optional. If you do, we keep
+            your rating, what you wrote, the name and city you typed and which invitation it is about. We show the rating, the words, that name
+            and city on our website only if you tick the box to allow it, and only after we have read it; never the invitation&rsquo;s link.
+            Ask us at any time and we will take it down or delete it. If a customer sends us feedback by message, we show it only with their
+            permission.
+          </li>
+        ) : null}
         <li>
           <b>Messages to us</b>: if you email us, we keep your email address and what you write so we can reply.
         </li>
@@ -103,6 +112,12 @@ export default function Privacy() {
           <b>Visit counts</b>: our hosting provider&rsquo;s Web Analytics (Vercel) counts page views on our website pages and in the editor. It
           sets no cookies and records the page address, the referring site, your browser and device type and your country. It is not used on
           invitation pages.
+        </li>
+        <li>
+          <b>Designs for your state</b>: to show designs written in your language first, our website pages use the approximate Indian state your
+          connection comes from (our hosting provider, Vercel, works it out from your IP address) and your phone&rsquo;s language setting. Only the
+          state code is kept, in a cookie on your device for a week, and the state you pick on the designs page is remembered in your browser. We
+          do not store either on our side. The guessed state only changes which designs are shown first.
         </li>
         <li>
           <b>Server logs</b>: our hosting provider keeps standard technical logs (IP address, browser, pages requested, time) for security and to keep
@@ -153,7 +168,8 @@ export default function Privacy() {
       <h2>5. Cookies and your choices</h2>
       <p>
         We use your browser&rsquo;s storage to autosave the invitation you are editing, to remember the invitation links you made on that
-        device (a random key, so your invitation page shows you its owner options) and to keep the anonymous analytics ID
+        device (a random key, so your invitation page shows you its owner options), to remember the state you picked for designs (and, in a
+        cookie, the approximate state your connection comes from; see section 2) and to keep the anonymous analytics ID
         {LEADS ? " and the WhatsApp number or email you last entered, so you don't have to type it again" : ""}. Google Analytics, and
         advertising tools such as {META_PIXEL_ID ? "the Meta Pixel and " : ""}Google AdSense, may set cookies. You can clear or block cookies and site data in your browser settings at any time; the editor still works, but
         an unsaved draft on that device will be lost. You can control{" "}

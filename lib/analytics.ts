@@ -27,12 +27,17 @@ import { priceOf } from "./pricing";
 
 /** The tracking plan. Names are snake_case and fixed: never build an event or property name at runtime. */
 type Events = {
+  /** A visitor tapped a state on /templates ("Wedding in which state?"): a region id from lib/regions.ts, or "all". */
+  state_selected: { state: string };
+  /** The couple rated their invite in the owner sheet (app/api/review). The stars only: never the words or names. */
+  review_submitted: { rating: number; has_text: boolean; is_public: boolean };
   /** The studio (/create) finished loading a project. has_design_param: arrived with a chosen design
       (?template=); has_draft: this browser had a saved invite; has_names: names typed on the site came along. */
   studio_opened: { template_id: string; has_design_param: boolean; has_draft: boolean; has_names: boolean };
   /** The first field the couple changed in this studio visit (the field's key, never its content). */
   invite_edit_started: { template_id: string; field: string };
-  template_selected: { template_id: string; source: "sidebar" | "gallery" | "template_page" };
+  /** language: the studio's Language row switched the design to another language version (lib/variants.ts). */
+  template_selected: { template_id: string; source: "sidebar" | "gallery" | "template_page" | "language" };
   share_dialog_opened: { template_id: string };
   /** Get link did not produce a link: media upload or link creation failed (stage). */
   invite_link_failed: { template_id: string; stage: "upload" | "create" };

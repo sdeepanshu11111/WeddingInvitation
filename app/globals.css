@@ -591,6 +591,16 @@ li.lead.out { opacity: 0.6; }
 .lead-meta .stop { color: var(--danger); }
 .lead-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .lead-actions a.btn { text-decoration: none; }
+.admin-note { margin: -6px 0 14px; color: var(--muted); font-size: 13px; }
+.rv-stars { color: #c98a1a; letter-spacing: 1px; }
+li.review.hidden { opacity: 0.6; }
+.rv-text { margin: 8px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
+.rv-text.dim, .lead-top .dim { color: var(--muted); font-weight: 400; }
+.add-review { margin-bottom: 14px; }
+.add-review-form { display: grid; gap: 8px; margin-bottom: 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
+.add-review-form .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
+.add-review-form .check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
+.add-review-form .stop { margin: 0; color: var(--danger); }
 
 /* ---------- template page (/templates/<id>): colour picker under the preview ----------
    Kept here, not in site.css: each option shows the palette's real colours and its name, with a 44px+ target. */
@@ -617,7 +627,12 @@ li.lead.out { opacity: 0.6; }
 .looks .pal-opt, .looks-m .pal-opt { flex: 0 0 auto; min-width: 120px; background: var(--panel); }
 .looks-m { margin-bottom: 18px; }
 .looks-m .pal-opts { margin: 0 -14px; padding: 8px 14px 2px; }
-@media (max-width: 860px) { .looks { display: none; } }
+.lang-opts { display: flex; gap: 6px; max-width: 100%; overflow-x: auto; scrollbar-width: none; padding: 8px 8px 2px; }
+.lang-opts::-webkit-scrollbar { display: none; }
+.lang-opt { flex: 0 0 auto; min-height: 36px; padding: 6px 13px; border: 1px solid var(--line); border-radius: 99px; background: var(--panel); color: var(--text); font-size: 14px; line-height: 1.3; }
+.lang-opt.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); color: var(--accent); font-weight: 600; }
+.looks-m .lang-opts { margin: 0 -14px 4px; padding: 8px 14px 2px; }
+@media (max-width: 860px) { .looks { display: none; } .lang-opt { font-size: 16px; } }
 
 /* Studio form: says that tapping a field shows it in the preview */
 .field-hint { margin: 0; padding: 12px 16px 2px; color: var(--muted); font-size: 12.5px; }
@@ -720,7 +735,18 @@ li.lead.out { opacity: 0.6; }
 .os-save { height: 44px; padding: 0 18px; border-radius: 12px; }
 .owner-sheet .os-note { margin-top: 8px; color: rgba(236, 232, 227, 0.55); font-size: 12.5px; }
 .owner-sheet .os-note.bad { color: #e2766b; }
-.os-contact.saved { color: #7fc8a0; font-size: 14px; }
+.os-contact.saved, .os-review.saved { color: #7fc8a0; font-size: 14px; }
+.os-review { margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: grid; gap: 10px; }
+.os-review .os-label { margin-bottom: 0; }
+.os-stars { display: flex; gap: 4px; }
+.os-stars button { width: 44px; height: 44px; padding: 0; border: 0; background: none; color: rgba(255, 255, 255, 0.22); font-size: 32px; line-height: 1; cursor: pointer; }
+.os-stars button.on { color: #f2b544; }
+.os-area { height: auto; padding: 10px 12px; resize: vertical; font-family: inherit; line-height: 1.4; }
+.os-review-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.os-check { display: flex; gap: 10px; align-items: flex-start; color: rgba(236, 232, 227, 0.85); font-size: 13.5px; line-height: 1.4; }
+.os-check input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: #d9b77c; }
+.os-review .os-save { justify-self: start; }
+.owner-sheet .os-review .os-note { margin-top: 0; }
 
 /* ================================================================== *
  * Invite page, interactive (app/e/[slug]/LiveInvite.tsx + GuestDetails.tsx): story-style segments and

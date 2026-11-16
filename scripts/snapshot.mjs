@@ -4,7 +4,7 @@
  * at its "settled" moment, filled with generated demo photos.
  *
  *   npm run dev            (in another terminal)
- *   node scripts/snapshot.mjs [outDir] [--only=template-id] [--palette=id]
+ *   node scripts/snapshot.mjs [outDir] [--only=template-id[,id2|pattern-*]] [--palette=id]
  *
  * Handy for QA after editing a template, and for marketing thumbnails.
  */
@@ -14,7 +14,10 @@ import path from "node:path";
 
 const args = process.argv.slice(2);
 const outDir = path.resolve(args.find((a) => !a.startsWith("--")) || "snapshots");
-const only = args.find((a) => a.startsWith("--only="))?.split("=")[1];
+// --only=id, or several (a,b), or a pattern with * (haldi-marigold-*, *-tamil)
+const only = args.find((a) => a.startsWith("--only="))?.split("=")[1]?.split(",");
+// Template ids are a-z, 0-9 and hyphens only, so a pattern needs no escaping beyond * → .*
+const wanted = (id) => !only || only.some((p) => new RegExp("^" + p.split("*").join(".*") + "$").test(id));
 const palette = args.find((a) => a.startsWith("--palette="))?.split("=")[1];
 const origin = process.env.ORIGIN || "http://localhost:4321";
 const AT = 0.72; // how far into each scene to capture
@@ -29,7 +32,7 @@ try {
   await probe.close();
 
   for (const t of templates) {
-    if (only && t.id !== only) continue;
+    if (!wanted(t.id)) continue;
     for (const orientation of ["vertical", "horizontal"]) {
       const W = orientation === "vertical" ? 1080 : 1920;
       const H = orientation === "vertical" ? 1920 : 1080;

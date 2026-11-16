@@ -12,7 +12,8 @@ import { PAYMENTS } from "@/lib/features";
 import { FREE_COUNT, PRICE_MIN, PRICE_RANGE } from "@/lib/pricing";
 import { SITE_URL } from "@/lib/site";
 import { pageMeta } from "@/lib/seo";
-import { TEMPLATES } from "@/lib/templates";
+import { DESIGNS } from "@/lib/templates";
+import { type ReviewSummary, publicReviews } from "@/lib/server/reviews";
 
 const HOST = SITE_URL.replace(/^https?:\/\//, "");
 
@@ -22,17 +23,28 @@ export const metadata: Metadata = pageMeta(
   "/",
 );
 
-export default function Home() {
+/* Re-rendered at most hourly, and at once when a review is approved, hidden or deleted (app/api/admin/reviews):
+   the hero shows real, approved reviews (lib/server/reviews.ts). */
+export const revalidate = 3600;
+
+/** The approved reviews, or none if the database is slow or down: the home page never waits long or fails for them. */
+async function heroReviews(): Promise<ReviewSummary> {
+  const none: ReviewSummary = { reviews: [], count: 0, average: null };
+  return Promise.race([publicReviews().catch(() => none), new Promise<ReviewSummary>((r) => setTimeout(() => r(none), 4000))]);
+}
+
+export default async function Home() {
+  const reviews = await heroReviews();
   return (
     <div className="site">
       <AdSense />
       <SiteHeader />
-      <Hero />
+      <Hero reviews={reviews} />
 
       {/* ---------- what you get, in numbers that are true today (one row on phones) ---------- */}
       <section className="proof" aria-label="At a glance">
         <div>
-          <b>{TEMPLATES.length}</b>
+          <b>{DESIGNS.length}</b>
           <span>animated designs</span>
         </div>
         <div>

@@ -2,7 +2,7 @@ import React from "react";
 import type { Scene, TemplateDef } from "../types";
 import { E, fade, mix, rise, tw } from "../anim";
 import { Layer } from "@/components/primitives";
-import { DateBlock, Headline, Kicker, PhotoCircle, VenueBlock, lines } from "@/components/blocks";
+import { DateBlock, Headline, Kicker, PhotoCircle, VenueBlock, fitSize, indic, lines } from "@/components/blocks";
 import { Beams, Confetti, Equalizer, Notes, Sparkles } from "@/components/indian";
 
 /* Sangeet — Bollywood party night: spotlights, neon type, equaliser, confetti. */
@@ -23,11 +23,11 @@ export const sangeetNight: TemplateDef = {
     { id: "disco", name: "Disco Pink", ink: "#FFFFFF", soft: "#FFD1E8", accent: "#FFE066", bg: "#7A0F5C", bg2: "#2B0A3D", line: "#FF7AC6" },
     { id: "sunset", name: "Sunset Party", ink: "#FFF5EC", soft: "#FFD1B3", accent: "#FFEA5C", bg: "#C2381F", bg2: "#5E1846", line: "#FFB86B" },
   ],
-  thumb: (p) => (
+  thumb: (p, label) => (
     <div style={{ width: "100%", height: "100%", background: "linear-gradient(180deg," + p.bg2 + "," + p.bg + ")", display: "grid", placeItems: "center", position: "relative", overflow: "hidden" }}>
       <div style={{ position: "absolute", top: -10, left: 4, width: 26, height: 100, background: "linear-gradient(" + p.accent + "88, transparent)", transform: "rotate(-18deg)" }} />
       <div style={{ position: "absolute", top: -10, right: 4, width: 26, height: 100, background: "linear-gradient(" + p.line + "88, transparent)", transform: "rotate(18deg)" }} />
-      <span style={{ fontFamily: "var(--f-rozha)", color: p.ink, fontSize: 17, textShadow: "0 0 8px " + p.accent, position: "relative" }}>संगीत</span>
+      <span style={{ fontFamily: label?.font ?? "var(--f-rozha)", color: p.ink, fontSize: label ? 15 : 17, textShadow: "0 0 8px " + p.accent, position: "relative", textAlign: "center", lineHeight: 1.3 }}>{label?.text ?? "संगीत"}</span>
     </div>
   ),
   groups: [
@@ -125,8 +125,8 @@ export const sangeetNight: TemplateDef = {
                       style={{
                         fontFamily: theme.fontDisplay,
                         color: i % 2 ? theme.accent : theme.ink,
-                        fontSize: S(240, 230),
-                        lineHeight: 1,
+                        fontSize: fitSize(theme, w, S(240, 230), S(900, 760)),
+                        lineHeight: indic(theme, w) ? 1.3 : 1,
                         textShadow: glow(i % 2 ? theme.accent : theme.line),
                         opacity: Math.min(1, p * 1.4) * flick,
                         transform: "scale(" + mix(p, 2.2, 1).toFixed(3) + ") rotate(" + mix(p, i % 2 ? 12 : -12, i % 2 ? 3 : -3).toFixed(2) + "deg)",
@@ -154,9 +154,9 @@ export const sangeetNight: TemplateDef = {
             ) : null}
             <div style={{ textAlign: "center" }}>
               {data.localTitle ? (
-                <div style={{ fontFamily: theme.fontDisplay, color: theme.accent, fontSize: S(110, 110), textShadow: glow(theme.accent), ...rise(t, { start: 200, dur: 900 }) }}>{data.localTitle}</div>
+                <div style={{ fontFamily: theme.fontDisplay, color: theme.accent, fontSize: fitSize(theme, data.localTitle, S(110, 110), S(900, 1000)), textShadow: glow(theme.accent), ...rise(t, { start: 200, dur: 900 }) }}>{data.localTitle}</div>
               ) : null}
-              <div style={{ fontFamily: theme.fontDisplay, color: theme.ink, fontSize: S(150, 160), lineHeight: 1.05, textShadow: glow(theme.line), ...rise(t, { start: 600, dur: 1100, dist: 60 }) }}>{data.title}</div>
+              <div style={{ fontFamily: theme.fontDisplay, color: theme.ink, fontSize: fitSize(theme, data.title, S(150, 160), S(900, 1000)), lineHeight: indic(theme, data.title) ? 1.45 : 1.05, textShadow: glow(theme.line), ...rise(t, { start: 600, dur: 1100, dist: 60 }) }}>{data.title}</div>
               <Kicker t={t} theme={theme} v={v} start={1300} size={30} color={theme.soft} style={{ marginTop: S(40, 30) }}>
                 Celebrating
               </Kicker>
@@ -235,7 +235,7 @@ export const sangeetNight: TemplateDef = {
                     Dress code · {data.dressCode}
                   </Kicker>
                 ) : null}
-                <div style={{ fontFamily: theme.fontDisplay, color: theme.ink, fontSize: S(130, 130), lineHeight: 1.1, marginTop: S(40, 30), textShadow: glow(theme.accent), ...rise(t, { start: 500, dur: 1100, dist: 50 }) }}>
+                <div style={{ fontFamily: theme.fontDisplay, color: theme.ink, fontSize: fitSize(theme, data.closingLine, S(130, 130), S(840, 1400)), lineHeight: indic(theme, data.closingLine) ? 1.4 : 1.1, marginTop: S(40, 30), textShadow: glow(theme.accent), ...rise(t, { start: 500, dur: 1100, dist: 50 }) }}>
                   {data.closingLine}
                 </div>
                 {data.hashtag ? (

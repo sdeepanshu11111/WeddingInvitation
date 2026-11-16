@@ -2,7 +2,7 @@ import React from "react";
 import type { Scene, TemplateDef } from "../types";
 import { E, fade, mix, rise, tw } from "../anim";
 import { DiamondRule, Layer, Particles, Photo } from "@/components/primitives";
-import { DateBlock, Headline, Kicker, Schedule, VenueBlock, lines } from "@/components/blocks";
+import { DateBlock, Headline, Kicker, Schedule, VenueBlock, fitSize, lines } from "@/components/blocks";
 import { DecoFan, FairyLights } from "@/components/indian";
 
 /* Reception Gala — navy & gold art deco, fairy lights, evening programme. */
@@ -23,14 +23,14 @@ export const receptionGala: TemplateDef = {
     { id: "wine", name: "Wine", ink: "#FBEFF1", soft: "#D8AEB6", accent: "#EBC27F", bg: "#4C0F23", bg2: "#22060F", line: "#D9A86C" },
     { id: "ivory", name: "Ivory", ink: "#2A2622", soft: "#625A50", accent: "#97753A", bg: "#FAF7F1", bg2: "#ECE5D8", line: "#B8995C" },
   ],
-  thumb: (p) => (
+  thumb: (p, label) => (
     <div style={{ width: "100%", height: "100%", background: "linear-gradient(180deg," + p.bg + "," + p.bg2 + ")", display: "grid", placeItems: "center", position: "relative" }}>
       <div style={{ position: "absolute", top: 6, left: 0, right: 0, display: "flex", justifyContent: "space-around" }}>
         {[0, 1, 2, 3, 4].map((i) => (
           <span key={i} style={{ width: 4, height: 4, borderRadius: "50%", background: "#FFE7A3", boxShadow: "0 0 6px #FFE7A3", marginTop: Math.sin(i) * 4 + 4 }} />
         ))}
       </div>
-      <span style={{ fontFamily: "var(--f-bodoni)", color: p.accent, fontSize: 9, letterSpacing: "0.2em" }}>RECEPTION</span>
+      <span style={{ fontFamily: label?.font ?? "var(--f-bodoni)", color: p.accent, fontSize: label ? 14 : 9, letterSpacing: label ? 0 : "0.2em", textAlign: "center", lineHeight: 1.3 }}>{label?.text ?? "RECEPTION"}</span>
     </div>
   ),
   groups: [
@@ -116,7 +116,7 @@ export const receptionGala: TemplateDef = {
               </Kicker>
               <div style={{ marginTop: S(36, 26) }}>
                 {String(data.title || "").split(" ").map((w: string, i: number) => (
-                  <Headline key={i} t={t} theme={theme} v={v} start={1300 + i * 200} size={S(132, 130)} spacing="0.12em" lineHeight={1.1} style={{ textTransform: "uppercase" }}>
+                  <Headline key={i} t={t} theme={theme} v={v} start={1300 + i * 200} size={fitSize(theme, w, S(132, 130), S(840, 1400))} spacing="0.12em" lineHeight={1.1} style={{ textTransform: "uppercase" }}>
                     {w}
                   </Headline>
                 ))}

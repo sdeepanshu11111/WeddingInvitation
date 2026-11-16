@@ -11,11 +11,13 @@ import { CATEGORIES, countIn } from "@/lib/catalog";
 import { fmt } from "@/lib/anim";
 import { SIZES, buildTimeline, defaultProject, idbGet, idbSet, withNames } from "@/lib/project";
 import { takeStart } from "@/lib/start";
-import { TEMPLATES, getTemplate } from "@/lib/templates";
+import { DESIGNS, TEMPLATES, getTemplate } from "@/lib/templates";
 import { sceneForField } from "@/lib/fieldScene";
 import { VIDEO_EXPORT } from "@/lib/features";
 import { LegalLinks } from "@/components/LegalLinks";
+import { LanguagePicker, languageOptions } from "@/components/LanguagePicker";
 import { PalettePicker } from "@/components/PalettePicker";
+import { baseOf } from "@/lib/variants";
 import { Logo } from "@/components/site/SiteHeader";
 import { startAnalytics, track, setPageProps } from "@/lib/analytics";
 import type { CategoryId, Orientation, Project } from "@/lib/types";
@@ -200,7 +202,7 @@ export default function Editor() {
     if (v !== "both") update({ orientation: v });
   };
 
-  const chooseTemplate = (id: string, source: "sidebar" | "gallery") => {
+  const chooseTemplate = (id: string, source: "sidebar" | "gallery" | "language") => {
     if (!project || id === project.templateId) return;
     track("template_selected", { template_id: id, source });
     setPageProps({ template_id: id });
@@ -252,6 +254,9 @@ export default function Editor() {
   // Colours sit right under the preview: on the canvas on desktop, at the top of the Design panel on phones.
   const palNow = tpl.palettes.find((p) => p.id === project.paletteId) ?? tpl.palettes[0];
   const colours = <PalettePicker palettes={tpl.palettes} value={palNow.id} onChange={(id) => update({ paletteId: id })} />;
+  // Haldi, Mehendi, Sangeet, Reception and Engagement come in every state language too (lib/variants.ts).
+  const hasLanguages = languageOptions(project.templateId).length > 0;
+  const languages = <LanguagePicker templateId={project.templateId} onChange={(id) => chooseTemplate(id, "language")} />;
   const showBoth = view === "both" && !narrow; // side by side needs a wide screen
   const activeScene = [...main.slots].reverse().find((s) => T >= s.start) ?? main.slots[0];
 
@@ -362,22 +367,28 @@ export default function Editor() {
             Colours
           </div>
           {colours}
+          {hasLanguages ? (
+            <>
+              <div className="section-title">Language</div>
+              {languages}
+            </>
+          ) : null}
         </div>
         <button className="btn browse" onClick={() => { setPlaying(false); setGallery(true); }}>
-          ▦ Browse all {TEMPLATES.length} templates
+          ▦ Browse all {DESIGNS.length} templates
         </button>
         <div className="section-title">Categories</div>
         <div className="side-cats">
           {(["all", ...CATEGORIES.map((c) => c.id)] as (CategoryId | "all")[]).map((id) => (
             <button key={id} className={"side-cat" + (cat === id ? " on" : "")} onClick={() => setCat(id)}>
               {id === "all" ? "All" : CATEGORIES.find((c) => c.id === id)!.label}
-              <em>{countIn(TEMPLATES, id)}</em>
+              <em>{countIn(DESIGNS, id)}</em>
             </button>
           ))}
         </div>
         <div className="tpl">
-          {TEMPLATES.filter((t) => cat === "all" || t.categories.includes(cat)).map((t) => (
-            <button key={t.id} className={"tpl-card" + (t.id === project.templateId ? " on" : "")} onClick={() => chooseTemplate(t.id, "sidebar")}>
+          {DESIGNS.filter((t) => cat === "all" || t.categories.includes(cat)).map((t) => (
+            <button key={t.id} className={"tpl-card" + (t.id === baseOf(project.templateId) ? " on" : "")} onClick={() => chooseTemplate(t.id, "sidebar")}>
               <div className="tpl-thumb">{t.thumb(t.palettes[0])}</div>
               <div>
                 <div className="tpl-name">
@@ -429,6 +440,12 @@ export default function Editor() {
               Colours
             </span>
             {colours}
+            {hasLanguages ? (
+              <>
+                <span className="looks-label">Language</span>
+                {languages}
+              </>
+            ) : null}
           </div>
         </div>
 

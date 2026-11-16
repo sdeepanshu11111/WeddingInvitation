@@ -6,7 +6,7 @@ export { SIZES, FPS } from "./sizes";
 
 export function makeTheme(t: TemplateDef, paletteId: string): Theme {
   const p = t.palettes.find((x) => x.id === paletteId) ?? t.palettes[0];
-  return { ...p, fontDisplay: t.fonts.display, fontScript: t.fonts.script, fontBody: t.fonts.body };
+  return { ...p, fontDisplay: t.fonts.display, fontScript: t.fonts.script, fontBody: t.fonts.body, ...(t.lang ? { lang: t.lang } : null) };
 }
 
 export function defaultProject(templateId: string, prev?: Project): Project {

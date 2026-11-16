@@ -8,13 +8,18 @@ import { PAYMENTS } from "@/lib/features";
 import { priceOf } from "@/lib/pricing";
 import { sceneForField } from "@/lib/fieldScene";
 import { SIZES, type StartNames } from "@/lib/project";
-import { TEMPLATES } from "@/lib/templates";
+import { REGIONS, forRegion } from "@/lib/regions";
+import { DESIGNS, TEMPLATES } from "@/lib/templates";
 import type { CategoryId, TemplateDef } from "@/lib/types";
+import type { ReviewSummary } from "@/lib/server/reviews";
+import { HeroReviews, SHOW_AVERAGE_FROM } from "./HeroReviews";
 import { MobileCta } from "./MobileCta";
 import { NamesForm, useStartNames } from "./NamesForm";
+import { useRegion } from "./StatePicker";
 import { TemplateCard } from "./TemplateCard";
 
-/** The hero's designs, one per tradition, in the order they play. */
+/** The hero's designs, one per tradition, in the order they play. When the visitor's state is known (lib/regions.ts:
+    ?state= from an ad, their earlier pick, the phone's language or the connection), that state's own design leads. */
 const HERO_IDS = ["royal-mandala", "south-kalyanam", "nikah-mubarak", "anand-karaj", "haldi-marigold", "sangeet-night"];
 const HOLD_MS = 2600; // after a keystroke the preview stays on the names scene this long, then plays on
 
@@ -22,8 +27,13 @@ const HOLD_MS = 2600; // after a keystroke the preview stays on the names scene 
  * Home hero: the visitor types their names and watches them appear in a real, playing invitation, then carries them
  * (and the design) into the studio. Until they pick a design or type, the designs play one after another.
  */
-export function Hero() {
-  const list = useMemo(() => HERO_IDS.map((id) => TEMPLATES.find((t) => t.id === id)).filter(Boolean) as TemplateDef[], []);
+export function Hero({ reviews }: { reviews?: ReviewSummary }) {
+  const { region } = useRegion();
+  const list = useMemo(() => {
+    const first = region?.designs[0];
+    const ids = first ? [first, ...HERO_IDS.filter((id) => id !== first)].slice(0, HERO_IDS.length) : HERO_IDS;
+    return ids.map((id) => TEMPLATES.find((t) => t.id === id)).filter(Boolean) as TemplateDef[];
+  }, [region]);
   const [i, setI] = useState(0);
   const [chosen, setChosen] = useState(false); // picked a design or typed: stop cycling through designs
   const [mounted, setMounted] = useState(false);
@@ -48,6 +58,16 @@ export function Hero() {
         <h1>
           Your wedding invite, <em>beautifully animated.</em>
         </h1>
+        {/* The real average (lib/server/reviews.ts), only from 5 rated reviews; the quotes are under the button. */}
+        {reviews?.average && reviews.count >= SHOW_AVERAGE_FROM ? (
+          <p className="hero-rating">
+            <span className="hr-stars" aria-hidden>
+              {"★".repeat(Math.round(reviews.average))}
+              <i>{"★".repeat(5 - Math.round(reviews.average))}</i>
+            </span>{" "}
+            <b>{reviews.average.toFixed(1)}</b> from {reviews.count} couples who made their invite here
+          </p>
+        ) : null}
         <p className="lead">
           Your names, dates, photos and music on a page of its own that plays like a film. Send one link; it opens on any phone, no app needed.
         </p>
@@ -104,6 +124,8 @@ export function Hero() {
             )}
           </p>
         ) : null}
+        {/* Real reviews only (app/admin/reviews); renders nothing until one is approved. */}
+        {reviews ? <HeroReviews data={reviews} /> : null}
       </div>
 
       {/* The designs as real cards (each template's own thumbnail art), the playing one marked, and a way to all of them. */}
@@ -111,15 +133,17 @@ export function Hero() {
         <div className="picks-head">
           <b>Pick a design</b>
           <Link href="/templates">
-            See all {TEMPLATES.length} <Arrow />
+            See all {DESIGNS.length} <Arrow />
           </Link>
         </div>
         <div className="picks-row" role="radiogroup" aria-label="Design">
           {list.map((x, n) => {
             const on = n === i % list.length;
+            // Keyed by position: when the visitor's state reorders the list after mounting, moving the buttons would
+            // make the browser re-snap this scroll-snap row to the card it was on and hide the new first card.
             return (
               <button
-                key={x.id}
+                key={n}
                 role="radio"
                 aria-checked={on}
                 className={"pick" + (on ? " on" : "")}
@@ -137,7 +161,7 @@ export function Hero() {
             );
           })}
           <Link href="/templates" className="pick more">
-            <span className="pick-thumb">+{TEMPLATES.length - list.length}</span>
+            <span className="pick-thumb">+{DESIGNS.length - list.length}</span>
             <span className="pick-name">More designs</span>
           </Link>
         </div>
@@ -200,12 +224,19 @@ function HeroPlayer({ t, names, edited, onEnd }: { t: TemplateDef; names: StartN
   );
 }
 
-/** Home "Which function?" section: function tabs + the first eight matching cards (six on phones, see site.css).
-    Cards open the design's own page, with the visitor's names. */
+/** Home "Which function?" section: function tabs + the first eight matching cards (six on phones, see site.css),
+    the visitor's state's designs first when it is known. Cards open the design's own page, with the visitor's names.
+    Below: one link per state's language (/templates?state=), for visitors and for search engines. */
 export function Showcase() {
-  const tabs = (["all", ...CATEGORIES.map((c) => c.id)] as (CategoryId | "all")[]).filter((id) => countIn(TEMPLATES, id) > 0);
+  const tabs = (["all", ...CATEGORIES.map((c) => c.id)] as (CategoryId | "all")[]).filter((id) => countIn(DESIGNS, id) > 0);
   const [cat, setCat] = useState<CategoryId | "all">("all");
-  const list = TEMPLATES.filter((t) => cat === "all" || t.categories.includes(cat)).slice(0, 8);
+  const { region, picked } = useRegion();
+  const { own, rest } = forRegion(
+    TEMPLATES.filter((t) => cat === "all" || t.categories.includes(cat)),
+    region,
+    picked,
+  );
+  const list = [...own, ...rest].slice(0, 8);
   return (
     <>
       <div className="tabs" role="tablist">
@@ -222,9 +253,21 @@ export function Showcase() {
       </div>
       <div className="showcase-foot">
         <Link href={cat === "all" ? "/templates" : "/templates?category=" + cat} className="ghost-btn">
-          See all {countIn(TEMPLATES, cat)} {cat === "all" ? "designs" : CATEGORIES.find((c) => c.id === cat)!.label.toLowerCase() + " designs"} <Arrow />
+          See all {countIn(DESIGNS, cat)} {cat === "all" ? "designs" : CATEGORIES.find((c) => c.id === cat)!.label.toLowerCase() + " designs"} <Arrow />
         </Link>
       </div>
+      {/* prefetch off: eight dynamic pages would each cost a server call the moment this row scrolls into view. */}
+      <nav className="lang-links" aria-label="Wedding invitations by language">
+        <span className="mono-label">Wedding invitations in your language</span>
+        <div className="lang-row">
+          {(region ? [region, ...REGIONS.filter((r) => r.id !== region.id)] : REGIONS).map((r) => (
+            <Link key={r.id} href={"/templates?state=" + r.id} prefetch={false} className="chip-o">
+              {r.language}
+              <small lang={r.lang}>{r.native}</small>
+            </Link>
+          ))}
+        </div>
+      </nav>
     </>
   );
 }
@@ -236,9 +279,9 @@ export function DesignStack() {
     <div ref={ref} className={"mini-stack" + (seen ? " in" : "")}>
       <div className="mini-head">
         <span>Designs</span>
-        <b>{TEMPLATES.length}</b>
+        <b>{DESIGNS.length}</b>
       </div>
-      {TEMPLATES.slice(0, 5).map((t, n) => (
+      {DESIGNS.slice(0, 5).map((t, n) => (
         <div key={t.id} className="mini-row" style={{ transitionDelay: n * 70 + "ms" }}>
           <i style={{ background: "linear-gradient(135deg, " + t.palettes[0].bg + ", " + t.palettes[0].accent + ")" }} />
           {t.name}

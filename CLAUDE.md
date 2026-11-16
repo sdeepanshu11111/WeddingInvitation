@@ -248,7 +248,43 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   Route files may only export handlers and config, which is why `afterPayment` is not in `verify/route.ts`.
 - **Mixpanel stays name-free** (owner, 2026-11-16): the link's address is in the `links` record, matched by `invite_id`
   (`lib/inviteId.ts`, shared by browser and server). `source` / `first_source` on every event come from `trafficSource()`.
-- **Per-design prices** (2026-11-14, owner: some designs free, paid ones ₹30-600): `lib/pricing.ts` is the one table (`priceOf(id)`,
+- **Designs by state** (2026-11-16, `lib/regions.ts`): 8 regions (North India/Hindi, Punjab, Maharashtra, West Bengal, Tamil Nadu,
+  Andhra & Telangana, Karnataka, Kerala), each with its designs in its language. `/templates?state=<id>` is a page of its own (title,
+  canonical, sitemap); the picker (`components/site/StatePicker.tsx`, "Wedding in which state?") is under the heading. A **picked** state
+  (tap, or `?state=` in a link, e.g. an ad per state; remembered in `fp.state`) lists its designs first and hides designs written in
+  another state's language (`LOCAL`). A **guessed** one (phone language, else cookie `fp_geo`) only reorders, never hides: Indian
+  mobile IPs often resolve to a hub city. `middleware.ts` sets `fp_geo` from Vercel's `x-vercel-ip-country-region` on `/` and
+  `/templates…`, and its matcher runs only while the cookie is missing (`-` = no Indian state); everything else it matches is still
+  the admin gate. The home hero leads with the state's first design; the picks row is keyed by position (a scroll-snap row re-snaps when
+  buttons move). Language names use the phone's own fonts (no `--f-*` family: no download). `/privacy` section 2 describes it.
+  No region yet for Gujarat, Odisha, Assam or the North East: they need a design in their language first.
+- **Reviews: real ones only** (2026-11-17, owner asked for reviews in the hero; `lib/server/reviews.ts`). **Never write, seed or
+  "sample" a review** (invented reviews are an unfair trade practice under India's consumer protection rules, and the copy rule above).
+  Sources: the couple rates their own invite in the owner sheet once it has no watermark (`OwnerReview` in LiveInvite.tsx →
+  `POST /api/review`, owner key required, consent box never pre-ticked, asked once per link per device via `fp.reviewed`), or the owner
+  adds feedback a customer sent with their permission (`/admin/reviews`, words only, no stars, not in the average). Collection
+  `reviews` (LEADS store; `exports/reviews.json` locally). The site shows words only if `consent` AND approved on `/admin/reviews`
+  (`/api/admin/reviews`, revalidates `/`). The average counts every allowed invite rating, hidden ones too (hiding removes words, not
+  stars); it shows from 5 (`SHOW_AVERAGE_FROM`): a line under the hero headline. Quotes: `components/site/HeroReviews.tsx` under
+  the hero button, rotating; nothing renders without an approved review. The home page is ISR (`revalidate = 3600`) and reads
+  them with a 4 s cap so a slow database never blocks it. Public data carries no link name. `/privacy` section 1 describes it.
+- **Ritual versions** (2026-11-16, owner: "at least 5 per state, according to the state's rituals"): Haldi, Mehendi, Sangeet,
+  Reception and Engagement each have a version in all 8 state languages (40), named for the state's own ritual where it has one
+  (Gaye Holud, Bou Bhat, Ashirbad; Maiyan, Jaago, Mangni; Halad, Sakharpuda, Swagat; Nalangu, Nichayathartham, Varaverppu; Pasupu,
+  Gorintaku, Nischitartham, Vindu; Arishina Shastra, Madarangi, Aratakshate; Mylanchi, Vivaha Nischayam, Salkkaram). Ids
+  `<design>-<language>` (`lib/variants.ts`: `baseOf`, `languageOf`, `versionsOf`; dependency-free). Words, sample couples and places:
+  `lib/templates/languages.tsx`, one block per language, **not reviewed by native speakers yet**; built by `localize()`
+  (`lib/templates/localize.tsx`): same scenes and palettes, field defaults in the language, the script font appended AFTER the design's
+  fonts (Indic fonts also hold Latin), `variantOf` + `lang`. `theme.lang` (versions only) makes `Kicker` / `Headline` give Indic text
+  room for vowel signs, no tracking or slant, and `fitSize()` (blocks.tsx) shrinks a title's widest word to a pixel budget; the
+  originals render exactly as before. Registry: `DESIGNS` (the 23, for every list and count) and `TEMPLATES` (+ versions, for
+  lookups, sitemap and static pages). Versions show only on their state's page (`forRegion`: own designs + versions first, the
+  originals of shown versions hidden), in search, on `/templates/<id>` ("Language" links) and in the studio's Language row
+  (`components/LanguagePicker.tsx`; `template_selected` source `language`). Price = the design's (`priceOf` falls back to `baseOf`);
+  `inviteDetails` and `MAIN` use `baseOf`. A new version language = a block in `languages.tsx` + `LANGUAGES` + a region.
+  `scripts/snapshot.mjs --only=` takes lists and `*` patterns (`--only=*-tamil`).
+- **Per-design prices** (2026-11-14, owner: some designs free, paid ones ₹29-600; the floor went from ₹30 to ₹29 on 2026-11-16 when
+  Haldi, Mehendi and Polaroid dropped from ₹49 to ₹29): `lib/pricing.ts` is the one table (`priceOf(id)`,
   0 = free; unlisted = `LINK_PRICE_INR`). Dependency-free, so the server reads it without the templates. The amount charged is
   always the server's: `/api/pay/order` reads the link's `templateId` and charges `amountDue()` (price minus `Paid.covers`).
   `paid.json` now holds `covers` (rupees) and `payments`; one WITHOUT `covers` predates this and counts as paid in full. Moving a

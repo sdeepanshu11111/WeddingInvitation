@@ -15,7 +15,9 @@ import { sceneForField } from "@/lib/fieldScene";
 import { PAYMENTS } from "@/lib/features";
 import { priceOf } from "@/lib/pricing";
 import { SIZES, type StartNames } from "@/lib/project";
-import { TEMPLATES, getTemplate } from "@/lib/templates";
+import { languageOptions, useChosenInView } from "@/components/LanguagePicker";
+import { REGIONS } from "@/lib/regions";
+import { DESIGNS, TEMPLATES, getTemplate } from "@/lib/templates";
 import type { Orientation, TemplateDef } from "@/lib/types";
 
 const HOLD_MS = 2600; // after a keystroke the preview stays on the names scene this long
@@ -32,11 +34,17 @@ export function TemplateDetail({ id }: { id: string }) {
   const cats = t.categories.map((c) => CATEGORIES.find((x) => x.id === c)?.label).filter(Boolean);
   const coms = t.communities.map((c) => COMMUNITIES.find((x) => x.id === c)?.label).filter(Boolean);
   const fields = t.groups.flatMap((g) => g.fields);
-  const similar = TEMPLATES.filter((x) => x.id !== t.id)
-    .map((x) => ({ x, score: x.categories.filter((c) => t.categories.includes(c)).length * 2 + x.communities.filter((c) => t.communities.includes(c)).length }))
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 4)
-    .map((s) => s.x);
+  // A language version belongs to its state: more from that state, and the breadcrumb leads back to its page.
+  const region = t.variantOf ? REGIONS.find((r) => r.designs.includes(t.id)) : undefined;
+  const similar = region
+    ? region.designs.filter((x) => x !== t.id).map((x) => TEMPLATES.find((y) => y.id === x)!).filter(Boolean).slice(0, 4)
+    : DESIGNS.filter((x) => x.id !== t.id)
+        .map((x) => ({ x, score: x.categories.filter((c) => t.categories.includes(c)).length * 2 + x.communities.filter((c) => t.communities.includes(c)).length }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 4)
+        .map((s) => s.x);
+  const languages = languageOptions(t.id);
+  const langRow = useChosenInView(t.id);
   const create = "/create?template=" + t.id + "&palette=" + pal + "&o=" + o;
   const p = t.palettes.find((x) => x.id === pal) ?? t.palettes[0];
 
@@ -45,7 +53,7 @@ export function TemplateDetail({ id }: { id: string }) {
       <nav className="crumbs" aria-label="Breadcrumb">
         <Link href="/templates">← All designs</Link>
         <span aria-hidden> / </span>
-        <Link href={"/templates?category=" + t.categories[0]}>{cats[0]}</Link>
+        {region ? <Link href={"/templates?state=" + region.id}>{region.label}</Link> : <Link href={"/templates?category=" + t.categories[0]}>{cats[0]}</Link>}
       </nav>
 
       <section className="detail">
@@ -76,6 +84,18 @@ export function TemplateDetail({ id }: { id: string }) {
             </div>
           </div>
           <PalettePicker palettes={t.palettes} value={pal} onChange={setPal} />
+          {languages.length ? (
+            <nav className="detail-langs" aria-label="This design in other languages">
+              <span className="opt-label">Language</span>
+              <div className="lang-opts" ref={langRow}>
+                {languages.map((x) => (
+                  <Link key={x.id} href={"/templates/" + x.id} prefetch={false} lang={x.lang} className={"lang-opt" + (x.id === t.id ? " on" : "")} aria-current={x.id === t.id ? "page" : undefined}>
+                    {x.label}
+                  </Link>
+                ))}
+              </div>
+            </nav>
+          ) : null}
         </div>
 
         <div className="detail-copy">

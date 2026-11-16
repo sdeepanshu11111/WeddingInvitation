@@ -11,6 +11,7 @@ import { priceOf } from "@/lib/pricing";
 import { SITE_URL } from "@/lib/site";
 import { TEMPLATE_COPY } from "@/lib/templateCopy";
 import { TEMPLATES } from "@/lib/templates";
+import { VERSION_COPY } from "@/lib/templates/languages";
 import { TemplateDetail } from "./TemplateDetail";
 
 export const dynamicParams = false;
@@ -25,7 +26,7 @@ export function generateMetadata({ params }: { params: { id: string } }): Metada
 export default function TemplatePage({ params }: { params: { id: string } }) {
   const t = TEMPLATES.find((x) => x.id === params.id);
   if (!t) notFound();
-  const copy = TEMPLATE_COPY[t.id];
+  const copy = TEMPLATE_COPY[t.id] ?? VERSION_COPY[t.id];
   const price = priceOf(t.id);
   // schema.org Product: lets search engines and assistants state what this page offers and what it costs.
   const ld = {

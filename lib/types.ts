@@ -39,7 +39,9 @@ export type Palette = {
   line: string;     // rules + ornament strokes
 };
 
-export type Theme = Palette & { fontDisplay: string; fontScript: string; fontBody: string };
+/** lang: set only for a language version (TemplateDef.lang). Then text in an Indian script gets room for its vowel
+    signs and no wide letter-spacing or slant (components/blocks.tsx); the original designs are drawn exactly as before. */
+export type Theme = Palette & { fontDisplay: string; fontScript: string; fontBody: string; lang?: string };
 
 /* ------------------------------------------------------------------ *
  * Scene / timeline
@@ -92,8 +94,13 @@ export type TemplateDef = {
   isNew?: boolean;
   /** Scene id used for the gallery poster frame (defaults to the 2nd/3rd scene). */
   poster?: string;
-  /** Small inline preview swatch for the picker. */
-  thumb: (p: Palette) => ReactNode;
+  /** Small inline preview swatch for the picker. `label`: a language version's word for it (its own script and font),
+      drawn instead of the design's own word where the swatch has one. */
+  thumb: (p: Palette, label?: { text: string; font: string }) => ReactNode;
+  /** A language version (lib/variants.ts, lib/templates/languages.tsx): the design it was made from, and the BCP-47
+      code of its language ("ta"). Listed only on its state's page, never among "all designs". */
+  variantOf?: string;
+  lang?: string;
   palettes: Palette[];
   fonts: { display: string; script: string; body: string };
   groups: FieldGroup[];

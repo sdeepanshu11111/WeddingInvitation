@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { markInternal } from "@/lib/analytics";
 
-/** The two admin lists, and the mark that makes this device "internal": whoever can open /admin is the owner or
+/** The admin lists (links, leads, reviews), and the mark that makes this device "internal": whoever can open /admin is the owner or
     a tester, so from now on its analytics events carry is_internal and its links are flagged as tests
     (lib/analytics.ts, isInternal). Open /admin once on every phone and browser you test with. */
 export function AdminNav() {
@@ -20,6 +20,7 @@ export function AdminNav() {
     <nav className="admin-nav">
       {tab("/admin/links", "Links")}
       {tab("/admin/leads", "Leads")}
+      {tab("/admin/reviews", "Reviews")}
       <span>This device is now marked as yours: its visits and links count as tests.</span>
     </nav>
   );

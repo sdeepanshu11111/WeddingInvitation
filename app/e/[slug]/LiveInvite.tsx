@@ -731,9 +731,96 @@ function OwnerSheet({
           </div>
         </section>
 
+        {LEADS && !watermark ? <OwnerReview name={name} ownerKey={ownerKey} title={title} /> : null}
         {LEADS ? <OwnerContact name={name} ownerKey={ownerKey} watermark={watermark} /> : null}
       </div>
     </div>
+  );
+}
+
+const REVIEWED = "fp.reviewed"; // links this device has reviewed: ask once
+const reviewedHere = (name: string) => {
+  try {
+    return (JSON.parse(localStorage.getItem(REVIEWED) || "[]") as string[]).includes(name);
+  } catch {
+    return false;
+  }
+};
+
+/**
+ * Once the invite is clean (a free design, or just paid), the couple can rate it for other couples. Saved with the
+ * owner key (app/api/review), so only the people who made it can; it reaches the home page only if they tick the
+ * box AND the owner approves it on /admin/reviews. Never pre-ticked.
+ */
+function OwnerReview({ name, ownerKey, title }: { name: string; ownerKey: string; title: string }) {
+  const [hidden, setHidden] = useState(true);
+  const [rating, setRating] = useState(0);
+  const [text, setText] = useState("");
+  const [who, setWho] = useState(title.slice(0, 40));
+  const [city, setCity] = useState("");
+  const [consent, setConsent] = useState(false);
+  const [state, setState] = useState<"idle" | "saving" | "saved" | { error: string }>("idle");
+  useEffect(() => setHidden(reviewedHere(name)), [name]);
+  if (hidden && state !== "saved") return null;
+
+  const send = async () => {
+    setState("saving");
+    try {
+      const res = await fetch("/api/review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, key: ownerKey, rating, text, displayName: who, city, consent }),
+      });
+      const r = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(r.error || "Could not send it");
+      try {
+        localStorage.setItem(REVIEWED, JSON.stringify([...(JSON.parse(localStorage.getItem(REVIEWED) || "[]") as string[]), name].slice(-50)));
+      } catch {}
+      track("review_submitted", { rating, has_text: !!text.trim(), is_public: consent });
+      setState("saved");
+    } catch (e: any) {
+      setState({ error: e?.message || String(e) });
+    }
+  };
+
+  if (state === "saved")
+    return (
+      <section className="os-review saved">
+        <b>Thank you 🙏</b> {consent ? "We'll read it and put it up for other couples soon." : "It helps us make the next invite better."}
+      </section>
+    );
+  return (
+    <section className="os-review">
+      <span className="os-label">
+        How did your invite turn out? <em>(optional)</em>
+      </span>
+      <div className="os-stars" role="radiogroup" aria-label="Your rating">
+        {[1, 2, 3, 4, 5].map((n) => (
+          <button key={n} role="radio" aria-checked={rating === n} aria-label={n + " star" + (n > 1 ? "s" : "")} className={n <= rating ? "on" : ""} onClick={() => setRating(n)}>
+            ★
+          </button>
+        ))}
+      </div>
+      {rating ? (
+        <>
+          <textarea className="os-input os-area" rows={3} maxLength={300} placeholder="What did your family and guests say? (optional)" value={text} onChange={(e) => setText(e.target.value)} />
+          <div className="os-review-row">
+            <input className="os-input" maxLength={40} placeholder="Name to show" value={who} onChange={(e) => setWho(e.target.value)} aria-label="Name to show" />
+            <input className="os-input" maxLength={40} placeholder="City (optional)" value={city} onChange={(e) => setCity(e.target.value)} aria-label="City" />
+          </div>
+          <label className="os-check">
+            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
+            <span>Show my review on {BRAND}&apos;s website, with the name and city above</span>
+          </label>
+          <button className="btn os-save" onClick={send} disabled={state === "saving"}>
+            {state === "saving" ? <span className="spin" aria-hidden /> : "Send review"}
+          </button>
+          <p className={"os-note" + (typeof state === "object" ? " bad" : "")}>
+            {typeof state === "object" ? state.error : "We read every review before it goes up, and take it down whenever you ask."}
+          </p>
+        </>
+      ) : null}
+    </section>
   );
 }
 

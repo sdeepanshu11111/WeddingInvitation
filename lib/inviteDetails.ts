@@ -3,6 +3,8 @@
    (weddingDate, venueName, receptionDate, walimaDate, events...), so this needs no template code and runs on the
    server too (app/e/[slug]/calendar.ics). Invites are in India: times are IST (UTC+5:30, no daylight saving). */
 
+import { baseOf } from "./variants";
+
 export type InviteEvent = { name: string; date: string; time?: string; endTime?: string; venue?: string; address?: string };
 export type InviteDetails = { events: InviteEvent[]; rsvp: { phone: string; who?: string } | null };
 
@@ -78,7 +80,8 @@ function findPhone(text: string): { phone: string; who?: string } | null {
   return null;
 }
 
-export function inviteDetails(templateId: string, data: Record<string, any>, sample?: string[]): InviteDetails {
+export function inviteDetails(id: string, data: Record<string, any>, sample?: string[]): InviteDetails {
+  const templateId = baseOf(id); // a language version (haldi-marigold-tamil) has its design's fields and main function
   // Fields still holding the template's sample date or venue are treated as empty (see sampleKeys).
   const d: Record<string, any> = Array.isArray(sample) && sample.length ? Object.fromEntries(Object.entries(data).filter(([k]) => !sample.includes(k))) : data;
   const events: InviteEvent[] = [];

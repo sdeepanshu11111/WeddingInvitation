@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { GEO_COOKIE } from "./lib/regions";
 
 /* /admin (every invite link, and the leads list with phone numbers) is for the owner only: the browser's own
    sign-in box (HTTP Basic auth), user name ADMIN_USER (default "admin") and password ADMIN_PASSWORD.
@@ -18,7 +19,33 @@ function sealed(res: NextResponse) {
   return res;
 }
 
+/* Site pages ("/", "/templates…") come here for one other reason: the visitor's approximate Indian state, so designs
+   in their language can come first (lib/regions.ts). Vercel works the state out from the IP address and passes it
+   in a header; only the state code is kept, in a cookie on the visitor's device for a week, and nothing is stored on
+   our side. The matcher sends a site page here only while that cookie is missing (one call per visitor per week,
+   not one per page and prefetch), so "-" is written when there is no Indian state, to stop asking. */
+const SITE_PAGE = /^\/(?:templates(?:\/[^/]+)?\/?)?$/;
+const WEEK = 7 * 24 * 3600;
+
 export function middleware(req: NextRequest) {
+  // Exactly "/", "/templates" and "/templates/<id>"; everything else that reaches here goes through the admin gate.
+  return SITE_PAGE.test(req.nextUrl.pathname) ? withState(req) : admin(req);
+}
+
+function withState(req: NextRequest) {
+  const res = NextResponse.next();
+  const country = req.headers.get("x-vercel-ip-country");
+  const state = (req.headers.get("x-vercel-ip-country-region") ?? "").toUpperCase();
+  res.cookies.set(GEO_COOKIE, country === "IN" && /^[A-Z]{2,3}$/.test(state) ? state : "-", {
+    path: "/",
+    maxAge: WEEK,
+    sameSite: "lax",
+    secure: req.nextUrl.protocol === "https:",
+  });
+  return res;
+}
+
+function admin(req: NextRequest) {
   const password = process.env.ADMIN_PASSWORD;
   if (!password) return process.env.NODE_ENV === "development" ? sealed(NextResponse.next()) : sealed(new NextResponse("Not found", { status: 404 }));
   const user = process.env.ADMIN_USER || "admin";
@@ -47,4 +74,12 @@ function same(a: string, b: string) {
   return diff === 0;
 }
 
-export const config = { matcher: ["/admin/:path*", "/api/admin/:path*"] };
+// The cookie name is written out here (Next reads `config` at build time): it is GEO_COOKIE in lib/regions.ts.
+export const config = {
+  matcher: [
+    "/admin/:path*",
+    "/api/admin/:path*",
+    { source: "/", missing: [{ type: "cookie", key: "fp_geo" }] },
+    { source: "/templates/:path*", missing: [{ type: "cookie", key: "fp_geo" }] },
+  ],
+};
