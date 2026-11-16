@@ -110,8 +110,8 @@ On Vercel you get the editor, **Share** links (the invitation plays in the guest
 | `LINK_PRICE_INR` | you (optional) | Price of a link without watermark, default `99` |
 | `MONGODB_URI` | you (MongoDB Atlas → Connect → Drivers) | Turns on the private database. Collection `links`: a record of every invite link (address, design, source, checkouts, payments, guest opens), listed on `/admin/links`. Collection `leads`, lead capture: WhatsApp number or email in the Share step, payers' contacts, `/admin/leads` |
 | `MONGODB_DB` | you (optional) | Database name for leads, default `invite_studio` |
-| `ADMIN_PASSWORD` | you | Password for `/admin/leads`. Without it `/admin` is a 404 on Vercel |
-| `ADMIN_USER` | you (optional) | User name for `/admin/leads`, default `admin` |
+| `ADMIN_PASSWORD` | you | Password for `/admin` (every link, and the leads with phone numbers). Use a long random one (20+ characters). Without it `/admin` is a 404 everywhere except `npm run dev` |
+| `ADMIN_USER` | you (optional) | User name for `/admin`, default `admin`: set your own, a guessable name leaves only the password to find |
 | `LEADS` | you (optional) | `0` turns lead capture off even with a database |
 
 Paid links: the Share dialog offers **Free preview link** (watermarked) and **Without watermark · ₹99** (Razorpay Checkout: UPI, cards, netbanking). The server checks the Checkout signature, that the order was made for that link, and with Razorpay that the payment was captured, then writes `paid.json` and revalidates `/e/<name>`. Keys only ever live in Vercel env vars; changing them or the price needs a redeploy.

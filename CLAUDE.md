@@ -163,8 +163,8 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   `MONGODB_URI`, Atlas cluster in Mumbai, database `invite_studio` or `MONGODB_DB`, collection `leads` with `_id` = link name)
   or `exports/leads.json` locally (`disk`); on Vercel without `MONGODB_URI` it is off and nothing is asked. (Neon/Postgres was
   used briefly and removed on 2026-10-13.) The connection string lives only in env vars, never in git. **Never put numbers or emails in Blob (public), the project JSON,
-  Mixpanel, the Pixel or logs.** `/admin/leads` (HTTP Basic auth via `middleware.ts`: user `ADMIN_USER`, default `admin`, + `ADMIN_PASSWORD`; 404 on Vercel
-  without it) lists leads with WhatsApp / Email buttons (wa.me or mailto + ready message, marks "Messaged"), "Replied STOP" (same number/email)
+  Mixpanel, the Pixel or logs.** `/admin/leads` (HTTP Basic auth via `middleware.ts`: user `ADMIN_USER`, default `admin`, + `ADMIN_PASSWORD`; **fails closed**: 404 without it everywhere
+  except `next dev`, and every admin response is `no-store`, noindex, no-referrer, see the comment in `middleware.ts`) lists leads with WhatsApp / Email buttons (wa.me or mailto + ready message, marks "Messaged"), "Replied STOP" (same number/email)
   and Delete. `/privacy` shows its lead paragraphs only while `LEADS` is on.
 - Feature flags (`lib/features.ts`, set in `next.config.mjs` at build time): `VIDEO_EXPORT` (off on Vercel: the Export MP4 button is hidden, since the site promotes the free invitation page and never mentions
   video, and every export API returns 501), `SHARE_STORE`, `PAYMENTS`, `LINK_PRICE_INR` and `LEADS`. Deploy steps: README "Deploy to Vercel". `lib/server/paths.ts`
