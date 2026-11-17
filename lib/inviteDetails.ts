@@ -6,7 +6,9 @@
 import { baseOf } from "./variants";
 
 export type InviteEvent = { name: string; date: string; time?: string; endTime?: string; venue?: string; address?: string };
-export type InviteDetails = { events: InviteEvent[]; rsvp: { phone: string; who?: string } | null };
+export type RsvpContactFound = { phone: string; who?: string };
+/** rsvp: the first number on the invite; contacts: up to two (Shaadi Utsav lists both families' numbers). */
+export type InviteDetails = { events: InviteEvent[]; rsvp: RsvpContactFound | null; contacts: RsvpContactFound[] };
 
 /** The main function's name when it isn't a "Wedding". New templates add theirs here. */
 const MAIN: Record<string, string> = {
@@ -64,8 +66,10 @@ export function sampleKeys(d: Record<string, any>, defaults: Record<string, any>
   return Object.keys(d).filter((k) => SAMPLE_KEYS.test(k) && d[k] != null && d[k] !== "" && JSON.stringify(d[k]) === JSON.stringify(defaults[k]));
 }
 
-/** First Indian mobile number in the text (the families already put one in their RSVP line), as 91XXXXXXXXXX. */
-function findPhone(text: string): { phone: string; who?: string } | null {
+/** The Indian mobile numbers in the text (the families already put them in their RSVP line), as 91XXXXXXXXXX, each
+    with the name written before it on its line. */
+function findPhones(text: string): RsvpContactFound[] {
+  const out: RsvpContactFound[] = [];
   for (const line of text.split("\n")) {
     const m = PHONE.exec(line);
     if (!m || SAMPLE_PHONES.has(m[1] + m[2])) continue;
@@ -75,9 +79,9 @@ function findPhone(text: string): { phone: string; who?: string } | null {
       .replace(/[·|:,–—-]+/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-    return { phone: "91" + m[1] + m[2], who: who && who.length <= 40 ? who : undefined };
+    out.push({ phone: "91" + m[1] + m[2], who: who && who.length <= 40 ? who : undefined });
   }
-  return null;
+  return out;
 }
 
 export function inviteDetails(id: string, data: Record<string, any>, sample?: string[]): InviteDetails {
@@ -93,7 +97,8 @@ export function inviteDetails(id: string, data: Record<string, any>, sample?: st
       ?.split("\n")
       .find((l) => /anand karaj|ceremony|laavan/i.test(l) && parseClock(l));
     events.push({
-      name: MAIN[templateId] ?? "Wedding",
+      // Floral Rangoli is for any function: its title field says which (Haldi Ceremony, Griha Pravesh...).
+      name: (templateId === "floral-rangoli" ? str(d.title) : undefined) ?? MAIN[templateId] ?? "Wedding",
       date: d.weddingDate,
       time: parseClock(d.weddingTime) ?? parseClock(d.muhurthamStart) ?? parseClock(fromSchedule),
       endTime: parseClock(d.muhurthamEnd),
@@ -108,13 +113,13 @@ export function inviteDetails(id: string, data: Record<string, any>, sample?: st
 
   // RSVP: the fields meant for it first, then any other text the family wrote.
   const keys = Object.keys(d).sort((a, b) => Number(!/rsvp/i.test(a)) - Number(!/rsvp/i.test(b)));
-  let rsvp: InviteDetails["rsvp"] = null;
+  const contacts: RsvpContactFound[] = [];
   for (const k of keys) {
     if (typeof d[k] !== "string") continue;
-    rsvp = findPhone(d[k]);
-    if (rsvp) break;
+    for (const c of findPhones(d[k])) if (contacts.length < 2 && !contacts.some((x) => x.phone === c.phone)) contacts.push(c);
+    if (contacts.length >= 2) break;
   }
-  return { events, rsvp };
+  return { events, rsvp: contacts[0] ?? null, contacts };
 }
 
 /* ---- calendar ---- */

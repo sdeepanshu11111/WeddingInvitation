@@ -121,7 +121,14 @@ wrong property, so update that type first.
 | `invite_opened` | Guest tapped "Open invitation" | `orientation` | `app/e/[slug]/LiveInvite.tsx` |
 | `invite_watched` | Guest reached the end (once per visit) | (super properties) | `app/e/[slug]/LiveInvite.tsx` |
 | `invite_shared` | Link sent on: WhatsApp, the phone's share sheet (after it succeeds), or copy | `channel` (`whatsapp`/`native_share`/`copy`), `invite_id` | `ShareDialog.tsx` (`GetLink` copy, `SharePanel`), `LiveInvite.tsx` (`GuestBar`, `OwnerBar`, `OwnerSheet`) |
-| `guest_action_clicked` | A guest used the card at the end of an invite, or tapped "Make your own invitation" | `action` (`calendar`/`directions`/`rsvp`/`make_own`) | `app/e/[slug]/GuestDetails.tsx`, `LiveInvite.tsx` |
+| `guest_action_clicked` | A guest used the card at the end of an invite, a button inside a scene, or tapped "Make your own invitation" | `action` (`calendar`/`directions`/`rsvp`/`call`/`make_own`/`blessing`), `where` (`scene` for the in-scene buttons) | `app/e/[slug]/GuestDetails.tsx`, `Rsvp.tsx`, `Interactive.tsx`, `LiveInvite.tsx` |
+| `rsvp_sent` | A guest sent an RSVP from the form (WhatsApp opened with it). No name, no answers beyond these | `response` (`yes`/`maybe`/`no`), `people` (0 unless yes), `changed` | `app/e/[slug]/Rsvp.tsx` |
+| `tap_moment` | The tap moment on the names scene ended | `kind` (`flowers`/`roses`/`haldi`/`henna`/`party`/`sparklers`/`rings`/`love`), `taps` (0 = it went on by itself) | `app/e/[slug]/LiveInvite.tsx` |
+| `quiz_answered` | A guest answered the couple's quiz | `correct` | `app/e/[slug]/Interactive.tsx` (`QuizAsk`) |
+| `home_cta_clicked` | A call to action on the home page was tapped | `section` (`designs`/`guest_demo`/`link`/`how`/`pricing`/`pricing_pack`/`final`) | `components/site/Landing.tsx` (`CtaLink`), `GuestDemo.tsx` |
+| `home_demo_step` | The visitor tried a step of the home page's "Try it yourself" demo | `step` (`open`/`scratch`/`shower`/`quiz`/`rsvp`) | `components/site/GuestDemo.tsx` |
+| `date_scratched` | The scratch-to-reveal date card on a guest's invite went away | `completed` (true = the guest scratched it, false = it dissolved by itself after 6 s untouched) | `app/e/[slug]/LiveInvite.tsx` |
+| `invite_personalised` | The couple made a link that greets one guest by name (`?to=`). The name is never sent | `invite_id`, `channel` (`whatsapp`/`copy`) | `app/e/[slug]/Interactive.tsx` (`PersonalLink`) |
 | `owner_sheet_opened` | The couple's sheet (remove watermark, share) came up on their invite: every payment starts from it | `trigger` (`cover` = by itself on a return visit, `end` = by itself when the invite ended, `bar` = they tapped their bar) | `app/e/[slug]/LiveInvite.tsx` |
 
 ---

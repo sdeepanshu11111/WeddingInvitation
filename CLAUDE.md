@@ -59,7 +59,11 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   the phone until the script loads; phones show the phone and the name boxes side by side so both stay above the keyboard;
   "Pick a design" cards use each template's `thumb()` art, the playing one ringed, plus a "+N more" card), headline "Your wedding invite,
   beautifully animated.", then a one-row proof strip, the playing designs with function tabs ("Which function are you inviting for?",
-  `Showcase`; cards open `/templates/<id>`), how it works, guests, "why a link" comparison, pricing, FAQ, final CTA. The promo strip
+  `Showcase`; cards open `/templates/<id>`), **"Try it yourself"** (`components/site/GuestDemo.tsx`, 2026-11-17: a phone the visitor plays
+  with: envelope, scratch, shower, quiz, RSVP; the real `Interactive.tsx` components in a demo that sends nothing, mounted near the
+  viewport, labelled "Example"), "One link. Know who's coming." (WhatsApp chat + an RSVP counts card marked example), how it works,
+  "why a link" comparison (4 rows, the rest fold), pricing, FAQ, final CTA. Calls to action go through `CtaLink` (Landing.tsx), which sends
+  `home_cta_clicked {section}`; demo steps send `home_demo_step`. The promo strip
   above the header is desktop only. Why this order (Mixpanel, 13 Oct 2026, a one-day Meta ad test; **no Meta ads have run since, owner 2026-11-14**): ~80% of visitors were Android phones from those ads, only ~19%
   of home visitors reached the studio, while ~66% of `/templates/<id>` visitors did, so real designs come right after the hero.
   Keep the home page light: every font a visible glyph needs downloads (a decorative row of five scripts once cost ~200 KB).
@@ -185,7 +189,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   `public/ads.txt`. **Neither may reach `/e/`, `/render`, `/client-render` or `/admin`: don't move them to the root layout or
   link into `/e/` with `next/link`.**
 
-## Templates (23), in `lib/templates/`, registered in `index.ts`
+## Templates (26), in `lib/templates/`, registered in `index.ts`
 
 | id | Category | Community | Notes |
 |---|---|---|---|
@@ -204,6 +208,9 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 | shubh-mangal | wedding | hindu (Marathi) | Paithani zari border, `MorPankh` peacock feathers, kalash; चि. / चि. सौ. कां. toggle, शुभ मुहूर्त, स्वागत समारंभ, आपली उपस्थिती प्रार्थनीय, आग्रहाचे निमंत्रण |
 | shubho-bibaho | wedding | hindu (Bengali) | `--f-bengali` (Tiro Bangla); lal-paar border, prajapati butterfly, alpana, shankha-pola ring; শ্রীমান / কল্যাণীয়া, বৌভাত (`receptionLabel`), উপস্থিতি একান্ত কাম্য, বিনীত |
 | blush-botanical, cinematic-reel (video clip + montage), polaroid-memories (gallery), aurora-modern | save-the-date etc. | modern | the original 4 |
+| rajwada-palace | wedding | hindu | 2026-11-17, ₹149. Palace skyline drawn on (`Palace`), every scene in a jharokha arch (`Jharokha`, photo clipped with `clip-path: path()`), lanterns |
+| floral-rangoli | wedding, engagement, haldi, mehendi, reception | hindu, south-indian | 2026-11-17, ₹49. Petal rangoli drawn ring by ring (`Rangoli`); `title` names the function and `inviteDetails` uses it as the guest card's function name |
+| lavender-garden | save-the-date, wedding, engagement | modern | 2026-11-17, ₹29. Climbing flowering vines (`Vine`), typewriter love note, oval photo |
 
 ### Adding a template
 1. Create `lib/templates/<id>.tsx` exporting a `TemplateDef`: `categories`, `communities`, `isNew`, `poster` (scene id
@@ -292,6 +299,34 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   another couple or device. `coverByPack()` writes paid.json with `covers` 149 and `pack`; no money, `recordPayment(via "pack", ₹0)`.
   Cleared: at purchase (all owned links of the couple), at Get link for a new one, and on the owner's visit to a still-marked link.
   Terms section 6, Refunds, FAQ and the home pricing card describe it; change them together.
+- **Guest page extras** (2026-11-17, owner: "more interactive and engaging"; `app/e/[slug]/Interactive.tsx`), each on unless the couple
+  switches it off in the studio's "Guest experience" group (`Project.guest`, `guestOn()` in lib/types.ts): a sealed **envelope** on the
+  cover (tap the wax seal; `open()` waits ~1.1 s for it), **scratch to reveal the date** (gold foil canvas over the frame once per visit,
+  a moment into the scene `sceneForField("weddingDate")` finds; the clock and music wait via `running`; dissolves by itself after 6 s
+  untouched; skipped when the date is still the sample), and **Send blessings** at the end (petal shower, one per device via
+  `fp.blessed`, counted on the link record: `POST/GET /api/share/<name>/seen` kind `blessing`, `blessingCount`; shown from 3). Plus a
+  **personal greeting**: `/e/<name>?to=Sharma%20ji` puts "Dear Sharma ji" on the cover, read in the browser only (`useGreeting`), never
+  stored or tracked; the owner sheet's `PersonalLink` builds these links. All of it is guest-page only, never inside a scene, so the
+  pure-function-of-time rule and the MP4 export are untouched. Events: `date_scratched`, `invite_personalised`, `guest_action_clicked`
+  action `blessing`.
+- **RSVP options** (2026-11-17, owner chose "A + B": replies through WhatsApp only, plus counts). `Project.rsvp` (studio "RSVP" group,
+  `components/editor/GuestPanels.tsx`): mode `whatsapp` (default, the old button) / `form` / `off`, up to 2 contacts (empty = the numbers
+  written on the invite, `inviteDetails().contacts`), reply-by date, form questions (people, functions, food, message), Call button.
+  `lib/rsvp.ts` (`rsvpSetup`, `rsvpMessage`) is dependency-free; the guest side is `app/e/[slug]/Rsvp.tsx` (`RsvpButtons` on the end card,
+  `RsvpSheet` form, `RsvpSummary` in the owner sheet). **The reply goes only to the family's WhatsApp; we store no guest names or answers.**
+  Form replies add counts to the link record (`rsvp_yes/maybe/no/people`, `POST /api/share/<name>/rsvp`, once per device via `fp.rsvp`, a
+  changed answer moves the count); the counts are read with the owner key only (`GET` + header `x-owner-key`). Contacts' numbers sit in the
+  project JSON on purpose: guests are meant to see them, like the RSVP line on the invite.
+- **Interactive scenes** (2026-11-17, owner: "more interactive sections in templates"), all generic, so every design and language version
+  gets them, and none is inside a scene's drawing except the quiz: **buttons on the scenes** (`SceneActions`: Add to calendar + a live
+  countdown on the date scene, Directions on the venue, RSVP on the closing scene; one per function on Shaadi Utsav's `event-N` scenes;
+  `guest.actions`), the **tap moment** (`TapMoment`, `guest.moment`: the story holds on the names scene and guests tap to shower flowers /
+  haldi / henna / confetti / sparklers / rings, by function via `momentKind`; goes on by itself), and the **couple quiz** (`Project.quiz`,
+  `lib/quiz.tsx`): `buildTimeline` inserts a `quiz` scene before the closing scene, a pure function of time like any scene (question,
+  A/B/C, the right answer lights up at `QUIZ_REVEAL`), so the MP4 shows it too; on the guest page the story holds at `QUIZ_ASK`,
+  `QuizAsk` takes the answer, then seeks to the reveal. Counts `quiz_right/quiz_total` on the link record (`/api/share/<name>/quiz`, shown
+  as "62% got it right" from 3 answers). Everything that holds the story goes through `held` in LiveInvite (clock + music wait).
+  `guest`, `rsvp` and `quiz` follow the couple across a design switch (`defaultProject`).
 - **₹9 entry designs** (2026-11-17, owner: "for the free template do the 9rs"): Blush Botanical, Aurora Modern and Sagai Rings (and
   Sagai's language versions) cost ₹9, `PRICE_FLOOR` 9, no design is free any more (`FREE_COUNT` 0, its copy hides itself). Links made
   while they were free stay free: `priceForLink(templateId, createdAt)` in `lib/pricing.ts` (`FREE_UNTIL`, 2026-11-18 00:00 IST). Price a
@@ -363,7 +398,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   No hand-drawn Khanda or Ganesha (too easy to get wrong); text glyphs like ੴ are used instead.
 
 ## Status & next ideas
-Done: 23 templates, categories + gallery, events field, both orientations, music, pacing, autosave, MP4 export (720p/1080p/4K, 24/30/60fps),
+Done: 26 templates, categories + gallery, events field, both orientations, music, pacing, autosave, MP4 export (720p/1080p/4K, 24/30/60fps),
 exports folder, CLI render, snapshot QA script, production build passes. Hosted on Vercel with live share links (`/e/<name>`),
 Razorpay paid links (watermark removal), Mixpanel analytics, share success screen (iPhone mockups of the guest journey,
 WhatsApp chat preview, Preview link / After payment toggle).

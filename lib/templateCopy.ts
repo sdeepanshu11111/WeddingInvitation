@@ -51,6 +51,21 @@ export const TEMPLATE_COPY: Record<string, TemplateCopy> = {
     has: "The title, the date and venue headings and the invitation line are in Punjabi, and each can be reworded. It shows both sets of parents, the date and time, and the venue with its address.",
     ask: ["Punjabi wedding invitation in Punjabi online", "ਵਿਆਹ ਦਾ ਸੱਦਾ ਪੱਤਰ video for WhatsApp", "Punjabi viah e-invite with phulkari design"],
   },
+  "rajwada-palace": {
+    for: "A Rajasthani palace wedding invitation: a palace skyline with domes and chhatris draws itself, and each scene sits inside a jharokha arch window, with lanterns glowing above.",
+    has: "The couple's photo in the central arch, both families, the date and time, the venue with its address, and a closing line (Padharo mhare des by default). Pink, lake blue, ivory and desert gold palettes.",
+    ask: ["Rajasthani wedding invitation video", "royal palace wedding e-invite for WhatsApp", "destination wedding invitation Udaipur Jaipur"],
+  },
+  "floral-rangoli": {
+    for: "An invitation for any function, framed by a rangoli of petals that draws itself ring by ring from the centre.",
+    has: "The function's name is yours to write (Haldi, Mehendi, Engagement, Wedding, Griha Pravesh...), with one or two names, the hosts, the date, the venue and an optional dress code.",
+    ask: ["rangoli invitation video", "haldi mehendi invitation with rangoli design", "griha pravesh invitation video for WhatsApp"],
+  },
+  "lavender-garden": {
+    for: "A modern pastel invitation: flowering vines climb the sides of the frame, a short love note types itself out and your photo sits in an oval.",
+    has: "Your names, a note in your own words, a photo, the date and time, the venue and city, and a closing line. It suits a save-the-date, an engagement or a light wedding invitation of any community.",
+    ask: ["pastel save the date video", "modern floral wedding invitation video", "lavender wedding e-invite for WhatsApp"],
+  },
   "nikah-mubarak": {
     for: "A Muslim wedding invitation that opens with Bismillah in Arabic and the wedding dua, with a mehrab arch, a star lattice and hanging lanterns.",
     has: "The couple's photo sits inside the arch. The Nikah date, time and venue come first, and an optional Walima scene carries its own date and venue, so one link covers both.",

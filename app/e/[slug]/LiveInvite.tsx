@@ -2,7 +2,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { SIZES, buildTimeline, inviteDate } from "@/lib/project";
-import type { Orientation, Project } from "@/lib/types";
+import { guestOn, type Orientation, type Project } from "@/lib/types";
+import { sceneForField } from "@/lib/fieldScene";
 import { LEADS } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
 import { claimPack, packFor, rememberPack } from "@/lib/pack";
@@ -14,9 +15,13 @@ import { Confetti } from "@/components/Celebrate";
 import { AgreeNote, LockIcon, TrustRow } from "@/components/PayTrust";
 import { normalizeEmail, normalizePhone, rememberContact, savedEmail, savedPhone, typingPhone } from "@/lib/contact";
 import { ownerKeyFor, takeJustCreated } from "@/lib/owner";
-import { countdownText, daysUntil, inviteDetails } from "@/lib/inviteDetails";
+import { countdownText, daysUntil, googleCalendarUrl, inviteDetails, mapsUrl } from "@/lib/inviteDetails";
+import { rsvpSetup, quickMessage, waLink } from "@/lib/rsvp";
+import { QUIZ_ASK, QUIZ_ID, QUIZ_REVEAL, quizOf } from "@/lib/quiz";
 import { nextInvites } from "@/lib/nextInvites";
 import { GuestDetails } from "./GuestDetails";
+import { Blessings, Envelope, PersonalLink, QuizAsk, SceneActions, ScratchCard, TapMoment, momentKind, useCountdown, useGreeting, type SceneAction } from "./Interactive";
+import { RsvpSheet, RsvpSummary } from "./Rsvp";
 
 /* The guest's view of a live share: the same <Frame/> as the editor, driven by
    a rAF clock. It opens on a "tap to open" cover, because browsers only allow
@@ -177,6 +182,20 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
   const music = project.music;
   const date = useMemo(() => inviteDate(project.data), [project]);
   const playing = phase === "playing";
+  // Scratch card (Interactive.tsx): the clock and the music wait while the date is still under the foil.
+  const [scratching, setScratching] = useState(false);
+  const scratched = useRef(false);
+  // The other moments that hold the story (Interactive.tsx, Rsvp.tsx): the tap moment on the names, the couple's quiz,
+  // and the RSVP form opened from a scene.
+  const [moment, setMoment] = useState(false);
+  const momented = useRef(false);
+  const [quizAsking, setQuizAsking] = useState(false);
+  const quizzed = useRef(false);
+  const [rsvpOpen, setRsvpOpen] = useState(false);
+  const held = scratching || moment || quizAsking || rsvpOpen;
+  const running = playing && !held;
+  const greeting = useGreeting(); // "Dear Sharma ji" from ?to= (browser only, never stored or tracked)
+  const envelope = guestOn(project, "envelope"); // the cover opens like a sealed envelope (Interactive.tsx)
   const watched = useRef(false);
   const [paidHere, setPaidHere] = useState(false); // paid on this page: drop the watermark now, no reload needed
   const marked = watermark && !paidHere;
@@ -243,7 +262,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
 
   /* ---------- clock ---------- */
   useEffect(() => {
-    if (!playing) return;
+    if (!running) return;
     let raf = 0;
     let last = performance.now();
     const loop = (now: number) => {
@@ -261,7 +280,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [playing, speed, total]);
+  }, [running, speed, total]);
 
   useEffect(() => {
     const hide = () => document.hidden && setPhase((p) => (p === "playing" ? "paused" : p));
@@ -273,14 +292,14 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
   useEffect(() => {
     const a = audio.current;
     if (!a || !music) return;
-    wantMusic.current = playing;
-    if (playing) {
+    wantMusic.current = running;
+    if (running) {
       a.currentTime = (music.offset || 0) + T / speed / 1000;
       a.muted = muted;
       a.play().catch(() => {});
     } else a.pause();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [playing]);
+  }, [running]);
 
   useEffect(() => {
     const a = audio.current;
@@ -303,7 +322,9 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     track("invite_opened", { orientation: o });
     count("open");
     setPhase("opening");
-    await Promise.race([Promise.all([fonts.current!.promise, images.current]), new Promise((r) => setTimeout(r, 6000))]);
+    const ready = Promise.race([Promise.all([fonts.current!.promise, images.current]), new Promise((r) => setTimeout(r, 6000))]);
+    // The envelope opens in about a second; the invite waits for it, never longer than for the fonts.
+    await Promise.all([ready, envelope ? new Promise((r) => setTimeout(r, 1150)) : null]);
     setT(0);
     setPhase("playing");
   };
@@ -399,6 +420,121 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, toggle, T]);
 
+  // Scratch to reveal the date: once per visit, a moment into the scene that shows the date (lib/fieldScene.ts), on
+  // invites that have a real date (not the template's sample) and keep the extra on.
+  const scratchAt = useMemo(() => {
+    if (!guestOn(project, "scratch") || project.sample?.includes("weddingDate") || !project.data.weddingDate) return null;
+    const i = sceneForField("weddingDate", tl.scenes);
+    if (i < 0) return null;
+    return { from: tl.slots[i].start + Math.min(1600, tl.scenes[i].duration * 0.35), to: tl.slots[i].start + tl.scenes[i].duration };
+  }, [project, tl]);
+  useEffect(() => {
+    if (!scratchAt || scratched.current || phase !== "playing" || moment || quizAsking) return;
+    if (T >= scratchAt.from && T < scratchAt.to) {
+      scratched.current = true;
+      setScratching(true);
+    }
+  }, [T, phase, scratchAt, moment, quizAsking]);
+
+  // The tap moment (Interactive.tsx): once per visit, a moment into the scene with the couple's names.
+  const details = useMemo(() => inviteDetails(project.templateId, project.data, project.sample), [project]);
+  const momentAt = useMemo(() => {
+    if (!guestOn(project, "moment")) return null;
+    const i = sceneForField("groomName", tl.scenes);
+    if (i < 0) return null;
+    const fn = details.events[0]?.name ?? "";
+    return { at: tl.slots[i].start + Math.min(2400, tl.scenes[i].duration * 0.45), end: tl.slots[i].start + tl.scenes[i].duration, kind: momentKind(fn, tl.template.categories, tl.template.communities) };
+  }, [project, tl, details]);
+  useEffect(() => {
+    if (!momentAt || momented.current || phase !== "playing" || scratching) return;
+    if (T >= momentAt.at && T < momentAt.end) {
+      momented.current = true;
+      setMoment(true);
+    }
+  }, [T, phase, momentAt, scratching]);
+
+  // The couple's quiz (lib/quiz.tsx): the story waits on the question until the guest answers (once per visit).
+  const quiz = useMemo(() => quizOf(project.quiz), [project]);
+  const quizAt = useMemo(() => {
+    const i = tl.scenes.findIndex((s) => s.id === QUIZ_ID);
+    return i < 0 ? null : { ask: tl.slots[i].start + QUIZ_ASK, reveal: tl.slots[i].start + QUIZ_REVEAL - 250, end: tl.slots[i].start + tl.scenes[i].duration };
+  }, [tl]);
+  useEffect(() => {
+    if (!quizAt || quizzed.current || phase !== "playing") return;
+    if (T >= quizAt.ask && T < quizAt.reveal) {
+      quizzed.current = true;
+      setQuizAsking(true);
+    }
+  }, [T, phase, quizAt]);
+
+  // Buttons inside the scenes (Interactive.tsx SceneActions): calendar on the date, directions on the venue, RSVP at
+  // the close. Built from the invite's own fields, skipping the template's sample date / venue (inviteDetails does).
+  const rsvp = useMemo(() => rsvpSetup(project), [project]);
+  const [ios, setIos] = useState(false);
+  const [here, setHere] = useState("");
+  useEffect(() => {
+    setIos(/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1));
+    setHere(window.location.origin + "/e/" + (name ?? ""));
+  }, [name]);
+  const actionsByScene = useMemo(() => {
+    const map = new Map<number, { actions: SceneAction[]; countdownFor?: number }>();
+    if (!guestOn(project, "actions")) return map;
+    const add = (i: number, a: SceneAction, countdownFor?: number) => {
+      if (i < 0) return;
+      const m = map.get(i) ?? { actions: [] };
+      if (!m.actions.some((x) => x.key === a.key)) m.actions.push(a);
+      if (countdownFor !== undefined && m.countdownFor === undefined) m.countdownFor = countdownFor;
+      map.set(i, m);
+    };
+    const cal = (ei: number): SceneAction => ({
+      key: "cal" + ei,
+      label: "Add to calendar",
+      icon: "📅",
+      action: "calendar",
+      href: ios && name ? "/e/" + name + "/calendar.ics" : googleCalendarUrl(details.events[ei], title, here),
+    });
+    const dir = (ei: number): SceneAction => ({ key: "dir" + ei, label: "Directions", icon: "📍", action: "directions", href: mapsUrl(details.events[ei]) });
+    const evs = details.events;
+    // Shaadi Utsav: one scene per function ("event-0", "event-1"...), each with its own buttons.
+    const rows: any[] = Array.isArray(project.data.events) ? project.data.events : [];
+    tl.scenes.forEach((sc, i) => {
+      const m = /^event-(\d+)$/.exec(sc.id);
+      if (!m) return;
+      const ei = evs.findIndex((e) => e.name === String(rows[+m[1]]?.name ?? "").trim());
+      if (ei < 0) return;
+      add(i, cal(ei), ei);
+      if (evs[ei].venue || evs[ei].address) add(i, dir(ei));
+    });
+    if (evs.length && !rows.length) {
+      add(sceneForField("weddingDate", tl.scenes), cal(0), 0);
+      if (evs[0].venue || evs[0].address) add(sceneForField("venueName", tl.scenes), dir(0));
+      const r = evs.findIndex((e, k) => k > 0 && /reception|walima|bou bhat/i.test(e.name));
+      if (r > 0) {
+        add(sceneForField("receptionDate", tl.scenes), cal(r), r);
+        if (evs[r].venue || evs[r].address) add(sceneForField("receptionVenue", tl.scenes), dir(r));
+      }
+    }
+    if (rsvp) {
+      const close = sceneForField("rsvp", tl.scenes);
+      const first = rsvp.contacts[0];
+      add(
+        close,
+        rsvp.mode === "form"
+          ? { key: "rsvp", label: "RSVP", icon: "💌", action: "rsvp", onClick: () => setRsvpOpen(true) }
+          : { key: "rsvp", label: "RSVP" + (first.name && rsvp.contacts.length === 1 ? " to " + first.name.split(" ")[0] : ""), icon: "💌", action: "rsvp", href: waLink(first.phone, quickMessage(evs[0])) },
+      );
+    }
+    return map;
+  }, [project, tl, details, rsvp, ios, here, name, title]);
+  const sceneNow = sceneAt(Math.min(T, total));
+  const slotNow = tl.slots[sceneNow];
+  const showActs = !!slotNow && T >= slotNow.start + 1200 && T < slotNow.start + slotNow.duration - 400;
+  const here_ = actionsByScene.get(sceneNow);
+  const sceneActions = showActs ? (here_?.actions ?? []) : [];
+  const cdEvent = here_?.countdownFor !== undefined ? details.events[here_.countdownFor] : undefined;
+  const liveCountdown = useCountdown(cdEvent?.date, cdEvent?.time);
+  const sceneExtra = showActs && cdEvent ? liveCountdown : undefined;
+
   // "49 days to go" on the cover: worked out in the browser (the cover HTML is cached for everyone).
   const [countdown, setCountdown] = useState("");
   useEffect(() => {
@@ -465,7 +601,39 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
           })}
         </div>
       ) : null}
-      {hint && phase === "playing" ? <div className="tap-hint">Tap to skip ›&nbsp; · &nbsp;Hold to pause</div> : null}
+      {scratching ? (
+        <ScratchCard
+          theme={theme}
+          onDone={(completed) => {
+            track("date_scratched", { completed });
+            setScratching(false);
+          }}
+        />
+      ) : null}
+      {moment && momentAt ? (
+        <TapMoment
+          kind={momentAt.kind}
+          onDone={(taps) => {
+            track("tap_moment", { kind: momentAt.kind, taps });
+            setMoment(false);
+          }}
+        />
+      ) : null}
+      {quizAsking && quiz && quizAt ? (
+        <QuizAsk
+          name={name}
+          options={quiz.options}
+          answer={quiz.answer}
+          counts={!ownerKey && !isInternal()}
+          onDone={() => {
+            seek(quizAt.reveal);
+            setQuizAsking(false);
+          }}
+        />
+      ) : null}
+      {phase === "playing" || phase === "paused" ? <SceneActions actions={held ? [] : sceneActions} extra={held ? undefined : sceneExtra} /> : null}
+      {rsvpOpen && rsvp ? <RsvpSheet setup={rsvp} title={title} name={name} greeting={greeting} counts={!ownerKey && !isInternal()} onClose={() => setRsvpOpen(false)} /> : null}
+      {hint && phase === "playing" && !held ? <div className="tap-hint">Tap to skip ›&nbsp; · &nbsp;Hold to pause</div> : null}
 
       {marked ? <Watermark /> : null}
 
@@ -483,7 +651,8 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
 
       {phase === "ended" ? (
         <div className="end-shade">
-          <GuestDetails project={project} title={title} name={name} onReplay={toggle} />
+          <GuestDetails project={project} title={title} name={name} onReplay={toggle} onRsvp={() => setRsvpOpen(true)} />
+          {name && guestOn(project, "blessings") ? <Blessings name={name} counts={!ownerKey} /> : null}
           {/* Unpaid links (they already carry our name) and free designs: guests planning a function of their own
               find the maker. Paid links stay clean. The utm tags attribute the visit (lib/analytics keeps them); no invite details go along. */}
           {(marked || free) && !ownerKey ? (
@@ -521,6 +690,11 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
             background: "radial-gradient(ellipse at 50% 35%, " + theme.bg + " 0%, " + theme.bg2 + " 85%)",
           }}
         >
+          {greeting ? (
+            <div className="cover-in cover-dear" style={{ position: "relative", fontFamily: "var(--f-cormorant)", fontStyle: "italic", fontSize: 22, color: theme.soft }}>
+              Dear {greeting},
+            </div>
+          ) : null}
           <div className="cover-in" style={{ position: "relative", fontFamily: "var(--f-cinzel)", fontSize: 12, letterSpacing: "0.38em", color: theme.accent }}>
             YOU&apos;RE INVITED
           </div>
@@ -543,13 +717,22 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
               {countdown}
             </div>
           ) : null}
-          <button
-            className="btn primary open-btn"
-            style={{ position: "relative", marginTop: 16, padding: "14px 34px", fontSize: 15, borderRadius: 99, background: theme.accent, color: theme.bg2 }}
-            disabled={phase === "opening"}
-          >
-            {phase === "opening" ? "Opening..." : "✉  Open invitation"}
-          </button>
+          {envelope ? (
+            <>
+              <Envelope theme={theme} title={title} opening={phase === "opening"} />
+              <div className="cover-in d3 env-cta" style={{ position: "relative", color: theme.accent }}>
+                {phase === "opening" ? "Opening…" : "Tap the seal to open"}
+              </div>
+            </>
+          ) : (
+            <button
+              className="btn primary open-btn"
+              style={{ position: "relative", marginTop: 16, padding: "14px 34px", fontSize: 15, borderRadius: 99, background: theme.accent, color: theme.bg2 }}
+              disabled={phase === "opening"}
+            >
+              {phase === "opening" ? "Opening..." : "✉  Open invitation"}
+            </button>
+          )}
           {music ? (
             <div className="cover-in d3" style={{ position: "relative", fontSize: 12, opacity: 0.7 }}>
               Turn your sound on 🔊
@@ -805,6 +988,9 @@ function OwnerSheet({
             ) : null}
           </div>
         </section>
+
+        {rsvpSetup(project)?.mode === "form" ? <RsvpSummary name={name} ownerKey={ownerKey} /> : null}
+        <PersonalLink name={name} title={title} link={link} />
 
         {!watermark ? <OwnerNext project={project} packed={packed} /> : null}
         {/* Every couple, paid or not (since 2026-11-17: only clean invites could, and those were 4 of 65 links). The review

@@ -34,6 +34,14 @@ export function faqItems(): QA[] {
       a: "Yes. Edit it in the studio on the same phone or computer you made it on and press Get link again: the same link updates for everyone who has it, and a paid invite stays paid. From another device, the change goes on a new link.",
     },
     {
+      q: "What can guests do on the invitation?",
+      a: "More than watch it. They open a sealed envelope, scratch gold foil off your date, tap to shower you with flowers, answer a question about the two of you and send blessings. When it ends they can add every function to their calendar and open directions to the venue. You can switch each of these off.",
+    },
+    {
+      q: "Can guests RSVP?",
+      a: "Yes. Choose a WhatsApp button, or a short RSVP form where guests say if they are coming, how many and for which functions (food preference too, if you ask). The reply goes straight to your WhatsApp or a family member's, and with the form your invite shows you how many have said yes. We don't keep their names or answers.",
+    },
+    {
       q: "Which communities and languages?",
       a: "Hindu, South Indian (Tamil, Telugu, Malayalam, Kannada), Muslim, Sikh and modern designs, with Devanagari, Gurmukhi, Arabic and South Indian scripts where they belong. Everything you type stays in your own words.",
     },

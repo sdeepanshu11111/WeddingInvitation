@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { AdSense } from "@/components/AdSense";
 import { PayIcons } from "@/components/PayIcons";
 import { Faq, SectionHead, faqItems, faqJsonLd } from "@/components/site/Faq";
 import { JsonLd } from "@/components/JsonLd";
 import { LEGAL } from "@/lib/legal";
-import { Arrow, DesignStack, Hero, Showcase } from "@/components/site/Landing";
+import { Arrow, CtaLink, DesignStack, Hero, Showcase } from "@/components/site/Landing";
+import { GuestDemo } from "@/components/site/GuestDemo";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { BRAND } from "@/lib/brand";
@@ -40,6 +40,28 @@ async function heroReviews(): Promise<ReviewSummary> {
 async function madeThisMonth(): Promise<number> {
   return Promise.race([recentLinkCount(30).catch(() => 0), new Promise<number>((r) => setTimeout(() => r(0), 4000))]);
 }
+
+/** Invitation link vs a printed card vs an image or PDF: [what, card, image, link]. The first four show; the rest fold. */
+const COMPARE: [string, boolean, boolean, boolean][] = [
+  ["Animation and music", false, false, true],
+  ["Guests RSVP and add it to their calendar", false, false, true],
+  ["Reaches guests the same minute", false, true, true],
+  ["Change it after sending", false, false, true],
+  ["Every function, date and venue in one", true, true, true],
+  ["Upright on phones, wide on the TV", false, false, true],
+  ["Looks right without zooming", true, false, true],
+  ["Nothing to print or post", false, true, true],
+];
+const cmpRow = ([label, ...v]: [string, boolean, boolean, boolean]) => (
+  <div className="cmp-row" role="row" key={label}>
+    <span role="rowheader">{label}</span>
+    {v.map((ok, n) => (
+      <span key={n} role="cell" className={(n === 2 ? "us " : "") + (ok ? "yes" : "no")} aria-label={ok ? "Yes" : "No"}>
+        {ok ? "✓" : "—"}
+      </span>
+    ))}
+  </div>
+);
 
 export default async function Home() {
   const [reviews, made] = await Promise.all([heroReviews(), madeThisMonth()]);
@@ -97,10 +119,94 @@ export default async function Home() {
         <Showcase />
       </section>
 
+      {/* ---------- try it: the guest page's moments, playable (components/site/GuestDemo.tsx) ---------- */}
+      <section className="sec surface" id="guests">
+        <SectionHead label="Try it yourself" center>
+          Not just a video. <em>An invite guests play with.</em>
+        </SectionHead>
+        <p className="sec-lead centered">Tap through what your guests will do when they open your link. Every moment can be switched off.</p>
+        <GuestDemo />
+      </section>
+
+      {/* ---------- one link, and who's coming ---------- */}
+      <section className="sec">
+        <div className="guests">
+          <div>
+            <SectionHead label="Your invitation page">
+              One link. <em>Know who&apos;s coming.</em>
+            </SectionHead>
+            <ul className="points">
+              <li>
+                <b>Your names in the address.</b> Every invitation gets a page like <u>{HOST}/e/aarav-ananya</u>, with a preview card in the chat.
+              </li>
+              <li>
+                <b>Opens anywhere.</b> From WhatsApp, SMS or email, in any browser, upright on phones and wide on the TV. No app for Dadi.
+              </li>
+              <li>
+                <b>RSVPs on your WhatsApp.</b> Guests say if they&apos;re coming, how many and for which functions. With the RSVP form, your invite keeps the count.
+              </li>
+              <li>
+                <b>Calendar and directions.</b> One tap adds each function to their calendar and opens the way to the venue.
+              </li>
+            </ul>
+            <CtaLink href="/templates" section="link" className="cta-btn">
+              Choose your design <Arrow />
+            </CtaLink>
+          </div>
+          <div className="wa-demo">
+            <div className="wa-phone">
+              <div className="wa-top">
+                <span className="wa-av">👪</span>
+                <div>
+                  <b>Sharma Family 🏡</b>
+                  <small>Mummy, Papa, Dadi, +38</small>
+                </div>
+              </div>
+              <div className="wa-chat">
+                <span className="wa-day">Today</span>
+                <div className="wa-bubble">
+                  <div className="wa-card">
+                    <div className="wa-art">
+                      <span>The wedding of</span>
+                      <b>Aarav &amp; Ananya</b>
+                      <small>Tuesday, 8 December 2026</small>
+                    </div>
+                    <div className="t">Aarav &amp; Ananya</div>
+                    <div className="d">Tap to open the invitation</div>
+                    <div className="h">{HOST}</div>
+                  </div>
+                  <div className="wa-msg">
+                    Please join us 🙏 <span>{HOST}/e/aarav-ananya</span>
+                  </div>
+                  <div className="wa-time">21:14 ✓✓</div>
+                </div>
+              </div>
+            </div>
+            <div className="rsvp-eg" aria-label="Example of an invite's RSVP counts">
+              <span className="rsvp-eg-head">
+                Your RSVPs <em>example</em>
+              </span>
+              <div>
+                <b>18</b>
+                <small>attending</small>
+              </div>
+              <div>
+                <b>46</b>
+                <small>people</small>
+              </div>
+              <div>
+                <b>3</b>
+                <small>maybe</small>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ---------- how it works ---------- */}
       <section className="sec surface" id="how">
         <SectionHead label="How it works" center>
-          Ready to send in <em>three steps.</em>
+          Ready to send in <em>about two minutes.</em>
         </SectionHead>
         <div className="steps">
           <article className="step">
@@ -158,67 +264,9 @@ export default async function Home() {
           </article>
         </div>
         <div className="sec-cta">
-          <Link href="/templates" className="cta-btn lg">
+          <CtaLink href="/templates" section="how" className="cta-btn lg">
             Choose your design <Arrow />
-          </Link>
-        </div>
-      </section>
-
-      {/* ---------- what guests get ---------- */}
-      <section className="sec">
-        <div className="guests">
-          <div>
-            <SectionHead label="Your invitation page">
-              One link. <em>Every guest.</em>
-            </SectionHead>
-            <ul className="points">
-              <li>
-                <b>Your names in the address.</b> Every invitation gets a page like <u>{HOST}/e/aarav-ananya</u>, with a preview card in the chat.
-              </li>
-              <li>
-                <b>Opens anywhere.</b> From WhatsApp, SMS, email or Instagram, in any browser. No app and no download for Dadi.
-              </li>
-              <li>
-                <b>Fits every screen.</b> Upright on phones, widescreen on laptops and the living-room TV.
-              </li>
-              <li>
-                <b>Every function in one.</b> Haldi, mehendi, sangeet, pheras and reception, each with its own date and venue.
-              </li>
-              <li>
-                <b>Your music and photos.</b> Add a song and your favourite pictures; the timing is done for you.
-              </li>
-            </ul>
-          </div>
-          <div className="wa-demo">
-            <div className="wa-phone">
-              <div className="wa-top">
-                <span className="wa-av">👪</span>
-                <div>
-                  <b>Sharma Family 🏡</b>
-                  <small>Mummy, Papa, Dadi, +38</small>
-                </div>
-              </div>
-              <div className="wa-chat">
-                <span className="wa-day">Today</span>
-                <div className="wa-bubble">
-                  <div className="wa-card">
-                    <div className="wa-art">
-                      <span>The wedding of</span>
-                      <b>Aarav &amp; Ananya</b>
-                      <small>Tuesday, 8 December 2026</small>
-                    </div>
-                    <div className="t">Aarav &amp; Ananya</div>
-                    <div className="d">Tap to open the invitation</div>
-                    <div className="h">{HOST}</div>
-                  </div>
-                  <div className="wa-msg">
-                    Please join us 🙏 <span>{HOST}/e/aarav-ananya</span>
-                  </div>
-                  <div className="wa-time">21:14 ✓✓</div>
-                </div>
-              </div>
-            </div>
-          </div>
+          </CtaLink>
         </div>
       </section>
 
@@ -236,25 +284,11 @@ export default async function Home() {
               {BRAND} link
             </span>
           </div>
-          {(
-            [
-              ["Animation and music", false, false, true],
-              ["Reaches guests the same minute", false, true, true],
-              ["Every function, date and venue in one", true, true, true],
-              ["Upright on phones, wide on the TV", false, false, true],
-              ["Looks right without zooming", true, false, true],
-              ["Nothing to print or post", false, true, true],
-            ] as [string, boolean, boolean, boolean][]
-          ).map(([label, ...v]) => (
-            <div className="cmp-row" role="row" key={label}>
-              <span role="rowheader">{label}</span>
-              {v.map((ok, n) => (
-                <span key={n} role="cell" className={(n === 2 ? "us " : "") + (ok ? "yes" : "no")} aria-label={ok ? "Yes" : "No"}>
-                  {ok ? "✓" : "—"}
-                </span>
-              ))}
-            </div>
-          ))}
+          {COMPARE.slice(0, 4).map(cmpRow)}
+          <details className="cmp-more">
+            <summary>{COMPARE.length - 4} more differences</summary>
+            {COMPARE.slice(4).map(cmpRow)}
+          </details>
         </div>
       </section>
 
@@ -287,9 +321,9 @@ export default async function Home() {
               <li>Share link for WhatsApp</li>
               {PAYMENTS ? <li className="minus">Watermark on the invitation{FREE_COUNT ? " (none on the free designs)" : ""}</li> : null}
             </ul>
-            <Link href="/templates" className="ghost-btn block">
+            <CtaLink href="/templates" section="pricing" className="ghost-btn block">
               Start free
-            </Link>
+            </CtaLink>
           </div>
           {PAYMENTS ? (
             <div className="price-card best">
@@ -308,9 +342,9 @@ export default async function Home() {
                 <li>UPI, cards and net banking</li>
                 <li>No subscription, no hidden charges</li>
               </ul>
-              <Link href="/templates" className="cta-btn block">
+              <CtaLink href="/templates" section="pricing" className="cta-btn block">
                 Choose a design <Arrow />
-              </Link>
+              </CtaLink>
               <div className="price-pay">
                 <PayIcons size={18} />
               </div>
@@ -327,9 +361,9 @@ export default async function Home() {
                 <li>Your names carry over to every invite</li>
                 <li>Buy it from any of your invites</li>
               </ul>
-              <Link href="/templates" className="ghost-btn block">
+              <CtaLink href="/invitations/wedding" section="pricing_pack" className="ghost-btn block">
                 Start with your wedding invite
-              </Link>
+              </CtaLink>
             </div>
           ) : null}
         </div>
@@ -354,9 +388,9 @@ export default async function Home() {
         <h2>
           Your guests are waiting <em>for the invite.</em>
         </h2>
-        <Link href="/templates" className="cta-btn lg">
+        <CtaLink href="/templates" section="final" className="cta-btn lg">
           Make my invitation <Arrow />
-        </Link>
+        </CtaLink>
       </section>
 
       <SiteFooter />

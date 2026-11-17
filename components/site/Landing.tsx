@@ -18,6 +18,7 @@ import { MobileCta } from "./MobileCta";
 import { NamesForm, useStartNames } from "./NamesForm";
 import { useRegion } from "./StatePicker";
 import { TemplateCard } from "./TemplateCard";
+import { track, type Events } from "@/lib/analytics";
 
 /** The hero's designs, one per tradition, in the order they play. When the visitor's state is known (lib/regions.ts:
     ?state= from an ad, their earlier pick, the phone's language or the connection), that state's own design leads. */
@@ -262,7 +263,7 @@ export function Showcase() {
         ))}
       </div>
       <div className="showcase-foot">
-        <Link href={cat === "all" ? "/templates" : functionPath(cat)} className="ghost-btn">
+        <Link href={cat === "all" ? "/templates" : functionPath(cat)} className="ghost-btn" onClick={() => track("home_cta_clicked", { section: "designs" })}>
           See all {countIn(DESIGNS, cat)} {cat === "all" ? "designs" : CATEGORIES.find((c) => c.id === cat)!.label.toLowerCase() + " designs"} <Arrow />
         </Link>
       </div>
@@ -309,3 +310,12 @@ export function Arrow() {
   );
 }
 
+
+/** A home page call to action that reports which section it was in (`home_cta_clicked`), for the server-rendered page. */
+export function CtaLink({ href, section, className, children }: { href: string; section: Events["home_cta_clicked"]["section"]; className?: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className={className} onClick={() => track("home_cta_clicked", { section })}>
+      {children}
+    </Link>
+  );
+}

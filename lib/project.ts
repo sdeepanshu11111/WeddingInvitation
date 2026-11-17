@@ -1,6 +1,7 @@
 import type { Orientation, Project, Scene, TemplateDef, Theme } from "./types";
 import { getTemplate } from "./templates";
 import { layout } from "./anim";
+import { quizOf, quizScene } from "./quiz";
 
 export { SIZES, FPS } from "./sizes";
 
@@ -50,13 +51,20 @@ export function defaultProject(templateId: string, prev?: Project): Project {
     data: { ...t.defaults, ...carried },
     music: prev?.music ?? null,
     speed: prev?.speed ?? 1,
+    // The couple's guest-page choices, RSVP and quiz belong to the invite, not the design: they follow a design switch.
+    ...(prev?.guest ? { guest: prev.guest } : null),
+    ...(prev?.rsvp ? { rsvp: prev.rsvp } : null),
+    ...(prev?.quiz ? { quiz: prev.quiz } : null),
   };
 }
 
 export function buildTimeline(project: Project) {
   const template = getTemplate(project.templateId);
   const theme = makeTheme(template, project.paletteId);
-  const scenes: Scene[] = template.build(project.data, project.orientation, theme);
+  const scenes: Scene[] = [...template.build(project.data, project.orientation, theme)];
+  // The couple's quiz (lib/quiz.tsx) goes just before the closing scene.
+  const quiz = quizOf(project.quiz);
+  if (quiz) scenes.splice(Math.max(1, scenes.length - 1), 0, quizScene(quiz, project.orientation === "vertical", theme));
   const { slots, total } = layout(scenes.map((s) => s.duration), scenes.map((s) => s.out));
   return { template, theme, scenes, slots, total, realTotal: total / project.speed };
 }

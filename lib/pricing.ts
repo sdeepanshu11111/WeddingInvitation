@@ -41,6 +41,10 @@ const PRICES: Record<string, number> = {
   "holy-matrimony": 149,
   "shubh-mangal": 149,
   "shubho-bibaho": 149,
+  "rajwada-palace": 149,
+  // Added 2026-11-17: Floral Rangoli (any function) and Lavender Garden (modern save-the-date / wedding).
+  "floral-rangoli": 49,
+  "lavender-garden": 29,
   // The most in one invite: every function on its own scene, or the couple's own video.
   "shaadi-utsav": 299,
   "cinematic-reel": 399,

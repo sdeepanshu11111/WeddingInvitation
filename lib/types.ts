@@ -120,8 +120,37 @@ export type Project = {
   data: Record<string, any>;
   music: { src: string; name: string; volume: number; offset: number } | null;
   speed: number; // 0.75 .. 1.5 — scales every scene duration
+  /** The guest page's interactive extras (app/e/[slug]/Interactive.tsx), each on unless set to false: a sealed envelope
+      on the cover, a scratch-to-reveal date, and a "Send blessings" button at the end. Guest page only: never in a
+      scene, so the MP4 export is unaffected. */
+  guest?: GuestOptions;
+  /** How guests reply (lib/rsvp.ts). Missing = a WhatsApp button to the number written on the invite, as before. */
+  rsvp?: RsvpOptions;
+  /** "How well do you know us?": one question the couple writes, shown as an extra scene before the closing one
+      (lib/quiz.tsx). In the video the answer is revealed after a moment; on the guest page guests tap their answer. */
+  quiz?: QuizOptions;
   /** Set when a link is made: fields still equal to the template's sample date / venue (lib/inviteDetails.ts, sampleKeys). */
   sample?: string[];
 };
 
 export type Style = CSSProperties;
+
+export type GuestOptions = { envelope?: boolean; scratch?: boolean; blessings?: boolean; actions?: boolean; moment?: boolean };
+
+/** RSVP settings, per invite (studio "RSVP" group; guest side app/e/[slug]/Rsvp.tsx). The contacts' numbers are shown
+    to guests on purpose, like the number the family writes on the invite itself, so they live in the project. */
+export type QuizOptions = { on?: boolean; question?: string; options?: string[]; answer?: number };
+
+export type RsvpContact = { name: string; phone: string };
+export type RsvpOptions = {
+  mode?: "whatsapp" | "form" | "off"; // default "whatsapp": one tap opens WhatsApp with a ready reply
+  contacts?: RsvpContact[]; // up to 2; empty = the numbers written on the invite
+  by?: string; // reply-by date, YYYY-MM-DD
+  askCount?: boolean; // form: how many people (default on)
+  askEvents?: boolean; // form: which functions, when the invite has more than one (default on)
+  askFood?: boolean; // form: Veg / Jain / Non-veg (default off)
+  askNote?: boolean; // form: a short message (default on)
+  call?: boolean; // a Call button next to WhatsApp (default off)
+};
+/** An extra is on unless the couple switched it off (older invites have no `guest` and get all of them). */
+export const guestOn = (p: { guest?: GuestOptions }, k: keyof GuestOptions) => p.guest?.[k] !== false;

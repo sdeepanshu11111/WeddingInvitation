@@ -26,7 +26,7 @@ import { GA_ID, META_PIXEL_ID, MIXPANEL_API_HOST, MIXPANEL_TOKEN } from "./featu
 import { priceOf } from "./pricing";
 
 /** The tracking plan. Names are snake_case and fixed: never build an event or property name at runtime. */
-type Events = {
+export type Events = {
   /** A visitor tapped a state on /templates ("Wedding in which state?"): a region id from lib/regions.ts, or "all". */
   state_selected: { state: string };
   /** The couple rated their invite in the owner sheet (app/api/review). The stars only: never the words or names. */
@@ -75,7 +75,21 @@ type Events = {
   invite_watched: {};
   invite_shared: { channel: "whatsapp" | "native_share" | "copy"; invite_id?: string };
   /** A guest used the card at the end of an invite (app/e/[slug]/GuestDetails.tsx), or "Make your own invitation". */
-  guest_action_clicked: { action: "calendar" | "directions" | "rsvp" | "make_own" };
+  guest_action_clicked: { action: "calendar" | "directions" | "rsvp" | "call" | "make_own" | "blessing"; where?: "scene" };
+  /** A guest sent an RSVP from the form (lib/rsvp.ts). people: 0 unless attending. No name, no answers beyond these. */
+  rsvp_sent: { response: "yes" | "maybe" | "no"; people: number; changed: boolean };
+  /** The tap moment on the names scene ended: how many times the guest tapped (0 = it went on by itself). */
+  tap_moment: { kind: string; taps: number };
+  /** A guest answered the couple's quiz. */
+  quiz_answered: { correct: boolean };
+  /** Home page: a call to action was tapped; `section` says which part of the page it was in. */
+  home_cta_clicked: { section: "hero" | "designs" | "guest_demo" | "link" | "how" | "pricing" | "pricing_pack" | "final" };
+  /** Home page: the visitor tried a step of the "What your guests will do" demo (components/site/GuestDemo.tsx). */
+  home_demo_step: { step: "open" | "scratch" | "shower" | "quiz" | "rsvp" };
+  /** The scratch-to-reveal date card on a guest's invite was cleared by the guest (completed) or dissolved by itself. */
+  date_scratched: { completed: boolean };
+  /** The couple made a personal link for one guest (?to=<name>). The name is never sent. */
+  invite_personalised: { invite_id: string; channel: "whatsapp" | "copy" };
   /** The couple's sheet (remove watermark, share) came up: by itself on the cover or at the end, or from their bar. */
   owner_sheet_opened: { trigger: "cover" | "end" | "bar" };
 };

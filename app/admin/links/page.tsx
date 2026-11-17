@@ -116,6 +116,9 @@ export default async function Links({ searchParams }: { searchParams: { show?: s
                   {l.os ? <span className="dim">{l.os}</span> : null}
                   <span>
                     {l.opens} guest opens{l.opens ? " · " + l.watched + " watched to the end" : ""}
+                    {l.blessings ? " · " + l.blessings + " blessings" : ""}
+                    {l.rsvp.yes + l.rsvp.maybe + l.rsvp.no ? " · RSVP " + l.rsvp.yes + " yes (" + l.rsvp.people + " people) / " + l.rsvp.maybe + " maybe / " + l.rsvp.no + " no" : ""}
+                    {l.quiz_total ? " · quiz " + l.quiz_right + "/" + l.quiz_total : ""}
                   </span>
                   {l.last_opened_at ? <span className="dim">Last opened {when(l.last_opened_at)}</span> : null}
                   {l.photo_count || l.has_music || l.has_video ? (

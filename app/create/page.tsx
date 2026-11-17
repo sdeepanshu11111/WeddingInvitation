@@ -6,6 +6,7 @@ import { ExportDialog } from "@/components/editor/ExportDialog";
 import { GetLink } from "@/components/editor/ShareDialog";
 import { AgreeNote } from "@/components/PayTrust";
 import { FieldGroups, MusicPanel } from "@/components/editor/Fields";
+import { GuestExperience, QuizPanel, RsvpPanel } from "@/components/editor/GuestPanels";
 import { TemplateGallery } from "@/components/editor/TemplateGallery";
 import { CATEGORIES, countIn } from "@/lib/catalog";
 import { fmt } from "@/lib/anim";
@@ -21,7 +22,7 @@ import { PalettePicker } from "@/components/PalettePicker";
 import { baseOf } from "@/lib/variants";
 import { Logo } from "@/components/site/SiteHeader";
 import { startAnalytics, track, setPageProps } from "@/lib/analytics";
-import type { CategoryId, Orientation, Project } from "@/lib/types";
+import { type CategoryId, type Orientation, type Project } from "@/lib/types";
 
 type View = Orientation | "both";
 
@@ -487,6 +488,12 @@ export default function Editor() {
           <summary>Music</summary>
           <MusicPanel music={project.music} setMusic={(m) => update({ music: m })} onError={say} />
         </details>
+
+        {/* Invite-level guest page settings (components/editor/GuestPanels.tsx): RSVP, the couple's quiz, and the
+            interactive extras (all on by default, off per invite). */}
+        <RsvpPanel project={project} update={update} />
+        <QuizPanel project={project} update={update} />
+        <GuestExperience project={project} update={update} />
 
         <details className="group">
           <summary>Pacing</summary>

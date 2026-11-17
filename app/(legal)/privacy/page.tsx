@@ -81,10 +81,18 @@ export default function Privacy() {
         </li>
         {LEADS ? (
           <li>
-            <b>Invitation opens</b>: we count how many times each invitation is opened and watched to the end, to see how far it travelled.
+            <b>Invitation opens</b>: we count how many times each invitation is opened, watched to the end and blessed (the "Send blessings" button), to see how far it travelled.
             It is a number only: nothing about the guest is stored with it.
           </li>
         ) : null}
+        <li>
+          <b>RSVPs and the couple&apos;s quiz</b>: a guest&apos;s RSVP (their name, how many are coming, which functions, food, a message) is written
+          into WhatsApp on their own phone and goes from there to the family; it never reaches our servers.
+          {LEADS
+            ? " We only add one to the invitation's counts (attending, maybe, can't come, and how many people), which the couple sees on their invite, and one to its quiz score (answered, answered right). Your device remembers that it replied, so a changed answer moves the count instead of adding one."
+            : ""}{" "}
+          The RSVP numbers on an invitation are the ones the couple chose to show their guests.
+        </li>
         <li>
           <b>Website analytics</b>: we use Google Analytics on our website pages and in the editor to count visits and to see which pages are viewed
           and where visitors come from. It uses cookies and records the page address, your browser and device type and an approximate location

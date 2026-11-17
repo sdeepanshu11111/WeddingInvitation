@@ -35,7 +35,7 @@ const HALDI = "haldi-marigold", MEHENDI = "mehendi-paisley", SANGEET = "sangeet-
 // Each state: its weddings first, then its own functions in its own words, most important first (in Bengal the Gaye
 // Holud and the Bou Bhat matter more than a sangeet; in Punjab the Jaago takes the sangeet design). At least 5 each.
 export const REGIONS: Region[] = [
-  { id: "north-india", label: "North India", language: "Hindi", native: "हिन्दी", lang: "hi", states: ["DL", "UP", "BR", "RJ", "MP", "HR", "UK", "UT", "HP", "JH", "CT", "CG"], designs: ["hindi-shubh-vivah", "royal-mandala", "shaadi-utsav", ...rituals("hindi", [HALDI, MEHENDI, SANGEET, RECEPTION, ENGAGEMENT]), "punjabi-viah"] },
+  { id: "north-india", label: "North India", language: "Hindi", native: "हिन्दी", lang: "hi", states: ["DL", "UP", "BR", "RJ", "MP", "HR", "UK", "UT", "HP", "JH", "CT", "CG"], designs: ["hindi-shubh-vivah", "royal-mandala", "rajwada-palace", "shaadi-utsav", ...rituals("hindi", [HALDI, MEHENDI, SANGEET, RECEPTION, ENGAGEMENT]), "punjabi-viah"] },
   { id: "punjab", label: "Punjab", language: "Punjabi", native: "ਪੰਜਾਬੀ", lang: "pa", states: ["PB", "CH"], designs: ["punjabi-viah", "anand-karaj", ...rituals("punjabi", [SANGEET, HALDI, MEHENDI, ENGAGEMENT, RECEPTION])] },
   { id: "maharashtra", label: "Maharashtra", language: "Marathi", native: "मराठी", lang: "mr", states: ["MH"], designs: ["shubh-mangal", ...rituals("marathi", [HALDI, ENGAGEMENT, RECEPTION, MEHENDI, SANGEET])] },
   { id: "bengal", label: "West Bengal", language: "Bengali", native: "বাংলা", lang: "bn", states: ["WB", "TR"], designs: ["shubho-bibaho", ...rituals("bengali", [HALDI, RECEPTION, ENGAGEMENT, MEHENDI, SANGEET])] },

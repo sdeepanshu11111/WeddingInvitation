@@ -116,3 +116,23 @@ body { font-family: var(--ui); }
 }
 .guest-ui .btn { border-radius: 10px; background: var(--panel-2); color: var(--text); }
 .guest-ui .btn.primary { background: linear-gradient(180deg, var(--gold-2), var(--gold)); color: var(--on-accent); border-color: transparent; }
+
+/* Studio: Guest experience toggles (app/create/page.tsx). */
+.guest-opts { display: grid; gap: 10px; padding: 4px 0 8px; }
+.guest-opt { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
+.guest-opt input { margin-top: 3px; width: 18px; height: 18px; flex: none; }
+.guest-opt span { display: grid; gap: 2px; }
+.guest-opt small { color: var(--muted); font-size: 12.5px; }
+
+/* RSVP + couple quiz panels (components/editor/GuestPanels.tsx) */
+.rsvp-panel { display: grid; gap: 14px; }
+.rsvp-modes { display: grid; gap: 8px; }
+.rsvp-modes .guest-opt { padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); }
+.rsvp-modes .guest-opt.on { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.rsvp-contact { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 8px; }
+.input.bad { border-color: #c0392b; }
+.quiz-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.quiz-row .input { flex: 1; min-width: 0; }
+.quiz-right { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line); color: var(--muted); font-weight: 700; cursor: pointer; }
+.quiz-right input { position: absolute; opacity: 0; pointer-events: none; }
+.quiz-right.on { border-color: var(--accent); background: var(--accent); color: var(--on-accent, #fff); }

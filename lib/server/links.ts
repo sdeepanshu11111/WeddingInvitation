@@ -59,8 +59,20 @@ export type LinkRecord = {
   paid_at: string | null;
   opens: number; // guests who tapped "Open invitation" (the couple's own views are not counted)
   watched: number; // guests who reached the end
+  blessings: number; // guests who tapped "Send blessings" at the end (one per device, counted only)
+  quiz_right: number; // guests who answered the couple's quiz right (one answer per device)
+  quiz_total: number;
+  rsvp: RsvpCounts; // RSVP replies sent through the invite (lib/rsvp.ts): counts only, never who
   last_opened_at: string | null;
 };
+
+/** RSVP replies on a link: how many said yes / maybe / no, and how many people the "yes" replies bring. A guest who
+    changes their answer moves their count (one reply per device), so these stay close to the real numbers, but
+    anyone can add to them: they are a guide for the couple, not a guest list. */
+export type RsvpCounts = { yes: number; maybe: number; no: number; people: number };
+const RSVP_KINDS = ["yes", "maybe", "no"] as const;
+type RsvpKind = (typeof RSVP_KINDS)[number];
+export const isRsvpKind = (v: unknown): v is RsvpKind => RSVP_KINDS.includes(v as RsvpKind);
 
 /** The facts of a link that come from its project: what was published. The project is whatever the browser sent,
     so everything is coerced and cut to size. */
@@ -158,6 +170,10 @@ const normalize = (link: string, d: Record<string, any>): LinkRecord => ({
   paid_at: iso(d.paid_at),
   opens: d.opens ?? 0,
   watched: d.watched ?? 0,
+  blessings: d.blessings ?? 0,
+  quiz_right: d.quiz_right ?? 0,
+  quiz_total: d.quiz_total ?? 0,
+  rsvp: rsvpOf(d),
   last_opened_at: iso(d.last_opened_at),
 });
 
@@ -247,10 +263,13 @@ export async function recordPayment(link: string, p: { paymentId: string; orderI
 
 /** A guest opened the invite, or watched it to the end. Counts only, nothing about the visitor. Only links that
     already have a record are counted: this is called by an open endpoint, and must not create documents. */
-export async function recordGuestEvent(link: string, kind: "open" | "watched") {
+export async function recordGuestEvent(link: string, kind: "open" | "watched" | "blessing") {
   if (!/^[\w-]{3,64}$/.test(link)) return;
   if (LEADS === "mongo") {
-    await (await col()).updateOne({ _id: link }, kind === "open" ? { $inc: { opens: 1 }, $set: { last_opened_at: new Date() } } : { $inc: { watched: 1 } });
+    await (await col()).updateOne(
+      { _id: link },
+      kind === "open" ? { $inc: { opens: 1 }, $set: { last_opened_at: new Date() } } : { $inc: kind === "watched" ? { watched: 1 } : { blessings: 1 } },
+    );
   } else if (LEADS === "disk") {
     await editDisk(
       link,
@@ -258,14 +277,84 @@ export async function recordGuestEvent(link: string, kind: "open" | "watched") {
         if (kind === "open") {
           r.opens = (r.opens ?? 0) + 1;
           r.last_opened_at = now;
-        } else r.watched = (r.watched ?? 0) + 1;
+        } else if (kind === "watched") r.watched = (r.watched ?? 0) + 1;
+        else r.blessings = (r.blessings ?? 0) + 1;
       },
       false,
     );
   }
 }
 
+/** A guest sent an RSVP from the invite (or changed it: `prev` is what this device sent before, which is taken back).
+    `people` counts only with a "yes". Counts only, like recordGuestEvent, and only on links that have a record. */
+export async function recordRsvp(link: string, r: { response: RsvpKind; people: number; prev?: { response: RsvpKind; people: number } }) {
+  if (!/^[\w-]{3,64}$/.test(link)) return;
+  const inc: Record<string, number> = {};
+  const add = (k: string, n: number) => n && (inc[k] = (inc[k] ?? 0) + n);
+  add("rsvp_" + r.response, 1);
+  if (r.response === "yes") add("rsvp_people", r.people);
+  if (r.prev) {
+    add("rsvp_" + r.prev.response, -1);
+    if (r.prev.response === "yes") add("rsvp_people", -r.prev.people);
+  }
+  const changes = Object.entries(inc).filter(([, n]) => n);
+  if (!changes.length) return;
+  if (LEADS === "mongo") {
+    await (await col()).updateOne({ _id: link }, { $inc: Object.fromEntries(changes) });
+  } else if (LEADS === "disk") {
+    await editDisk(link, (d) => changes.forEach(([k, n]) => (d[k] = (d[k] ?? 0) + n)), false);
+  }
+}
+
+/** A guest answered the couple's quiz: one more answer, and one more right one if it was. Counts only. */
+export async function recordQuiz(link: string, correct: boolean) {
+  if (!/^[\w-]{3,64}$/.test(link)) return;
+  if (LEADS === "mongo") await (await col()).updateOne({ _id: link }, { $inc: correct ? { quiz_total: 1, quiz_right: 1 } : { quiz_total: 1 } });
+  else if (LEADS === "disk")
+    await editDisk(
+      link,
+      (d) => {
+        d.quiz_total = (d.quiz_total ?? 0) + 1;
+        if (correct) d.quiz_right = (d.quiz_right ?? 0) + 1;
+      },
+      false,
+    );
+}
+
+/** How the guests did on the quiz so far, for "62% of guests got it right". */
+export async function quizCounts(link: string): Promise<{ right: number; total: number }> {
+  if (!/^[\w-]{3,64}$/.test(link)) return { right: 0, total: 0 };
+  let d: any = null;
+  if (LEADS === "mongo") d = await (await col()).findOne({ _id: link }, { projection: { quiz_right: 1, quiz_total: 1 } });
+  else if (LEADS === "disk") d = (await readDisk())[link];
+  return { right: d?.quiz_right ?? 0, total: d?.quiz_total ?? 0 };
+}
+
+/** Never below zero: a reply taken back that was never counted (e.g. sent while the record did not exist yet). */
+const rsvpOf = (d: any): RsvpCounts => ({
+  yes: Math.max(0, d?.rsvp_yes ?? 0),
+  maybe: Math.max(0, d?.rsvp_maybe ?? 0),
+  no: Math.max(0, d?.rsvp_no ?? 0),
+  people: Math.max(0, d?.rsvp_people ?? 0),
+});
+
 /* ---- reads ---- */
+
+/** The RSVP counts of one link, for the couple's own sheet (the API checks their owner key first). */
+export async function rsvpCounts(link: string): Promise<RsvpCounts> {
+  if (!/^[\w-]{3,64}$/.test(link)) return rsvpOf(null);
+  if (LEADS === "mongo") return rsvpOf(await (await col()).findOne({ _id: link }, { projection: { rsvp_yes: 1, rsvp_maybe: 1, rsvp_no: 1, rsvp_people: 1 } }));
+  if (LEADS === "disk") return rsvpOf((await readDisk())[link]);
+  return rsvpOf(null);
+}
+
+/** How many guests sent blessings to this invite: shown on the invite's end screen (a count only). 0 when unknown. */
+export async function blessingCount(link: string): Promise<number> {
+  if (!/^[\w-]{3,64}$/.test(link)) return 0;
+  if (LEADS === "mongo") return ((await (await col()).findOne({ _id: link }, { projection: { blessings: 1 } }))?.blessings as number) ?? 0;
+  if (LEADS === "disk") return (await readDisk())[link]?.blessings ?? 0;
+  return 0;
+}
 
 /** Links made by real visitors in the last `days` days: the owner's test links (`internal`) and broken folders are
     left out, imported links count by their real creation date. For the home hero ("N invitations made this month"). */

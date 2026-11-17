@@ -22,6 +22,9 @@ import { holyMatrimony } from "./holy-matrimony";
 import { shubhMangal } from "./shubh-mangal";
 import { shubhoBibaho } from "./shubho-bibaho";
 import { auroraModern } from "./aurora-modern";
+import { rajwadaPalace } from "./rajwada-palace";
+import { floralRangoli } from "./floral-rangoli";
+import { lavenderGarden } from "./lavender-garden";
 import { LANGUAGE_VERSIONS } from "./languages";
 
 /**
@@ -32,6 +35,7 @@ import { LANGUAGE_VERSIONS } from "./languages";
  */
 export const DESIGNS: TemplateDef[] = [
   royalMandala,
+  rajwadaPalace,
   hindiShubhVivah,
   shaadiUtsav,
   southKalyanam,
@@ -50,7 +54,9 @@ export const DESIGNS: TemplateDef[] = [
   mehendiPaisley,
   sangeetNight,
   receptionGala,
+  floralRangoli,
   blushBotanical,
+  lavenderGarden,
   cinematicReel,
   polaroidMemories,
   auroraModern,
