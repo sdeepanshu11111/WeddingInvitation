@@ -817,7 +817,14 @@ li.review.hidden { opacity: 0.6; }
 
 /* An empty photo or clip slot says "ADD A PHOTO" in the studio. Guests must never read that on someone's invite:
    there it is a plain panel in the design's own colour (the slot's parent already paints theme.bg2). */
-.guest-ui .ph { color: transparent !important; background-image: none !important; }
+/* Empty photo / clip slot: the studio shows "Add a photo"; a guest sees the couple's monogram in the frame instead
+   (components/primitives.tsx, Monogram; owner 2026-11-18: an empty frame looked broken). */
+.ph-mono { display: none; }
+.guest-ui .ph { container-type: size; color: transparent !important; background-image: radial-gradient(circle at 50% 42%, var(--ph-glow, transparent), transparent 75%) !important; }
+.guest-ui .ph-hint { display: none; }
+.guest-ui .ph-mono { display: flex; flex-direction: column; align-items: center; gap: 4cqmin; color: var(--ph-ink, #d9b77c); letter-spacing: 0.12em; text-transform: none; }
+.guest-ui .ph-mono b { font-family: var(--f-cinzel); font-weight: 600; font-size: 13cqmin; line-height: 1; white-space: nowrap; }
+.guest-ui .ph-mono i { display: block; width: 26cqmin; height: 1px; background: linear-gradient(90deg, transparent, var(--ph-line, currentColor), transparent); }
 
 /* ---------- /admin/links and the admin nav ---------- */
 .admin-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; max-width: 860px; margin: 0 auto; padding: 16px 16px 0; font-size: 13px; }
@@ -931,7 +938,8 @@ li.review.hidden { opacity: 0.6; }
 .scene-count { flex-basis: 100%; text-align: center; color: #fff; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); pointer-events: none !important; }
 .tap-moment { position: absolute; inset: 0; z-index: 30; overflow: hidden; cursor: pointer; touch-action: manipulation; transition: opacity 0.38s; }
 .tap-moment.gone { opacity: 0; pointer-events: none; }
-.tm-prompt { z-index: 2; position: absolute; left: 50%; bottom: calc(150px + env(safe-area-inset-bottom)); transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; padding: 12px 20px; border-radius: 99px; background: rgba(15, 14, 16, 0.72); color: #fff; font-size: 15px; font-weight: 600; white-space: nowrap; pointer-events: none; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: pop-in 0.35s ease both; }
+/* Centred with margins, not translateX: the pop-in animation sets its own transform and pushed it off to the right. */
+.tm-prompt { z-index: 2; position: absolute; left: 0; right: 0; margin: 0 auto; width: max-content; max-width: calc(100% - 32px); bottom: calc(150px + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border-radius: 99px; background: rgba(15, 14, 16, 0.72); color: #fff; font-size: 15px; font-weight: 600; text-align: center; pointer-events: none; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: pop-in 0.35s ease both; }
 .tm-hand { display: inline-block; animation: tm-tap 1s ease-in-out infinite; }
 @keyframes tm-tap { 50% { transform: translateY(4px) scale(0.92); } }
 .tm-burst { position: absolute; width: 0; height: 0; pointer-events: none; }
@@ -948,3 +956,12 @@ li.review.hidden { opacity: 0.6; }
 .qa-result b { font-size: 20px; }
 .qa-result span { color: rgba(255, 255, 255, 0.75); font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .tm-hand { animation: none; } .tm-burst span { animation-duration: 0.01s; } }
+
+/* Get link's check for example date / venue (components/editor/SampleCheck.tsx). */
+.sample-check { display: grid; gap: 10px; max-width: 440px; }
+.sample-check .sc-lead { margin: 0; color: var(--muted); font-size: 14.5px; }
+.sc-list { list-style: none; margin: 4px 0 6px; padding: 0; display: grid; gap: 6px; }
+.sc-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(160, 29, 56, 0.06); font-size: 14px; }
+.sc-list li span { color: var(--muted); }
+.sc-list li b { text-align: right; overflow-wrap: anywhere; }
+.sample-check .btn { width: 100%; min-height: 46px; justify-content: center; }

@@ -31,6 +31,8 @@ export type Events = {
   state_selected: { state: string };
   /** The couple rated their invite in the owner sheet (app/api/review). The stars only: never the words or names. */
   review_submitted: { rating: number; has_text: boolean; is_public: boolean };
+  /** Get link found the date / venue still the design's example (components/editor/SampleCheck): what the couple chose. */
+  sample_warning: { template_id: string; field_count: number; choice: "fix" | "anyway" };
   /** The couple tapped one of their other functions in the owner sheet (lib/nextInvites.ts): a second purchase starting. */
   next_invite_clicked: { template_id: string; from_template_id: string };
   /** The studio (/create) finished loading a project. has_design_param: arrived with a chosen design

@@ -448,7 +448,8 @@
   .hero-fns-row { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
   .hero-trust { justify-items: start; }
   .phone-tap-hint { font-size: 13px; }
-  .hero-stage { align-self: center; justify-self: center; width: 100%; max-width: min(330px, calc((100svh - 150px) * 9 / 19)); }
+  /* At the top of its column and following the scroll: centred in the tall left column it fell below the fold. */
+  .hero-stage { align-self: start; justify-self: center; position: sticky; top: calc(var(--head-h) + 20px); width: 100%; max-width: min(330px, calc((100svh - var(--head-h) - 60px) * 9 / 19)); }
   .hero-phone { padding: 6px; border-radius: 46px; box-shadow: 0 0 0 1px #0a0a0b, 0 60px 100px -40px rgba(36, 19, 22, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.12); transform: rotate(1.5deg); }
   .hero-phone .phone-screen { aspect-ratio: 9 / 19; border-radius: 40px; }
   .hero-phone .phone-island { top: 10px; height: 22px; }
@@ -694,3 +695,17 @@
   .gdemo-phone { width: 320px; max-height: none; }
 }
 @media (prefers-reduced-motion: reduce) { .gdemo-bubble, .gdemo-result { animation: none; } }
+
+/* 404 (app/not-found.tsx) */
+.nf { max-width: 640px; margin: 0 auto; padding: 48px var(--pad) 72px; text-align: center; }
+.nf h1 { margin-top: 12px; font-size: clamp(32px, 8vw, 56px); line-height: 1.05; }
+.nf .lead { margin: 14px auto 0; max-width: 520px; color: var(--ink-soft); }
+.nf-ctas { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 26px; }
+.nf .kicker::before { display: none; }
+
+/* Phones: the three price cards swipe sideways (the next one peeks in) instead of stacking three screens tall. */
+@media (max-width: 599px) {
+  .price-grid:not(.one) { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; margin: 0 calc(-1 * var(--pad)); padding: 14px var(--pad) 6px; }
+  .price-grid:not(.one)::-webkit-scrollbar { display: none; }
+  .price-grid:not(.one) > .price-card { flex: 0 0 84%; scroll-snap-align: center; }
+}

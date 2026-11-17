@@ -41,9 +41,9 @@ export const shaadiUtsav: TemplateDef = {
   poster: "couple",
   fonts: { display: "var(--f-cinzel)", script: "var(--f-vibes)", body: "var(--f-cormorant)" },
   palettes: [
+    { id: "peacock", name: "Peacock", ink: "#F2FBF8", soft: "#A8D5CC", accent: "#E9C46A", bg: "#0B4F5C", bg2: "#05262D", line: "#E9C46A" },
     { id: "rani", name: "Rani Pink", ink: "#FFF4E6", soft: "#F3C9C9", accent: "#F6C453", bg: "#8B1538", bg2: "#4F0A1F", line: "#E8B04A" },
     { id: "cream", name: "Marigold Cream", ink: "#5B1A0B", soft: "#8C5A3C", accent: "#C2410C", bg: "#FFF3DC", bg2: "#FBDDA8", line: "#C8892B" },
-    { id: "peacock", name: "Peacock", ink: "#F2FBF8", soft: "#A8D5CC", accent: "#E9C46A", bg: "#0B4F5C", bg2: "#05262D", line: "#E9C46A" },
     { id: "purple", name: "Royal Purple", ink: "#FBF1FF", soft: "#D3B8E3", accent: "#F2C46D", bg: "#4A1D6B", bg2: "#220A36", line: "#E1B15C" },
   ],
   thumb: (p) => (

@@ -16,8 +16,8 @@ export const royalMandala: TemplateDef = {
   poster: "names",
   fonts: { display: "var(--f-cinzel)", script: "var(--f-vibes)", body: "var(--f-cormorant)" },
   palettes: [
-    { id: "maroon", name: "Maroon & Gold", ink: "#F6E7C4", soft: "#D8B98A", accent: "#E8C178", bg: "#4A0E18", bg2: "#2C060D", line: "#C9A227" },
     { id: "emerald", name: "Emerald & Gold", ink: "#F3EBD6", soft: "#CBBE98", accent: "#E3C87E", bg: "#0C3A2E", bg2: "#05201A", line: "#BFA14A" },
+    { id: "maroon", name: "Maroon & Gold", ink: "#F6E7C4", soft: "#D8B98A", accent: "#E8C178", bg: "#4A0E18", bg2: "#2C060D", line: "#C9A227" },
     { id: "ivory", name: "Ivory & Rust", ink: "#4A2317", soft: "#8A5C3F", accent: "#B4612C", bg: "#F7EFE2", bg2: "#EADCC6", line: "#B4612C" },
     { id: "midnight", name: "Midnight & Rose Gold", ink: "#EFE3DD", soft: "#C3A69C", accent: "#D99A7C", bg: "#16131F", bg2: "#0A0810", line: "#C98B6B" },
   ],

@@ -95,9 +95,9 @@ export const holyMatrimony: TemplateDef = {
   poster: "names",
   fonts: { display: "var(--f-cormorant)", script: "var(--f-vibes)", body: "var(--f-cormorant)" },
   palettes: [
+    { id: "sage", name: "Sage Garden", ink: "#2E3A2E", soft: "#5D6B5B", accent: "#7F925A", bg: "#F5F7EF", bg2: "#DCE5CF", line: "#9CAF84" },
     { id: "ivory", name: "Ivory & Gold", ink: "#3B2F2A", soft: "#76665A", accent: "#B08D57", bg: "#FCF8F1", bg2: "#EFE4D1", line: "#C6A46A" },
     { id: "navy", name: "Navy & Gold", ink: "#F7F1E3", soft: "#C9C2B0", accent: "#DDB86C", bg: "#16264A", bg2: "#0A1428", line: "#C9A45C" },
-    { id: "sage", name: "Sage Garden", ink: "#2E3A2E", soft: "#5D6B5B", accent: "#7F925A", bg: "#F5F7EF", bg2: "#DCE5CF", line: "#9CAF84" },
     { id: "blush", name: "Blush Rose", ink: "#4A2C33", soft: "#8A6169", accent: "#BD6B7B", bg: "#FCF2F1", bg2: "#F1D7D9", line: "#D6A1AB" },
   ],
   thumb: (p) => (

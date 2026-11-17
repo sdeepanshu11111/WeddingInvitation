@@ -15,9 +15,9 @@ export const teluguPelli = makeNativeWedding({
   font: "var(--f-telugu)",
   thumbGlyph: "పెళ్లి",
   palettes: [
+    { id: "pattu", name: "Pattu Purple", ink: "#FBF1FF", soft: "#D8BEE6", accent: "#F2C46D", bg: "#4B1E6B", bg2: "#230B36", line: "#E1B45A" },
     { id: "pasupu", name: "Pasupu & Kumkuma", ink: "#4A1206", soft: "#7C3B14", accent: "#B71C1C", bg: "#FFD54F", bg2: "#FFA000", line: "#B71C1C" },
     { id: "kumkuma", name: "Kumkuma Red", ink: "#FFF4DC", soft: "#F2CFA4", accent: "#FFC947", bg: "#8C1420", bg2: "#45070E", line: "#E8B04A" },
-    { id: "pattu", name: "Pattu Purple", ink: "#FBF1FF", soft: "#D8BEE6", accent: "#F2C46D", bg: "#4B1E6B", bg2: "#230B36", line: "#E1B45A" },
     { id: "mamidi", name: "Mango Leaf", ink: "#FFF8E1", soft: "#D7E8C0", accent: "#FFD54F", bg: "#215A2E", bg2: "#0E2D17", line: "#E2C15A" },
   ],
   words: {

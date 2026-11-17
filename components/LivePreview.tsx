@@ -76,13 +76,37 @@ export function LivePreview({ t, orientation, active, paletteId }: { t: Template
   );
 }
 
-/** LivePreview that mounts only near the viewport; until then the template's colours stand in. */
+/**
+ * A design card's picture. Portrait in the design's own colours: its poster image (public/posters/<id>.webp, made by
+ * scripts/posters.mjs: the names scene with the sample photo), and the live preview only once the card is played
+ * (hovered, or centred on a phone), then kept. A grid of 26 designs used to render 26 live invitations and download
+ * every design's fonts on arrival. Landscape or another palette (no poster for those): the live preview mounts near
+ * the viewport, as before. Until anything loads, the design's colours stand in.
+ */
 export function LazyPreview({ t, orientation, active, paletteId }: { t: TemplateDef; orientation: Orientation; active: boolean; paletteId?: string }) {
   const [ref, seen] = useNearViewport<HTMLDivElement>();
   const p = t.palettes.find((x) => x.id === paletteId) ?? t.palettes[0];
+  const poster = orientation === "vertical" && (!paletteId || paletteId === t.palettes[0].id);
+  const [played, setPlayed] = useState(false);
+  const [broken, setBroken] = useState(false); // no poster file (a design added since the posters were made)
+  useEffect(() => {
+    if (active) setPlayed(true);
+  }, [active]);
+  const live = poster && !broken ? played : seen;
   return (
     <div ref={ref} style={{ position: "absolute", inset: 0, background: "linear-gradient(160deg, " + p.bg + ", " + p.bg2 + ")" }}>
-      {seen ? <LivePreview t={t} orientation={orientation} active={active} paletteId={paletteId} /> : null}
+      {poster && !broken ? ( // stays under the live preview while it starts: no blank flash between them
+        <img
+          src={"/posters/" + t.id + ".webp"}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          onError={() => setBroken(true)}
+          style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+        />
+      ) : null}
+      {live ? <LivePreview t={t} orientation={orientation} active={active} paletteId={paletteId} /> : null}
     </div>
   );
 }

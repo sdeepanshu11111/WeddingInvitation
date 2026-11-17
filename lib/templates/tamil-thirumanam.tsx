@@ -16,8 +16,8 @@ export const tamilThirumanam = makeNativeWedding({
   font: "var(--f-tamil)",
   thumbGlyph: "திருமணம்",
   palettes: [
-    { id: "kumkum", name: "Kumkum & Gold", ink: "#FFF3D6", soft: "#EBCB9C", accent: "#F4B81A", bg: "#7A1420", bg2: "#3F0810", line: "#E0A93B" },
     { id: "manjal", name: "Manjal Yellow", ink: "#4A1C0A", soft: "#7A4A1E", accent: "#B3261E", bg: "#FFE082", bg2: "#F9B934", line: "#B3261E" },
+    { id: "kumkum", name: "Kumkum & Gold", ink: "#FFF3D6", soft: "#EBCB9C", accent: "#F4B81A", bg: "#7A1420", bg2: "#3F0810", line: "#E0A93B" },
     { id: "pachai", name: "Leaf Green", ink: "#FFF8E1", soft: "#D5E6BE", accent: "#FFD54F", bg: "#1F5130", bg2: "#0D2A18", line: "#E2C15A" },
     { id: "vellai", name: "Veshti White", ink: "#3D2A12", soft: "#6F5532", accent: "#9C6B0B", bg: "#FCF7EA", bg2: "#F0E3C2", line: "#B58A2A" },
   ],

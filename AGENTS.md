@@ -101,6 +101,7 @@ wrong property, so update that type first.
 | Event | Trigger | Key properties | File |
 |---|---|---|---|
 | `$mp_web_page_view` | A site page (each route), the editor or a guest page loaded | (super properties) | `lib/analytics.ts` |
+| `sample_warning` | Get link found the date / venue / address still the design's example and asked first (`SampleCheck`) | `template_id`, `field_count`, `choice` (`fix` = went to change them / `anyway` = got the link as it is) | `app/create/page.tsx` |
 | `next_invite_clicked` | The couple tapped one of their other functions in their owner sheet (once their invite is clean): a second purchase starting | `template_id` (the design it opens), `from_template_id` (the invite they were on) | `app/e/[slug]/LiveInvite.tsx` (`OwnerNext`) |
 | `review_submitted` | The couple rated their invite in their owner sheet (once it has no watermark) | `rating` (1-5), `has_text`, `is_public` (they allowed it on the site). Never the words or names | `app/e/[slug]/LiveInvite.tsx` (`OwnerReview`) |
 | `state_selected` | A visitor tapped a state in "Wedding in which state?" on `/templates` (arriving with `?state=` from an ad shows in the page view's URL instead) | `state` (a region id from `lib/regions.ts`, e.g. `tamil-nadu`, or `all`) | `components/site/StatePicker.tsx` |

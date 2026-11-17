@@ -15,10 +15,10 @@ export const kannadaMaduve = makeNativeWedding({
   font: "var(--f-kannada)",
   thumbGlyph: "ಮದುವೆ",
   palettes: [
+    { id: "navilu", name: "Peacock", ink: "#F1FBFA", soft: "#A7D8D3", accent: "#F2C14E", bg: "#0D4D57", bg2: "#06262C", line: "#D9B35A" },
     { id: "mysore", name: "Mysore Silk", ink: "#FFF4DC", soft: "#EBCDA0", accent: "#F2B705", bg: "#5B1B6B", bg2: "#2A0A36", line: "#E0A93B" },
     { id: "kumkuma", name: "Kumkuma Red", ink: "#FFF3D6", soft: "#EBCB9C", accent: "#F4B81A", bg: "#7A1420", bg2: "#3F0810", line: "#E0A93B" },
     { id: "srigandha", name: "Sandalwood", ink: "#42260E", soft: "#75522C", accent: "#A2460F", bg: "#FBF0D9", bg2: "#EED9AE", line: "#B9832A" },
-    { id: "navilu", name: "Peacock", ink: "#F1FBFA", soft: "#A7D8D3", accent: "#F2C14E", bg: "#0D4D57", bg2: "#06262C", line: "#D9B35A" },
   ],
   words: {
     title: "ವಿವಾಹ ಮಹೋತ್ಸವದ ಆಮಂತ್ರಣ",

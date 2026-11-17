@@ -5,6 +5,7 @@ import { clamp, transitionStyle } from "@/lib/anim";
 import type { Slot } from "@/lib/anim";
 import type { Project, Scene, TemplateDef, Theme } from "@/lib/types";
 import { SIZES } from "@/lib/project";
+import { MonogramContext, monogramOf } from "./primitives";
 
 /**
  * Draws ONE frame of the invitation at internal time T.
@@ -20,6 +21,7 @@ export function Frame({
   T,
   deterministic = false,
   playing = false,
+  height,
 }: {
   project: Project;
   template: TemplateDef;
@@ -30,12 +32,17 @@ export function Frame({
   T: number;
   deterministic?: boolean;
   playing?: boolean;
+  /** A taller canvas than the standard 1920 (the guest page on a tall phone, so the invite fills the screen). Scenes
+      are centred in it and backdrops draw to it, so the extra height is more background. Studio and MP4 never pass it. */
+  height?: number;
 }) {
-  const { W, H } = SIZES[project.orientation];
+  const { W } = SIZES[project.orientation];
+  const H = height ?? SIZES[project.orientation].H;
   const vertical = project.orientation === "vertical";
   const base = { W, H, vertical, data: project.data, theme, deterministic, playing };
 
   return (
+    <MonogramContext.Provider value={monogramOf(project.data)}>
     <div
       style={{
         position: "relative",
@@ -77,6 +84,7 @@ export function Frame({
         );
       })}
     </div>
+    </MonogramContext.Provider>
   );
 }
 

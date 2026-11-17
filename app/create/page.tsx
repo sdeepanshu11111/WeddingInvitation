@@ -4,6 +4,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Frame, Stage } from "@/components/Frame";
 import { ExportDialog } from "@/components/editor/ExportDialog";
 import { GetLink } from "@/components/editor/ShareDialog";
+import { SampleCheck, sampleLines } from "@/components/editor/SampleCheck";
+import { sampleKeys } from "@/lib/inviteDetails";
 import { AgreeNote } from "@/components/PayTrust";
 import { FieldGroups, MusicPanel } from "@/components/editor/Fields";
 import { GuestExperience, QuizPanel, RsvpPanel } from "@/components/editor/GuestPanels";
@@ -213,11 +215,44 @@ export default function Editor() {
     setPlaying(true);
   };
 
-  const openShare = () => {
+  const getLink = () => {
     if (project) track("share_dialog_opened", { template_id: project.templateId });
     setMenu(false);
     setPlaying(false);
     setSharing(true);
+  };
+
+  // Get link checks first that the date and venue are not still the design's example (components/editor/SampleCheck).
+  const [sampleCheck, setSampleCheck] = useState<ReturnType<typeof sampleLines> | null>(null);
+  const openShare = () => {
+    if (!project) return;
+    const keys = sampleKeys(project.data, getTemplate(project.templateId).defaults);
+    if (!keys.length) return getLink();
+    setMenu(false);
+    setPlaying(false);
+    setSampleCheck(sampleLines(getTemplate(project.templateId), project.data, keys));
+  };
+  const fixSamples = () => {
+    const first = sampleCheck?.[0]?.key;
+    if (project && sampleCheck) track("sample_warning", { template_id: project.templateId, field_count: sampleCheck.length, choice: "fix" });
+    setSampleCheck(null);
+    setTab("details");
+    // After the Details panel shows: open that field, scroll to it, and the preview jumps to its scene.
+    setTimeout(() => {
+      const box = first ? document.querySelector<HTMLElement>('[data-field="' + first + '"]') : null;
+      // Its group may be folded (only the first two open), and the wrapper is display: contents (no box to scroll to).
+      const group = box?.closest("details");
+      if (group) group.open = true;
+      const input = box?.querySelector<HTMLElement>("input, textarea, select");
+      (input ?? box)?.scrollIntoView({ block: "center", behavior: "smooth" });
+      input?.focus({ preventScroll: true });
+      if (box) showField(box);
+    }, 120);
+  };
+  const sharesAnyway = () => {
+    if (project && sampleCheck) track("sample_warning", { template_id: project.templateId, field_count: sampleCheck.length, choice: "anyway" });
+    setSampleCheck(null);
+    getLink();
   };
 
   /** "Export MP4": the dialog where video export runs. The button only exists while VIDEO_EXPORT is on: the hosted
@@ -568,6 +603,7 @@ export default function Editor() {
 
       {music ? <audio ref={audio} src={music.src} preload="auto" /> : null}
       {exporting ? <ExportDialog project={project} onClose={() => setExporting(false)} /> : null}
+      {sampleCheck ? <SampleCheck lines={sampleCheck} onFix={fixSamples} onAnyway={sharesAnyway} /> : null}
       {sharing ? <GetLink project={project} onClose={() => setSharing(false)} /> : null}
       {gallery ? (
         <TemplateGallery

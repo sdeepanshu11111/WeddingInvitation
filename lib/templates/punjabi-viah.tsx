@@ -16,8 +16,8 @@ export const punjabiViah = makeNativeWedding({
   font: "var(--f-gurmukhi)",
   thumbGlyph: "ਵਿਆਹ",
   palettes: [
-    { id: "phulkari", name: "Phulkari Red", ink: "#FFF4E0", soft: "#F2CDA8", accent: "#FFC947", bg: "#9B1B1B", bg2: "#4A0808", line: "#F2B33D" },
     { id: "sarson", name: "Sarson Yellow", ink: "#4A2304", soft: "#7A4A12", accent: "#B3261E", bg: "#FFD54F", bg2: "#FFB300", line: "#B3261E" },
+    { id: "phulkari", name: "Phulkari Red", ink: "#FFF4E0", soft: "#F2CDA8", accent: "#FFC947", bg: "#9B1B1B", bg2: "#4A0808", line: "#F2B33D" },
     { id: "kesri", name: "Kesri & Navy", ink: "#FFF7EC", soft: "#F0CFA6", accent: "#FF9933", bg: "#0E1F4D", bg2: "#06102B", line: "#F4B860" },
     { id: "rani", name: "Rani Pink", ink: "#FFF2F6", soft: "#F5C2D4", accent: "#FFC94A", bg: "#8E1251", bg2: "#4C0629", line: "#FFC94A" },
   ],

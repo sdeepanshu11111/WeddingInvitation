@@ -17,8 +17,8 @@ export const hindiShubhVivah = makeNativeWedding({
   font: "var(--f-devanagari)",
   thumbGlyph: "शुभ विवाह",
   palettes: [
-    { id: "sindoor", name: "Sindoor & Gold", ink: "#FFF1D6", soft: "#EBC9A0", accent: "#F6C453", bg: "#8E1220", bg2: "#45060D", line: "#E3AE45" },
     { id: "kesar", name: "Kesar Cream", ink: "#5B1A0B", soft: "#8C5A3C", accent: "#C2410C", bg: "#FFF3DC", bg2: "#FBDDA8", line: "#C8862E" },
+    { id: "sindoor", name: "Sindoor & Gold", ink: "#FFF1D6", soft: "#EBC9A0", accent: "#F6C453", bg: "#8E1220", bg2: "#45060D", line: "#E3AE45" },
     { id: "neelam", name: "Royal Blue", ink: "#F6F1E4", soft: "#C9C2AA", accent: "#E8C468", bg: "#14306B", bg2: "#0A1A3D", line: "#D9B35A" },
     { id: "gulabi", name: "Gulabi Pink", ink: "#FFF2F6", soft: "#F5C2D4", accent: "#FFC94A", bg: "#8E1251", bg2: "#4C0629", line: "#F2C14E" },
   ],

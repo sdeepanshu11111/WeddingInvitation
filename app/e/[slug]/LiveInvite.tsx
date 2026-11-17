@@ -551,6 +551,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
   }, [project]);
 
   const { W, H } = SIZES[o];
+  const fullH = useFullHeight(o === "vertical" ? W : 0);
   const ink = theme.ink;
   const round = (size: number): React.CSSProperties => ({
     width: size,
@@ -589,8 +590,8 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
           onContextMenu={(e) => e.preventDefault()}
           style={{ position: "absolute", inset: 0, cursor: "pointer", touchAction: "manipulation", WebkitTouchCallout: "none" } as React.CSSProperties}
         >
-          <Stage W={W} H={H}>
-            <Frame project={{ ...project, orientation: o }} template={tl.template} theme={theme} scenes={tl.scenes} slots={tl.slots} total={total} T={Math.min(T, total)} playing={playing} />
+          <Stage W={W} H={fullH ?? H}>
+            <Frame project={{ ...project, orientation: o }} template={tl.template} theme={theme} scenes={tl.scenes} slots={tl.slots} total={total} T={Math.min(T, total)} playing={playing} height={fullH ?? undefined} />
           </Stage>
         </div>
       ) : null}
@@ -1272,4 +1273,25 @@ function GuestBar({ title, name, watermark, price, onPaid }: { title: string; na
       </button>
     </div>
   );
+}
+
+/**
+ * The canvas height that fills this phone's screen (owner, 2026-11-18: a 9:16 invite on a taller phone left dark bands
+ * above and below and looked small). A portrait screen gets a canvas of its own shape, 1920 to 2400 tall; scenes are
+ * centred in it and backdrops draw to it (components/Frame.tsx, `height`). Null = the standard 1920 (landscape, or a
+ * screen no taller than 9:16). The studio and the MP4 always use 1920.
+ */
+function useFullHeight(W: number): number | null {
+  const [h, setH] = useState<number | null>(null);
+  useEffect(() => {
+    if (!W) return setH(null);
+    const fit = () => {
+      const want = Math.round((W * window.innerHeight) / Math.max(1, window.innerWidth));
+      setH(want > 1940 ? Math.min(2400, want) : null);
+    };
+    fit();
+    window.addEventListener("resize", fit);
+    return () => window.removeEventListener("resize", fit);
+  }, [W]);
+  return h;
 }

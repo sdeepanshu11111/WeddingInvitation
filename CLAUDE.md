@@ -401,6 +401,24 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 - Never run two `next dev` servers on the same `.next` folder (e.g. a second one on another port): they corrupt each other's
   manifests (`Unexpected end of JSON input`, then `reading 'run'` 500s) and `EPERM .next\trace`. Stopping a backgrounded
   `npx next dev` wrapper can leave the server alive; check `node.exe` processes. Fix: kill both, start one.
+- **Product polish, 2026-11-18** (owner asked for a full review, then "do all"):
+  - **Invites fill the phone**: the guest page draws a portrait invite on a canvas of the screen's own shape (`useFullHeight` in
+    LiveInvite.tsx → `<Frame height>`, 1920-2400 tall); scenes are centred (`Layer`) and backdrops draw to `H`, so the extra height
+    is background. Studio, MP4 and landscape stay 1080x1920. Don't position scene content from a hard-coded 1920.
+  - **Empty photo frames** show the couple's monogram on a guest's invite (`Monogram` in primitives.tsx, initials from `MonogramContext`
+    that `<Frame>` provides via `monogramOf(data)`); the studio keeps its "Add a photo" hint.
+  - **Get link checks example details**: if a date / venue / address field still holds the design's sample (`sampleKeys`), `SampleCheck`
+    (components/editor/SampleCheck.tsx) asks first: "Change them" opens that field, or "Get link anyway". Event `sample_warning`.
+  - **Branded 404** (`app/not-found.tsx`, `NotFoundBody`): a wrong invite link gets advice for the guest.
+  - **Design cards show posters**: `public/posters/<id>.webp` (360x640, the names scene, first palette, sample photo), made by
+    `node scripts/posters.mjs` (dev server running); `LazyPreview` mounts the live preview only once a card is played. **Re-run the
+    script after changing a design's look, first palette, sample text, a new template, or lib/demo.ts.** A missing poster falls back to
+    the live preview.
+  - **Sample photo** (lib/demo.ts): an illustrated couple (safa + sherwani, lehenga + dupatta) on a golden-hour sky with marigolds.
+  - **Distinct first palettes**: designs open in different colours (emerald Royal Mandala, kesar Shubh Vivah, peacock Shaadi Utsav,
+    kasavu Kalyanam, manjal Thirumanam, pattu Pelli, navilu Maduve, sarson Punjabi Viah, sage Holy Matrimony) so the gallery isn't all maroon.
+  - Desktop hero phone is sticky at the top of its column; phone pricing cards swipe; the tap prompt is centred with margins (its
+    pop-in animation overrides `transform`).
 - **No blue flash on taps** (2026-11-18): `html { -webkit-tap-highlight-color: transparent }` and `.guest-ui` blocks long-press selection and
   the iOS callout (hold = pause selected text and painted the invite blue); inputs stay selectable. Keep both in globals.css.
 - Seeded `rnd()` only. Particles, confetti and sparkles must be deterministic.

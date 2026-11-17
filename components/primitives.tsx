@@ -1,8 +1,35 @@
 "use client";
-import React, { useEffect, useRef } from "react";
+import React, { createContext, useContext, useEffect, useRef } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { clamp, drawPath, E, kenBurns, mix, tw } from "@/lib/anim";
 import type { Theme } from "@/lib/types";
+
+/** The couple's initials ("A & A"), shared by <Frame> with every scene: an empty photo frame on a guest's invite shows
+    them instead of nothing. From the names fields every template uses (bride/groom or nameA/nameB). */
+export const MonogramContext = createContext("");
+export function monogramOf(d: Record<string, any>): string {
+  const first = (v: unknown) =>
+    typeof v === "string"
+      ? v
+          .trim()
+          .replace(/^(dr|mr|mrs|ms|shri|sri|smt|chi|sow|kum)\.?\s+/i, "")
+          .charAt(0)
+          .toUpperCase()
+      : "";
+  const pair = d?.brideName || d?.groomName ? [d.brideName, d.groomName] : [d?.nameA, d?.nameB];
+  return pair.map(first).filter(Boolean).join(" & ");
+}
+/** Drawn only on a guest's invite (globals.css .ph-mono): the initials between two fine rules. */
+function Monogram() {
+  const mono = useContext(MonogramContext);
+  return (
+    <span className="ph-mono" aria-hidden>
+      <i />
+      <b>{mono || "♥"}</b>
+      <i />
+    </span>
+  );
+}
 
 /* =====================================================================
  * Building blocks shared by every template.
@@ -226,7 +253,8 @@ export function Photo({
           }}
         />
       ) : (
-        // "ph": the studio's hint for an empty slot. On a guest's invite it is a plain panel (globals.css, .guest-ui .ph).
+        // "ph": the studio's hint for an empty slot. On a guest's invite (globals.css, .guest-ui .ph) the hint goes and
+        // the couple's monogram fills the frame instead (owner, 2026-11-18: an empty gold arch looked broken).
         <div
           className="ph"
           style={{
@@ -240,9 +268,13 @@ export function Photo({
             textTransform: "uppercase",
             background:
               "repeating-linear-gradient(45deg," + theme.bg2 + "," + theme.bg2 + " 18px," + theme.bg + " 18px," + theme.bg + " 36px)",
+            ["--ph-glow" as any]: theme.bg,
+            ["--ph-ink" as any]: theme.accent,
+            ["--ph-line" as any]: theme.line,
           }}
         >
-          {label}
+          <span className="ph-hint">{label}</span>
+          <Monogram />
         </div>
       )}
     </div>
