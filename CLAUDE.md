@@ -417,6 +417,8 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   - **Sample photo** (lib/demo.ts): an illustrated couple (safa + sherwani, lehenga + dupatta) on a golden-hour sky with marigolds.
   - **Distinct first palettes**: designs open in different colours (emerald Royal Mandala, kesar Shubh Vivah, peacock Shaadi Utsav,
     kasavu Kalyanam, manjal Thirumanam, pattu Pelli, navilu Maduve, sarson Punjabi Viah, sage Holy Matrimony) so the gallery isn't all maroon.
+  - **Home hero starts on its poster**: the first paint is `/posters/<id>.webp` (high priority); the live `HeroPlayer` mounts once the
+    page has loaded and the phone is idle (`requestIdleCallback`, 2.5 s cap), or at once on typing, a chip or a design card.
   - Desktop hero phone is sticky at the top of its column; phone pricing cards swipe; the tap prompt is centred with margins (its
     pop-in animation overrides `transform`).
 - **No blue flash on taps** (2026-11-18): `html { -webkit-tap-highlight-color: transparent }` and `.guest-ui` blocks long-press selection and

@@ -61,10 +61,31 @@ export function Hero({ reviews, made = 0 }: { reviews?: ReviewSummary; made?: nu
   }, [region, picked, fn]);
   const [i, setI] = useState(0);
   const [chosen, setChosen] = useState(false); // picked a design or typed: stop cycling through designs
-  const [mounted, setMounted] = useState(false);
+  // The live invite starts once the page has loaded and the phone is idle, or at once on any interaction. Until then
+  // the design's poster (public/posters, the same names scene it opens on) is the picture: the page's largest image
+  // arrives in ~10 KB instead of after the script, the template and its fonts (owner, 2026-11-18: home was slow).
+  const [live, setLive] = useState(false);
+  const [posterBroken, setPosterBroken] = useState(false);
   const { names, set, edited } = useStartNames();
   const typedOnce = useRef(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    let done = false;
+    const go = () => !done && ((done = true), setLive(true));
+    const idle = () => {
+      const ric = (window as any).requestIdleCallback as undefined | ((cb: () => void, o: { timeout: number }) => void);
+      if (ric) ric(go, { timeout: 2500 });
+      else setTimeout(go, 1200);
+    };
+    if (document.readyState === "complete") setTimeout(idle, 500);
+    else window.addEventListener("load", () => setTimeout(idle, 500), { once: true });
+    return () => {
+      done = true;
+    };
+  }, []);
+  // Typing names, a function chip or a design card: the visitor wants to see it move now.
+  useEffect(() => {
+    if (edited || chosen || fnPicked) setLive(true);
+  }, [edited, chosen, fnPicked]);
   const t = list[i % list.length];
   const p = t.palettes[0];
   const typed = !!(names.bride.trim() || names.groom.trim());
@@ -128,13 +149,15 @@ export function Hero({ reviews, made = 0 }: { reviews?: ReviewSummary; made?: nu
       <div className="hero-stage">
         <div className="phone-frame hero-phone">
           <div className="phone-screen" style={{ background: "linear-gradient(160deg, " + p.bg + ", " + p.bg2 + ")" }}>
-            {/* Until the script arrives (seconds on a slow phone), the design's own art instead of an empty screen. */}
-            {mounted ? (
-              <HeroPlayer key={t.id} t={t} names={names} edited={edited} onEnd={chosen ? undefined : () => setI((n) => n + 1)} />
-            ) : (
+            {/* The poster first (server-rendered, high priority), the live invite over it once it starts; the design's own
+                art if a poster is missing. */}
+            {posterBroken ? (
               <div className="hero-still">{t.thumb(p)}</div>
+            ) : (
+              <img className="hero-poster" src={"/posters/" + t.id + ".webp"} alt="" decoding="async" draggable={false} onError={() => setPosterBroken(true)} {...{ fetchpriority: "high" }} />
             )}
-            {mounted ? <PhoneTap t={t} fn={fn} /> : null}
+            {live ? <HeroPlayer key={t.id} t={t} names={names} edited={edited} onEnd={chosen ? undefined : () => setI((n) => n + 1)} /> : null}
+            {live ? <PhoneTap t={t} fn={fn} /> : null}
             <div className="phone-island" aria-hidden />
           </div>
         </div>
