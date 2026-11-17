@@ -6,6 +6,7 @@ import { TemplateCard } from "@/components/site/TemplateCard";
 import { CATEGORIES, COMMUNITIES, countIn, filterTemplates, type Filter } from "@/lib/catalog";
 import { PAYMENTS } from "@/lib/features";
 import { FREE_COUNT, PRICE_MIN } from "@/lib/pricing";
+import { functionPath, statePath } from "@/lib/landing";
 import { forRegion, regionById } from "@/lib/regions";
 import { DESIGNS, TEMPLATES } from "@/lib/templates";
 import { ritualList } from "@/lib/templates/languages";
@@ -13,10 +14,12 @@ import type { Orientation } from "@/lib/types";
 
 /** /templates: breadcrumb + title for the chosen function or state, the state picker, a "Refine" sidebar (chips on
     phones), live cards. A picked state lists its own designs first under their language, then the rest. */
-export function TemplateBrowser({ initial, initialState = null }: { initial: Partial<Filter>; initialState?: string | null }) {
+/** landing: on a function's or a state's own page (app/invitations, app/wedding-invitations): the page's state wins
+    over this device's earlier pick, and the address stays the page's own (no ?category= / ?state= written into it). */
+export function TemplateBrowser({ initial, initialState = null, landing = false }: { initial: Partial<Filter>; initialState?: string | null; landing?: boolean }) {
   const [f, setF] = useState<Filter>({ category: "all", community: "all", q: "", ...initial });
   const [o, setO] = useState<Orientation>("vertical");
-  const st = useRegion(regionById(initialState));
+  const st = useRegion(regionById(initialState), landing);
   const { own, rest } = forRegion(filterTemplates(TEMPLATES, f), st.region, st.picked, !!f.q.trim());
   const count = own.length + rest.length;
   const cat = CATEGORIES.find((c) => c.id === f.category);
@@ -24,13 +27,14 @@ export function TemplateBrowser({ initial, initialState = null }: { initial: Par
 
   // Keep the function and a picked state in the URL so the page can be shared and Back works as expected.
   useEffect(() => {
+    if (landing) return;
     const u = new URL(window.location.href);
     if (f.category === "all") u.searchParams.delete("category");
     else u.searchParams.set("category", f.category);
     if (state) u.searchParams.set("state", state.id);
     else u.searchParams.delete("state");
     window.history.replaceState(null, "", u.pathname + u.search);
-  }, [f.category, state]);
+  }, [f.category, state, landing]);
 
   const set = (patch: Partial<Filter>) => setF((x) => ({ ...x, ...patch }));
   const cards = (list: typeof rest) => (
@@ -46,7 +50,17 @@ export function TemplateBrowser({ initial, initialState = null }: { initial: Par
       <section className="page-head">
         <nav className="crumbs mono-label" aria-label="Breadcrumb">
           <Link href="/">Home</Link> / <Link href="/templates">Designs</Link>
-          {cat ? <> / {cat.label}</> : state ? <> / {state.label}</> : null}
+          {cat ? (
+            <>
+              {" "}
+              / <Link href={functionPath(cat.id)}>{cat.label}</Link>
+            </>
+          ) : state ? (
+            <>
+              {" "}
+              / <Link href={statePath(state.id)}>{state.label}</Link>
+            </>
+          ) : null}
         </nav>
         <h1>
           {cat ? (

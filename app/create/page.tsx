@@ -13,7 +13,8 @@ import { SIZES, buildTimeline, defaultProject, idbGet, idbSet, withNames } from 
 import { takeStart } from "@/lib/start";
 import { DESIGNS, TEMPLATES, getTemplate } from "@/lib/templates";
 import { sceneForField } from "@/lib/fieldScene";
-import { VIDEO_EXPORT } from "@/lib/features";
+import { PAYMENTS, VIDEO_EXPORT } from "@/lib/features";
+import { priceOf } from "@/lib/pricing";
 import { LegalLinks } from "@/components/LegalLinks";
 import { LanguagePicker, languageOptions } from "@/components/LanguagePicker";
 import { PalettePicker } from "@/components/PalettePicker";
@@ -524,6 +525,12 @@ export default function Editor() {
             <span className="mob-only">Next: get your invite link →</span>
             <span className="desk-only">Get my invite link →</span>
           </button>
+          {/* The price before the tap, so it is never a surprise on the invite page (the link itself is free). */}
+          {PAYMENTS && project && priceOf(project.templateId) ? (
+            <p className="get-price">
+              Free link with a preview watermark · <b>₹{priceOf(project.templateId)}</b> once to remove it
+            </p>
+          ) : null}
           <AgreeNote creating />
         </div>
       </aside>

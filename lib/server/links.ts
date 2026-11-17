@@ -267,6 +267,15 @@ export async function recordGuestEvent(link: string, kind: "open" | "watched") {
 
 /* ---- reads ---- */
 
+/** Links made by real visitors in the last `days` days: the owner's test links (`internal`) and broken folders are
+    left out, imported links count by their real creation date. For the home hero ("N invitations made this month"). */
+export async function recentLinkCount(days = 30): Promise<number> {
+  const since = Date.now() - days * 86400000;
+  if (LEADS === "mongo") return (await col()).countDocuments({ created_at: { $gte: new Date(since) }, internal: { $ne: true }, broken: { $ne: true } });
+  if (LEADS === "disk") return Object.values(await readDisk()).filter((d) => !d.internal && !d.broken && Date.parse(d.created_at) >= since).length;
+  return 0;
+}
+
 /** Newest first. Folders in storage that hold no readable invite (import found them `broken`) are left out. */
 export async function listLinks(limit = 2000): Promise<LinkRecord[]> {
   if (LEADS === "mongo") {

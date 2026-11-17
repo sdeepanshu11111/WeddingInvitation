@@ -24,13 +24,16 @@ function message(l: Lead, url: string) {
     return (
       `Hi! This is ${BRAND} 🙏 Thank you for going Premium. Your ${invite} is live without the watermark: ${url}\n\n` +
       `Inviting for your other functions too (Haldi, Mehendi, Sangeet, Reception)? Open your invite on the phone you made it on and tap Share: ` +
-      `each one is ready in a minute with your names already in, on a link of its own.\n\nIf anything isn't working, just reply here.`
+      `each one is ready in a minute with your names already in, on a link of its own.\n\n` +
+      `If your family liked it, a quick rating would help other couples: open your invite on that phone, tap your bar at the bottom ` +
+      `and choose the stars.\n\nIf anything isn't working, just reply here.`
     );
   if (!PAYMENTS) return `Hi! This is ${BRAND} 🙏 Thanks for making your ${invite}: ${url}\n\nNeed any help with it? Just reply here.`;
   return (
     `Hi! This is ${BRAND} 🙏 Thanks for making your ${invite}: ${url}\n\n` +
     `Right now your guests will see a "Preview" watermark on it. To remove it, open your link and tap "Remove watermark" at the bottom. ` +
-    `Same link, nothing to resend.\n\nAny questions? Just reply. (Reply STOP and we won't message you again.)`
+    `Same link, nothing to resend.\n\nHow did it turn out? You can rate it in the same place, it helps other couples.\n\n` +
+    `Any questions? Just reply. (Reply STOP and we won't message you again.)`
   );
 }
 

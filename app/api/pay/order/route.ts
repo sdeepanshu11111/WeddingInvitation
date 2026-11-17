@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { PAYMENTS } from "@/lib/features";
-import { PACK_PRICE_INR, packCovers, priceOf } from "@/lib/pricing";
+import { PACK_PRICE_INR, packCovers, priceForLink } from "@/lib/pricing";
 import { createOrder, publicKeyId } from "@/lib/server/razorpay";
 import { recordCheckout } from "@/lib/server/links";
 import { amountDue, getLiveProject, getShare, recordOrder } from "@/lib/server/share";
@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     if (share?.kind !== "live") return NextResponse.json({ error: "No such invite link" }, { status: 404 });
     const project = await getLiveProject(share.token);
     if (!project) return NextResponse.json({ error: "No such invite link" }, { status: 404 });
-    const price = priceOf(project.templateId);
+    const price = priceForLink(project.templateId, share.createdAt); // a link made while its design was free costs 0
     const due = await amountDue(share.token, price);
     if (due <= 0) {
       // Nothing to pay (paid, or a free design), yet someone still sees the watermark: refresh the cached page.

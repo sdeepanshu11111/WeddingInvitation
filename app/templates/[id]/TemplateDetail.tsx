@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { functionPath, statePath } from "@/lib/landing";
 import React, { useEffect, useRef, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { useDemoTimeline } from "@/components/LivePreview";
@@ -13,7 +14,7 @@ import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
 import { fmt } from "@/lib/anim";
 import { sceneForField } from "@/lib/fieldScene";
 import { PAYMENTS } from "@/lib/features";
-import { priceOf } from "@/lib/pricing";
+import { PACK_PRICE_INR, packCovers, priceOf } from "@/lib/pricing";
 import { SIZES, type StartNames } from "@/lib/project";
 import { languageOptions, useChosenInView } from "@/components/LanguagePicker";
 import { REGIONS } from "@/lib/regions";
@@ -53,7 +54,7 @@ export function TemplateDetail({ id }: { id: string }) {
       <nav className="crumbs" aria-label="Breadcrumb">
         <Link href="/templates">← All designs</Link>
         <span aria-hidden> / </span>
-        {region ? <Link href={"/templates?state=" + region.id}>{region.label}</Link> : <Link href={"/templates?category=" + t.categories[0]}>{cats[0]}</Link>}
+        {region ? <Link href={statePath(region.id)}>{region.label}</Link> : <Link href={functionPath(t.categories[0])}>{cats[0]}</Link>}
       </nav>
 
       <section className="detail">
@@ -135,6 +136,13 @@ export function TemplateDetail({ id }: { id: string }) {
               </div>
             ) : null}
           </div>
+
+          {/* Several functions: the pack is cheaper than paying for each one (lib/pricing.ts). */}
+          {packCovers(priceOf(t.id)) ? (
+            <p className="pack-note">
+              Inviting for several functions? The <b>Wedding pack, ₹{PACK_PRICE_INR}</b>, removes the watermark from every invite of your wedding.
+            </p>
+          ) : null}
 
           <div className="editable">
             <span className="opt-label">What you can change</span>

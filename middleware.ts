@@ -24,11 +24,13 @@ function sealed(res: NextResponse) {
    in a header; only the state code is kept, in a cookie on the visitor's device for a week, and nothing is stored on
    our side. The matcher sends a site page here only while that cookie is missing (one call per visitor per week,
    not one per page and prefetch), so "-" is written when there is no Indian state, to stop asking. */
-const SITE_PAGE = /^\/(?:templates(?:\/[^/]+)?\/?)?$/;
+// /invitations/<function> too (2026-11-17): its designs are reordered by state like /templates.
+const SITE_PAGE = /^\/(?:(?:templates|invitations)(?:\/[^/]+)?\/?)?$/;
 const WEEK = 7 * 24 * 3600;
 
 export function middleware(req: NextRequest) {
-  // Exactly "/", "/templates" and "/templates/<id>"; everything else that reaches here goes through the admin gate.
+  // Exactly "/", "/templates", "/templates/<id>" and "/invitations/<function>"; everything else that reaches here goes
+  // through the admin gate. A path added to the matcher below MUST be added to SITE_PAGE too, or it would ask for the admin password.
   return SITE_PAGE.test(req.nextUrl.pathname) ? withState(req) : admin(req);
 }
 
@@ -81,5 +83,6 @@ export const config = {
     "/api/admin/:path*",
     { source: "/", missing: [{ type: "cookie", key: "fp_geo" }] },
     { source: "/templates/:path*", missing: [{ type: "cookie", key: "fp_geo" }] },
+    { source: "/invitations/:path*", missing: [{ type: "cookie", key: "fp_geo" }] },
   ],
 };

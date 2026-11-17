@@ -573,3 +573,26 @@
 @media (min-width: 1000px) {
   .price-grid:not(.one) { grid-template-columns: repeat(3, minmax(0, 1fr)); max-width: 1080px; }
 }
+
+/* Home hero: a real count of invitations made in the last 30 days (Hero, from 20 up). */
+.hero-made { margin: 10px 0 0; font-size: 14px; color: var(--ink-soft); }
+.hero-made b { color: var(--text); font-weight: 700; }
+
+/* Landing pages (app/invitations, app/wedding-invitations) and wording guides (app/wording). */
+.land-links { margin-top: 22px; }
+.land-links h3 { font-family: var(--ui); font-size: 13px; letter-spacing: 0.06em; text-transform: uppercase; margin: 0 0 10px; }
+.wording { max-width: 820px; margin-inline: auto; }
+.wording h1 { font-size: 34px; margin-top: 10px; }
+.wording-langs { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-top: 24px; }
+.wording-lang { display: grid; gap: 4px; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--text); text-decoration: none; }
+.wording-lang span { color: var(--ink-soft); font-size: 18px; }
+.wording-list { list-style: none; margin: 24px 0 0; padding: 0; display: grid; gap: 14px; }
+.wording-list li { padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: #fff; }
+.wording-text { margin: 6px 0 0; font-size: 19px; line-height: 1.7; color: var(--text); }
+.wording-meaning { margin: 6px 0 0; font-size: 14.5px; color: var(--ink-soft); }
+.wording-go { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
+@media (min-width: 861px) { .wording h1 { font-size: 48px; } }
+
+/* Design page: the Wedding pack under the price (TemplateDetail). */
+.pack-note { margin: 10px 0 0; font-size: 14px; color: var(--ink-soft); }
+.pack-note b { color: var(--text); }

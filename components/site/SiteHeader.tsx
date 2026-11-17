@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { functionPath } from "@/lib/landing";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import { CATEGORIES } from "@/lib/catalog";
@@ -90,7 +91,7 @@ export function SiteHeader() {
               <span className="mono-label">Browse by function</span>
               <div className="drop-grid">
                 {CATEGORIES.map((c) => (
-                  <Link key={c.id} href={"/templates?category=" + c.id}>
+                  <Link key={c.id} href={functionPath(c.id)}>
                     <b>{c.label}</b>
                     <small lang="hi">{c.local}</small>
                   </Link>
@@ -119,7 +120,7 @@ export function SiteHeader() {
         <div id="site-menu" className="m-menu" style={{ top: menuTop }} onClick={(e) => (e.target as HTMLElement).closest("a") && setOpen(false)}>
           <span className="mono-label">Designs by function</span>
           {CATEGORIES.map((c) => (
-            <Link key={c.id} href={"/templates?category=" + c.id} className="m-cat">
+            <Link key={c.id} href={functionPath(c.id)} className="m-cat">
               {c.label} <small lang="hi">{c.local}</small>
             </Link>
           ))}

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { AdSense } from "@/components/AdSense";
+import { JsonLd, breadcrumbLd } from "@/components/JsonLd";
 import { Faq, SectionHead, faqItems } from "@/components/site/Faq";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
@@ -41,7 +42,7 @@ export default function TemplatePage({ params }: { params: { id: string } }) {
   };
   return (
     <div className="site">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(ld).replace(/</g, "\\u003c") }} />
+      <JsonLd data={[ld, breadcrumbLd(SITE_URL, [["Home", "/"], ["Designs", "/templates"], [t.name, "/templates/" + t.id]])]} />
       <AdSense />
       <SiteHeader />
       <TemplateDetail id={params.id} />

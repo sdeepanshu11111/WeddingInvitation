@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { functionPath } from "@/lib/landing";
 import { CATEGORIES } from "@/lib/catalog";
 import { LEGAL, LEGAL_PAGES, OPERATOR } from "@/lib/legal";
 import { Logo } from "./SiteHeader";
@@ -16,7 +17,7 @@ export function SiteFooter() {
         <div>
           <span className="mono-label">Invitations</span>
           {CATEGORIES.map((c) => (
-            <Link key={c.id} href={"/templates?category=" + c.id}>
+            <Link key={c.id} href={functionPath(c.id)}>
               {c.label}
             </Link>
           ))}
@@ -24,6 +25,7 @@ export function SiteFooter() {
         <div>
           <span className="mono-label">Product</span>
           <Link href="/templates">All templates</Link>
+          <Link href="/wording">Invitation wording</Link>
           <Link href="/#how">How it works</Link>
           <Link href="/#pricing">Pricing</Link>
           <Link href="/#faq">FAQ</Link>

@@ -3,7 +3,20 @@ import type { ReactNode } from "react";
 import { LEADS, PAYMENTS, VIDEO_EXPORT } from "@/lib/features";
 import { FREE_COUNT, PACK_COVERS, PACK_PRICE_INR, PRICE_RANGE } from "@/lib/pricing";
 
-export type QA = { q: string; a: ReactNode };
+/** text: the answer as plain words, for search engines (FAQ structured data, faqJsonLd). Needed when `a` is not a string. */
+export type QA = { q: string; a: ReactNode; text?: string };
+
+/** schema.org FAQPage for a list of questions: search engines and AI assistants read the answers from it. */
+export function faqJsonLd(items: QA[]) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: items
+      .map((x) => ({ q: x.q, text: x.text ?? (typeof x.a === "string" ? x.a : "") }))
+      .filter((x) => x.text)
+      .map((x) => ({ "@type": "Question", name: x.q, acceptedAnswer: { "@type": "Answer", text: x.text } })),
+  };
+}
 
 /** Answers describe what the app really does today (flags included), so they stay true as features switch on. */
 export function faqItems(): QA[] {
@@ -18,7 +31,7 @@ export function faqItems(): QA[] {
     },
     {
       q: "Can I change it after sharing?",
-      a: "Each link is a snapshot of your invitation. To change something, edit it in the studio and create a new link. Check the free preview first, so you only upgrade the final version.",
+      a: "Yes. Edit it in the studio on the same phone or computer you made it on and press Get link again: the same link updates for everyone who has it, and a paid invite stays paid. From another device, the change goes on a new link.",
     },
     {
       q: "Which communities and languages?",
@@ -35,6 +48,8 @@ export function faqItems(): QA[] {
   if (PAYMENTS)
     items.push({
       q: "What does Premium include, and can I get a refund?",
+      text:
+        "A one-time payment per invitation (" + PRICE_RANGE + ", shown on each design) removes the watermark from that link, instantly, at the same address your guests already have. If you pay and the watermark stays, we fix it or refund you.",
       a: (
         <>
           A one-time payment per invitation ({PRICE_RANGE}, shown on each design{FREE_COUNT ? "; " + FREE_COUNT + " designs are free and have no watermark" : ""})
@@ -45,6 +60,8 @@ export function faqItems(): QA[] {
   if (PAYMENTS)
     items.push({
       q: "We have several functions. Do we pay for each invite?",
+      text:
+        "You can, or take the Wedding pack: ₹" + PACK_PRICE_INR + " once, from any of your invites, and every invite you make for the same couple on that phone has no watermark, each on a link of its own. Each invite is covered up to ₹" + PACK_COVERS + ".",
       a: (
         <>
           You can, or take the Wedding pack: ₹{PACK_PRICE_INR} once, from any of your invites, and every invite you make for the same couple on that

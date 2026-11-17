@@ -807,7 +807,9 @@ function OwnerSheet({
         </section>
 
         {!watermark ? <OwnerNext project={project} packed={packed} /> : null}
-        {LEADS && !watermark ? <OwnerReview name={name} ownerKey={ownerKey} title={title} /> : null}
+        {/* Every couple, paid or not (since 2026-11-17: only clean invites could, and those were 4 of 65 links). The review
+            records whether the link had paid, and the hero shows "Paid customer" or "Made their invite here" accordingly. */}
+        {LEADS ? <OwnerReview name={name} ownerKey={ownerKey} title={title} /> : null}
         {LEADS ? <OwnerContact name={name} ownerKey={ownerKey} watermark={watermark} /> : null}
       </div>
     </div>
@@ -854,7 +856,7 @@ const reviewedHere = (name: string) => {
 };
 
 /**
- * Once the invite is clean (a free design, or just paid), the couple can rate it for other couples. Saved with the
+ * The couple (paid or not) can rate their invite for other couples. Saved with the
  * owner key (app/api/review), so only the people who made it can; it reaches the home page only if they tick the
  * box AND the owner approves it on /admin/reviews. Never pre-ticked.
  */

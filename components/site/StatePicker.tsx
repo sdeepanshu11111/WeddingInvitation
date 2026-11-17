@@ -9,11 +9,14 @@ import { REGIONS, guessRegion, rememberRegion, type Region, type RegionChoice } 
  * the phone's language or the connection's approximate state. `lead` is the state known at mount: the picker puts it
  * first and keeps that order, so chips never jump under a finger.
  */
-export function useRegion(initial: Region | null = null) {
+export function useRegion(initial: Region | null = null, keep = false) {
   const [c, setC] = useState<RegionChoice & { lead: Region | null }>({ region: initial, picked: !!initial, lead: initial });
   useEffect(() => {
+    // keep: a state's own page (/wedding-invitations/<state>) shows that state, whatever this device picked before.
+    if (keep && initial) return;
     const g = guessRegion();
     if (g) setC({ ...g, lead: g.region });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const pick = (region: Region | null) => {
     rememberRegion(region);

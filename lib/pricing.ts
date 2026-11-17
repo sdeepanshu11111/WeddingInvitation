@@ -2,7 +2,8 @@
    never carry a watermark and there is nothing to pay. Prices live here, in one dependency-free file, so the server
    (orders, the invite page) can read them without loading the templates. A design that is not listed costs
    LINK_PRICE_INR. Keep every paid price between PRICE_FLOOR and PRICE_CEILING (owner's range, 2026-11-14; the floor
-   went from ₹30 to ₹29 on 2026-11-16 for the ₹29 function designs).
+   went from ₹30 to ₹29 on 2026-11-16 for the ₹29 function designs, and to ₹9 on 2026-11-17 when the three free
+   designs became ₹9: owner's call, "for the free template do the 9rs").
 
    Changing a price never touches links that are already paid: a payment records how many rupees it covers
    (lib/server/share.ts, Paid.covers), and a link is clear of the watermark while that covers its design's price.
@@ -11,14 +12,15 @@
 import { LINK_PRICE_INR, PAYMENTS } from "./features";
 import { baseOf } from "./variants";
 
-export const PRICE_FLOOR = 29;
+export const PRICE_FLOOR = 9;
 export const PRICE_CEILING = 600;
 
 const PRICES: Record<string, number> = {
-  // Free: simple, modern designs that bring people in (their guests see "Make your own invitation").
-  "blush-botanical": 0,
-  "aurora-modern": 0,
-  "sagai-rings": 0,
+  // ₹9: the entry designs (free until 2026-11-17; links made before then stay free, see FREE_UNTIL). Their
+  // language versions cost the same (an engagement in Tamil is ₹9 too).
+  "blush-botanical": 9,
+  "aurora-modern": 9,
+  "sagai-rings": 9,
   // Single functions: ₹29 (owner, 2026-11-16; ₹49 before), the "from ₹29" entry price. Weddings stay ₹99 and up.
   "haldi-marigold": 29,
   "mehendi-paisley": 29,
@@ -53,6 +55,22 @@ export function priceOf(templateId: string): number {
 }
 
 export const isFree = (templateId: string) => priceOf(templateId) === 0;
+
+/* Links made while a design was free stay free: its couple sent it out without a watermark, and it must not grow one.
+   The cut-off is the release that made them ₹9 (deploy on or before this moment; a link made on the old free code
+   AFTER it would gain a watermark). Keyed by design; language versions follow their design. */
+const FREE_UNTIL: Record<string, number> = {
+  "blush-botanical": Date.parse("2026-11-18T00:00:00+05:30"),
+  "aurora-modern": Date.parse("2026-11-18T00:00:00+05:30"),
+  "sagai-rings": Date.parse("2026-11-18T00:00:00+05:30"),
+};
+
+/** What THIS link costs: the design's price, or 0 for a link made while its design was free (FREE_UNTIL). Use this,
+    not priceOf, wherever a real link is priced: its invite page and its order. */
+export function priceForLink(templateId: string, createdAt: number): number {
+  const until = FREE_UNTIL[templateId] ?? FREE_UNTIL[baseOf(templateId)];
+  return until && createdAt < until ? 0 : priceOf(templateId);
+}
 
 const paid = Object.keys(PRICES).map(priceOf).filter((p) => p > 0);
 /** The cheapest and dearest paid design, for "from ₹X" on the site and the policy pages. */

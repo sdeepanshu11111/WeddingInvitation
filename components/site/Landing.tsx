@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { functionPath, statePath } from "@/lib/landing";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { useDemoTimeline, useNearViewport } from "@/components/LivePreview";
@@ -27,7 +28,10 @@ const HOLD_MS = 2600; // after a keystroke the preview stays on the names scene 
  * Home hero: the visitor types their names and watches them appear in a real, playing invitation, then carries them
  * (and the design) into the studio. Until they pick a design or type, the designs play one after another.
  */
-export function Hero({ reviews }: { reviews?: ReviewSummary }) {
+/** Below this, "N invitations made" is not shown: a small number reads as a warning, not as proof. */
+const SHOW_MADE_FROM = 20;
+
+export function Hero({ reviews, made = 0 }: { reviews?: ReviewSummary; made?: number }) {
   const { region } = useRegion();
   const list = useMemo(() => {
     const first = region?.designs[0];
@@ -122,6 +126,12 @@ export function Hero({ reviews }: { reviews?: ReviewSummary }) {
                 This design is <b>free</b>: no watermark, nothing to pay.
               </>
             )}
+          </p>
+        ) : null}
+        {/* Real numbers only: invitations made in the last 30 days (link records, test links left out), from 20 up. */}
+        {made >= SHOW_MADE_FROM ? (
+          <p className="hero-made">
+            <b>{made}</b> invitations made here in the last 30 days
           </p>
         ) : null}
         {/* Real reviews only (app/admin/reviews); renders nothing until one is approved. */}
@@ -226,7 +236,7 @@ function HeroPlayer({ t, names, edited, onEnd }: { t: TemplateDef; names: StartN
 
 /** Home "Which function?" section: function tabs + the first eight matching cards (six on phones, see site.css),
     the visitor's state's designs first when it is known. Cards open the design's own page, with the visitor's names.
-    Below: one link per state's language (/templates?state=), for visitors and for search engines. */
+    Below: one link per state's language (/wedding-invitations/<state>), for visitors and for search engines. */
 export function Showcase() {
   const tabs = (["all", ...CATEGORIES.map((c) => c.id)] as (CategoryId | "all")[]).filter((id) => countIn(DESIGNS, id) > 0);
   const [cat, setCat] = useState<CategoryId | "all">("all");
@@ -252,7 +262,7 @@ export function Showcase() {
         ))}
       </div>
       <div className="showcase-foot">
-        <Link href={cat === "all" ? "/templates" : "/templates?category=" + cat} className="ghost-btn">
+        <Link href={cat === "all" ? "/templates" : functionPath(cat)} className="ghost-btn">
           See all {countIn(DESIGNS, cat)} {cat === "all" ? "designs" : CATEGORIES.find((c) => c.id === cat)!.label.toLowerCase() + " designs"} <Arrow />
         </Link>
       </div>
@@ -261,7 +271,7 @@ export function Showcase() {
         <span className="mono-label">Wedding invitations in your language</span>
         <div className="lang-row">
           {(region ? [region, ...REGIONS.filter((r) => r.id !== region.id)] : REGIONS).map((r) => (
-            <Link key={r.id} href={"/templates?state=" + r.id} prefetch={false} className="chip-o">
+            <Link key={r.id} href={statePath(r.id)} prefetch={false} className="chip-o">
               {r.language}
               <small lang={r.lang}>{r.native}</small>
             </Link>

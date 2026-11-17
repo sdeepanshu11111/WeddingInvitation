@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AdSense } from "@/components/AdSense";
 import { PayIcons } from "@/components/PayIcons";
-import { Faq, SectionHead, faqItems } from "@/components/site/Faq";
+import { Faq, SectionHead, faqItems, faqJsonLd } from "@/components/site/Faq";
+import { JsonLd } from "@/components/JsonLd";
+import { LEGAL } from "@/lib/legal";
 import { Arrow, DesignStack, Hero, Showcase } from "@/components/site/Landing";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
@@ -14,6 +16,7 @@ import { SITE_URL } from "@/lib/site";
 import { pageMeta } from "@/lib/seo";
 import { DESIGNS } from "@/lib/templates";
 import { type ReviewSummary, publicReviews } from "@/lib/server/reviews";
+import { recentLinkCount } from "@/lib/server/links";
 
 const HOST = SITE_URL.replace(/^https?:\/\//, "");
 
@@ -33,13 +36,33 @@ async function heroReviews(): Promise<ReviewSummary> {
   return Promise.race([publicReviews().catch(() => none), new Promise<ReviewSummary>((r) => setTimeout(() => r(none), 4000))]);
 }
 
+/** Invitations real visitors made in the last 30 days (test links left out), or 0 if the database is slow or down. */
+async function madeThisMonth(): Promise<number> {
+  return Promise.race([recentLinkCount(30).catch(() => 0), new Promise<number>((r) => setTimeout(() => r(0), 4000))]);
+}
+
 export default async function Home() {
-  const reviews = await heroReviews();
+  const [reviews, made] = await Promise.all([heroReviews(), madeThisMonth()]);
+  // What search engines and AI assistants read about the site: who runs it, what it is, and the FAQ below.
+  const ld = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: BRAND,
+      url: SITE_URL,
+      logo: SITE_URL + "/brand/mangalam-logo.png",
+      ...(LEGAL.email ? { email: LEGAL.email } : {}),
+      areaServed: "IN",
+    },
+    { "@context": "https://schema.org", "@type": "WebSite", name: BRAND, url: SITE_URL, inLanguage: "en-IN" },
+    faqJsonLd(faqItems()),
+  ];
   return (
     <div className="site">
+      <JsonLd data={ld} />
       <AdSense />
       <SiteHeader />
-      <Hero reviews={reviews} />
+      <Hero reviews={reviews} made={made} />
 
       {/* ---------- what you get, in numbers that are true today (one row on phones) ---------- */}
       <section className="proof" aria-label="At a glance">

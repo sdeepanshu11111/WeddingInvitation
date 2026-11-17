@@ -292,6 +292,21 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   another couple or device. `coverByPack()` writes paid.json with `covers` 149 and `pack`; no money, `recordPayment(via "pack", ₹0)`.
   Cleared: at purchase (all owned links of the couple), at Get link for a new one, and on the owner's visit to a still-marked link.
   Terms section 6, Refunds, FAQ and the home pricing card describe it; change them together.
+- **₹9 entry designs** (2026-11-17, owner: "for the free template do the 9rs"): Blush Botanical, Aurora Modern and Sagai Rings (and
+  Sagai's language versions) cost ₹9, `PRICE_FLOOR` 9, no design is free any more (`FREE_COUNT` 0, its copy hides itself). Links made
+  while they were free stay free: `priceForLink(templateId, createdAt)` in `lib/pricing.ts` (`FREE_UNTIL`, 2026-11-18 00:00 IST). Price a
+  real link with `priceForLink` (invite page, `/api/pay/order`), never `priceOf`.
+- **Search pages** (2026-11-17): `/invitations/<function>` and `/wedding-invitations/<state>` (static, `lib/landing.ts`: text + FAQ,
+  `components/site/LandingAbout.tsx`, the design browser with `landing` so the page's state wins and the URL stays clean), wording
+  guides `/wording` + `/wording/<language>` (`lib/wording.ts`, **not reviewed by native speakers**), `/llms.txt` for AI assistants,
+  JSON-LD (`components/JsonLd.tsx`: Organization + WebSite + FAQPage on home, FAQPage + BreadcrumbList on landing pages, Product +
+  BreadcrumbList on design pages; `faqJsonLd()` needs `text` on a FAQ whose answer is JSX). `/templates?category=` / `?state=` still
+  work but their canonical is the new page; all site links go to the new pages (`functionPath`, `statePath`). New site pages go in
+  `app/sitemap.ts` and, if they should read the visitor's state, BOTH `SITE_PAGE` and the matcher in `middleware.ts` (a path in the
+  matcher but not in `SITE_PAGE` would ask for the admin password).
+- **Reviews from every couple** (2026-11-17): the owner sheet's rating box shows for unpaid invites too (it was clean invites only),
+  and the `/admin/leads` follow-ups ask for a rating. The hero shows "N invitations made here in the last 30 days" from the link records
+  (`recentLinkCount`, test links left out) once N ≥ 20; never a made-up number.
 - **Per-design prices** (2026-11-14, owner: some designs free, paid ones ₹29-600; the floor went from ₹30 to ₹29 on 2026-11-16 when
   Haldi, Mehendi and Polaroid dropped from ₹49 to ₹29): `lib/pricing.ts` is the one table (`priceOf(id)`,
   0 = free; unlisted = `LINK_PRICE_INR`). Dependency-free, so the server reads it without the templates. The amount charged is
