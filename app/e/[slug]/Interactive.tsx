@@ -355,6 +355,9 @@ export function momentKind(fn: string, categories: string[], communities: string
   return "flowers";
 }
 
+/** The glyphs of a kind, for other places that shower (the home hero's phone). */
+export const momentGlyphs = (k: MomentKind) => MOMENT[k].glyphs;
+
 type Burst = { id: number; x: number; y: number; bits: { dx: number; dy: number; rot: number; size: number; glyph: string; delay: number }[] };
 
 /** The story pauses on the couple's names and guests tap to shower them (each tap a burst where they tapped). It goes

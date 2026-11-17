@@ -9,7 +9,7 @@ import { useEffect, useState } from "react";
  * `spacer` keeps the page's last lines clear of the bar; pass false when the bar is rendered mid-page (e.g. inside
  * the home hero) and put <div className="m-cta-space" /> at the end of the page instead.
  */
-export function MobileCta({ href, label, note, watch, spacer = true }: { href: string; label: string; note?: string; watch: string; spacer?: boolean }) {
+export function MobileCta({ href, label, note, watch, spacer = true, onClick }: { href: string; label: string; note?: string; watch: string; spacer?: boolean; onClick?: () => void }) {
   const [show, setShow] = useState(false);
   useEffect(() => {
     const els = Array.from(document.querySelectorAll(watch));
@@ -27,7 +27,7 @@ export function MobileCta({ href, label, note, watch, spacer = true }: { href: s
       {spacer ? <div className="m-cta-space" aria-hidden /> : null}
       <div className={"m-cta" + (show ? " on" : "")} aria-hidden={!show}>
         {note ? <span className="m-cta-note">{note}</span> : null}
-        <Link href={href} className="cta-btn" tabIndex={show ? undefined : -1}>
+        <Link href={href} className="cta-btn" tabIndex={show ? undefined : -1} onClick={onClick}>
           {label}
         </Link>
       </div>

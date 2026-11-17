@@ -80,11 +80,23 @@
 /* ---------- hero ----------
    Phones: headline, then the phone and the name boxes side by side (both stay above the keyboard while typing),
    then the button: all on the first screen. Designs scroll sideways under it. */
-.hero { display: grid; grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr); grid-template-areas: "copy copy" "stage try" "picks picks" "go go"; column-gap: 14px; row-gap: 16px; padding: 18px var(--pad) 36px; background: radial-gradient(120% 60% at 80% 0%, rgba(196, 138, 44, 0.12), transparent 60%), var(--bg); }
+.hero { display: grid; grid-template-columns: minmax(0, 0.86fr) minmax(0, 1.14fr); grid-template-areas: "copy copy" "fns fns" "stage try" "go go" "picks picks"; column-gap: 14px; row-gap: 14px; padding: 18px var(--pad) 36px; background: radial-gradient(120% 60% at 80% 0%, rgba(196, 138, 44, 0.12), transparent 60%), var(--bg); }
 .hero-copy { grid-area: copy; }
 .hero h1 { margin-top: 10px; font-size: clamp(27px, 8.6vw, 84px); font-weight: 800; line-height: 1.02; letter-spacing: -0.035em; }
 .hero h1 em { font-weight: 500; letter-spacing: -0.025em; white-space: nowrap; }
-.hero .lead { display: none; }
+.hero .lead { margin-top: 8px; font-size: 14.5px; line-height: 1.45; }
+/* "What are you inviting for?": one scrolling row of function chips on phones */
+.hero-fns { grid-area: fns; display: grid; gap: 6px; min-width: 0; }
+.hero-fns-q { font-size: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.hero-fns-row { display: flex; gap: 8px; overflow-x: auto; margin: 0 calc(-1 * var(--pad)); padding: 2px var(--pad) 4px; scrollbar-width: none; }
+.hero-fns-row::-webkit-scrollbar { display: none; }
+.fn-chip { flex: none; min-height: 40px; padding: 8px 16px; border: 1.5px solid var(--line-2); border-radius: 99px; background: var(--panel); color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; transition: background 0.12s, color 0.12s, border-color 0.12s; }
+.fn-chip.on { border-color: var(--accent); background: var(--accent); color: var(--on-accent); }
+/* tap the playing invite: flowers burst over it (bursts use the guest page's .tm-burst) */
+.phone-tap { position: absolute; inset: 0; z-index: 4; overflow: hidden; cursor: pointer; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+.phone-tap-hint { position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 99px; background: rgba(15, 12, 9, 0.62); color: #fff; font-size: 12px; font-weight: 600; white-space: nowrap; pointer-events: none; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: pop-in 0.35s ease both; }
+.hero-trust { display: grid; justify-items: center; gap: 8px; }
+.hero-trust .pay-icons { gap: 11px; }
 .hero-stage { grid-area: stage; align-self: center; position: relative; }
 .hero-phone { width: 100%; padding: 4px; border-radius: 26px; }
 .hero-phone::before { top: 18%; height: 18px; box-shadow: 0 26px 0 #39383d; }
@@ -429,9 +441,13 @@
   .sec-lead { font-size: 18px; margin: -24px 0 40px; }
   .sec-lead.centered { margin-inline: auto; }
 
-  .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 380px); grid-template-areas: "copy stage" "try stage" "picks stage" "go stage"; grid-template-rows: auto auto auto 1fr; column-gap: clamp(40px, 6vw, 110px); row-gap: 18px; align-content: center; padding: clamp(24px, 3vw, 44px) var(--pad) clamp(40px, 5vw, 64px); min-height: calc(100svh - 104px); }
+  .hero { grid-template-columns: minmax(0, 1fr) minmax(0, 380px); grid-template-areas: "copy stage" "fns stage" "try stage" "go stage" "picks stage"; grid-template-rows: auto auto auto auto 1fr; column-gap: clamp(40px, 6vw, 110px); row-gap: 18px; align-content: center; padding: clamp(24px, 3vw, 44px) var(--pad) clamp(40px, 5vw, 64px); min-height: calc(100svh - 104px); }
   .hero h1 { font-size: clamp(40px, 4.4vw, 68px); }
-  .hero .lead { display: block; font-size: 17.5px; margin-top: 14px; }
+  .hero .lead { font-size: 17.5px; margin-top: 14px; }
+  .hero-fns { max-width: 600px; }
+  .hero-fns-row { flex-wrap: wrap; overflow: visible; margin: 0; padding: 0; }
+  .hero-trust { justify-items: start; }
+  .phone-tap-hint { font-size: 13px; }
   .hero-stage { align-self: center; justify-self: center; width: 100%; max-width: min(330px, calc((100svh - 150px) * 9 / 19)); }
   .hero-phone { padding: 6px; border-radius: 46px; box-shadow: 0 0 0 1px #0a0a0b, 0 60px 100px -40px rgba(36, 19, 22, 0.7), inset 0 0 0 1px rgba(255, 255, 255, 0.12); transform: rotate(1.5deg); }
   .hero-phone .phone-screen { aspect-ratio: 9 / 19; border-radius: 40px; }
@@ -450,7 +466,7 @@
   .hero-picks { max-width: 600px; }
   .picks-row { margin: 0 -8px; padding: 8px; scroll-padding-inline: 8px; }
   .pick { width: 74px; }
-  .hero-go { align-self: start; }
+  .hero-go, .hero-picks { align-self: start; }
 
   .proof > div { padding: 26px var(--pad) 26px 28px; text-align: left; }
   .proof > div:first-child { padding-left: var(--pad); }

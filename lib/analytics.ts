@@ -84,6 +84,13 @@ export type Events = {
   quiz_answered: { correct: boolean };
   /** Home page: a call to action was tapped; `section` says which part of the page it was in. */
   home_cta_clicked: { section: "hero" | "designs" | "guest_demo" | "link" | "how" | "pricing" | "pricing_pack" | "final" };
+  /** Home hero: the visitor started typing their names (once per page view; the names are never sent). */
+  hero_names_typed: {};
+  /** Home hero: a design card was picked, or a function chip ("What are you inviting for?"). */
+  hero_design_picked: { template_id: string; function: string };
+  hero_function_picked: { function: string };
+  /** Home hero: the playing invite was tapped (flowers shower over it), once per page view. */
+  hero_phone_tapped: { template_id: string };
   /** Home page: the visitor tried a step of the "What your guests will do" demo (components/site/GuestDemo.tsx). */
   home_demo_step: { step: "open" | "scratch" | "shower" | "quiz" | "rsvp" };
   /** The scratch-to-reveal date card on a guest's invite was cleared by the guest (completed) or dissolved by itself. */

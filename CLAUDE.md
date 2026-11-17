@@ -57,8 +57,12 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   `/` (`app/page.tsx`): the hero (`Hero` in `components/site/Landing.tsx`) lets visitors **type their names and watch them in a real playing
   template** (it opens on the names scene, `sceneForField("brideName")`, and holds there while typing; the design's `thumb()` art fills
   the phone until the script loads; phones show the phone and the name boxes side by side so both stay above the keyboard;
-  "Pick a design" cards use each template's `thumb()` art, the playing one ringed, plus a "+N more" card), headline "Your wedding invite,
-  beautifully animated.", then a one-row proof strip, the playing designs with function tabs ("Which function are you inviting for?",
+  "Pick a design" cards use each template's `thumb()` art, the playing one ringed, plus a "More designs" card), headline "Wedding invites
+  your guests can play with." (2026-11-17 conversion redesign: kicker with "from ₹PRICE_MIN", a one-line lead on phones too, **"What are
+  you inviting for?" function chips** that switch the playing phone and the design row to that function (`HERO_FNS`; picking one counts
+  as a choice, so the button carries `?template=`), **tap the playing phone** to shower flowers over it (`PhoneTap`, glyphs by function via
+  `momentKind`/`momentGlyphs`), payment icons under the button, and events `hero_function_picked`, `hero_names_typed`,
+  `hero_design_picked`, `hero_phone_tapped`, `home_cta_clicked {section:"hero"}` (also from the pinned MobileCta)), then a one-row proof strip, the playing designs with function tabs ("Which function are you inviting for?",
   `Showcase`; cards open `/templates/<id>`), **"Try it yourself"** (`components/site/GuestDemo.tsx`, 2026-11-17: a phone the visitor plays
   with: envelope, scratch, shower, quiz, RSVP; the real `Interactive.tsx` components in a demo that sends nothing, mounted near the
   viewport, labelled "Example"), "One link. Know who's coming." (WhatsApp chat + an RSVP counts card marked example), how it works,
