@@ -61,12 +61,15 @@ export function priceOf(templateId: string): number {
 export const isFree = (templateId: string) => priceOf(templateId) === 0;
 
 /* Links made while a design was free stay free: its couple sent it out without a watermark, and it must not grow one.
-   The cut-off is the release that made them ₹9 (deploy on or before this moment; a link made on the old free code
-   AFTER it would gain a watermark). Keyed by design; language versions follow their design. */
+   The cut-off is the release that made them ₹9: commit 4b6dfa0 at 16:24 IST on 17 Nov, live a few minutes later.
+   It was first set to midnight, which left every link made that evening free although the studio had shown them
+   "₹9 to remove the watermark" (owner found 1-nidhi-shyam-engagement, made 19:37, unpaid and clean). 16:35 leaves room
+   for the deploy, so no link made on the old free code gains a watermark. Keyed by design; versions follow it. */
+const RELEASED_9 = Date.parse("2026-11-17T16:35:00+05:30");
 const FREE_UNTIL: Record<string, number> = {
-  "blush-botanical": Date.parse("2026-11-18T00:00:00+05:30"),
-  "aurora-modern": Date.parse("2026-11-18T00:00:00+05:30"),
-  "sagai-rings": Date.parse("2026-11-18T00:00:00+05:30"),
+  "blush-botanical": RELEASED_9,
+  "aurora-modern": RELEASED_9,
+  "sagai-rings": RELEASED_9,
 };
 
 /** What THIS link costs: the design's price, or 0 for a link made while its design was free (FREE_UNTIL). Use this,

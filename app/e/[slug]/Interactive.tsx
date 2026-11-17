@@ -79,24 +79,46 @@ const initials = (title: string) =>
     .slice(0, 2)
     .join(" & ");
 
-/** A sealed envelope in the invite's colours. The whole cover is the tap target (LiveInvite); `opening` plays the
-    flap, the letter rising and the seal breaking while the invite gets ready behind it. */
+/** A sealed envelope in the invite's colours (redesigned 2026-11-18, owner: the old one felt dated). The whole cover is
+    the tap target (LiveInvite). Sealed, it floats with a soft shadow, a sheen passes over the paper and a ripple round
+    the wax seal says "tap here". `opening`: the seal cracks in two and falls away, the flap swings open in 3D and the
+    card rises out; LiveInvite then fades the whole cover into the invite (`.cover-leaving`, OPEN_MS). CSS: `.env` in
+    globals.css; the home page's demo (GuestDemo) uses it too. */
 export function Envelope({ theme, title, opening }: { theme: Theme; title: string; opening: boolean }) {
-  const paper = theme.bg;
+  const mono = initials(title) || "♥";
   return (
-    <div className={"env" + (opening ? " open" : "")} style={{ ["--env-paper" as any]: paper, ["--env-edge" as any]: theme.line, ["--env-seal" as any]: theme.accent, ["--env-ink" as any]: theme.bg2 }}>
-      <div className="env-back" />
-      <div className="env-letter">
-        <span>{title}</span>
-      </div>
-      <div className="env-front" />
-      <div className="env-flap" />
-      <div className="env-seal" aria-hidden>
-        {initials(title) || "♥"}
+    <div className={"env" + (opening ? " open" : "")} style={{ ["--env-paper" as any]: theme.bg, ["--env-edge" as any]: theme.line, ["--env-seal" as any]: theme.accent, ["--env-ink" as any]: theme.bg2 }}>
+      <div className="env-float">
+        <div className="env-shadow" aria-hidden />
+        <div className="env-back" />
+        <div className="env-letter">
+          <small>You&apos;re invited</small>
+          <b>{mono}</b>
+          <span>{title}</span>
+        </div>
+        <div className="env-front">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+            <path d="M0 0 L50 54 L100 0 M0 100 L42 47 M100 100 L58 47" />
+          </svg>
+        </div>
+        <div className="env-flap">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden>
+            <path d="M0 0 L50 58 L100 0" />
+          </svg>
+        </div>
+        <div className="env-sheen" aria-hidden />
+        <div className="env-seal" aria-hidden>
+          <i className="env-half l" />
+          <i className="env-half r" />
+          <span>{mono}</span>
+        </div>
       </div>
     </div>
   );
 }
+
+/** How long opening the envelope takes before the invite starts (the cover fades out in its last part). */
+export const OPEN_MS = 1700;
 
 /* ---------------- scratch card ---------------- */
 
@@ -360,9 +382,15 @@ export const momentGlyphs = (k: MomentKind) => MOMENT[k].glyphs;
 
 type Burst = { id: number; x: number; y: number; bits: { dx: number; dy: number; rot: number; size: number; glyph: string; delay: number }[] };
 
-/** The story pauses on the couple's names and guests tap to shower them (each tap a burst where they tapped). It goes
-    on by itself 2.5 s after the last tap, after 5 s if nobody taps, or with "Continue". */
-export function TapMoment({ kind, onDone, idleMs = 5000 }: { kind: MomentKind; onDone: (taps: number) => void; idleMs?: number }) {
+/** How long the story stays after the FIRST tap: long enough to see the shower, then it moves on by itself. */
+const AFTER_TAP_MS = 1400;
+
+/** The story pauses on the couple's names and guests tap to shower them (each tap a burst where they tapped).
+    ONE tap is enough (owner, 2026-11-18: guests had to tap many times to get past it, because every tap restarted a
+    2.5 s wait and guests tap expecting the story to move on): the first tap showers and the story goes on
+    AFTER_TAP_MS later; more taps in that moment add bursts but never hold it longer. Without a tap it goes on after
+    `idleMs`, or with "Continue". */
+export function TapMoment({ kind, onDone, idleMs = 3500 }: { kind: MomentKind; onDone: (taps: number) => void; idleMs?: number }) {
   const m = MOMENT[kind];
   const [bursts, setBursts] = useState<Burst[]>([]);
   const [leaving, setLeaving] = useState(false);
@@ -398,7 +426,7 @@ export function TapMoment({ kind, onDone, idleMs = 5000 }: { kind: MomentKind; o
     // Relative to this layer: full screen on the invite, a phone frame in the home page's demo.
     const r = e.currentTarget.getBoundingClientRect();
     setBursts((b) => [...b.slice(-6), { id, x: e.clientX - r.left, y: e.clientY - r.top, bits }]);
-    arm(2500);
+    if (taps.current === 1) arm(AFTER_TAP_MS); // only the first tap sets the clock; later ones never extend it
   };
   return (
     <div className={"tap-moment" + (leaving ? " gone" : "")} onPointerDown={tap} onContextMenu={(e) => e.preventDefault()}>
@@ -406,7 +434,7 @@ export function TapMoment({ kind, onDone, idleMs = 5000 }: { kind: MomentKind; o
         <span className="tm-hand" aria-hidden>
           👆
         </span>
-        {taps.current ? (taps.current >= 3 ? "Beautiful! Keep going…" : m.prompt) : m.prompt}
+        {taps.current ? "Beautiful! ✨" : m.prompt}
       </div>
       {bursts.map((b) => (
         <div key={b.id} className="tm-burst" style={{ left: b.x, top: b.y }} aria-hidden>

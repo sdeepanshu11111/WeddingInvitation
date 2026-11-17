@@ -20,7 +20,7 @@ import { rsvpSetup, quickMessage, waLink } from "@/lib/rsvp";
 import { QUIZ_ASK, QUIZ_ID, QUIZ_REVEAL, quizOf } from "@/lib/quiz";
 import { nextInvites } from "@/lib/nextInvites";
 import { GuestDetails } from "./GuestDetails";
-import { Blessings, Envelope, PersonalLink, QuizAsk, SceneActions, ScratchCard, TapMoment, momentKind, useCountdown, useGreeting, type SceneAction } from "./Interactive";
+import { Blessings, Envelope, OPEN_MS, PersonalLink, QuizAsk, SceneActions, ScratchCard, TapMoment, momentKind, useCountdown, useGreeting, type SceneAction } from "./Interactive";
 import { RsvpSheet, RsvpSummary } from "./Rsvp";
 
 /* The guest's view of a live share: the same <Frame/> as the editor, driven by
@@ -162,6 +162,7 @@ export function Watermark() {
     free: a free design (no watermark, nothing to pay): its guests get the "Make your own invitation" link. */
 export function LiveInvite({ project, title, name, watermark = false, price = 0, free = false }: { project: Project; title: string; name?: string; watermark?: boolean; price?: number; free?: boolean }) {
   const [phase, setPhase] = useState<Phase>("cover");
+  const [leaving, setLeaving] = useState(false); // the cover is fading into the invite (after the envelope opened)
   const [o, setO] = useState<Orientation>(project.orientation);
   const [T, setT] = useState(0);
   const [muted, setMuted] = useState(false);
@@ -323,10 +324,17 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     count("open");
     setPhase("opening");
     const ready = Promise.race([Promise.all([fonts.current!.promise, images.current]), new Promise((r) => setTimeout(r, 6000))]);
-    // The envelope opens in about a second; the invite waits for it, never longer than for the fonts.
-    await Promise.all([ready, envelope ? new Promise((r) => setTimeout(r, 1150)) : null]);
+    // The envelope opens (seal, flap, card), then the cover fades into the invite: the fade starts only once the
+    // invite is ready too, so a slow phone keeps the opened envelope on screen instead of a frozen first frame.
+    const FADE_MS = 450;
+    await Promise.all([ready, envelope ? new Promise((r) => setTimeout(r, OPEN_MS - FADE_MS)) : null]);
+    if (envelope) {
+      setLeaving(true);
+      await new Promise((r) => setTimeout(r, FADE_MS));
+    }
     setT(0);
     setPhase("playing");
+    setLeaving(false);
   };
 
   const toggle = useCallback(() => {
@@ -675,6 +683,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
       {phase === "cover" || phase === "opening" ? (
         <div
           onClick={phase === "cover" ? open : undefined}
+          className={leaving ? "cover-leaving" : undefined}
           style={{
             position: "absolute",
             inset: 0,

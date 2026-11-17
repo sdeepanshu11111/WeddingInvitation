@@ -305,7 +305,9 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   Terms section 6, Refunds, FAQ and the home pricing card describe it; change them together.
 - **Guest page extras** (2026-11-17, owner: "more interactive and engaging"; `app/e/[slug]/Interactive.tsx`), each on unless the couple
   switches it off in the studio's "Guest experience" group (`Project.guest`, `guestOn()` in lib/types.ts): a sealed **envelope** on the
-  cover (tap the wax seal; `open()` waits ~1.1 s for it), **scratch to reveal the date** (gold foil canvas over the frame once per visit,
+  cover (redesigned 2026-11-18: it floats with a sheen and a ripple round the seal; on tap the seal cracks, the flap swings open, the card
+  rises, then the cover fades (`.cover-leaving`) once the invite is ready too; `OPEN_MS` 1.7 s. Keep `.env-float` free of `preserve-3d`, or the
+  opened flap covers the card), **scratch to reveal the date** (gold foil canvas over the frame once per visit,
   a moment into the scene `sceneForField("weddingDate")` finds; the clock and music wait via `running`; dissolves by itself after 6 s
   untouched; skipped when the date is still the sample), and **Send blessings** at the end (petal shower, one per device via
   `fp.blessed`, counted on the link record: `POST/GET /api/share/<name>/seen` kind `blessing`, `blessingCount`; shown from 3). Plus a
@@ -325,7 +327,8 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   gets them, and none is inside a scene's drawing except the quiz: **buttons on the scenes** (`SceneActions`: Add to calendar + a live
   countdown on the date scene, Directions on the venue, RSVP on the closing scene; one per function on Shaadi Utsav's `event-N` scenes;
   `guest.actions`), the **tap moment** (`TapMoment`, `guest.moment`: the story holds on the names scene and guests tap to shower flowers /
-  haldi / henna / confetti / sparklers / rings, by function via `momentKind`; goes on by itself), and the **couple quiz** (`Project.quiz`,
+  haldi / henna / confetti / sparklers / rings, by function via `momentKind`; ONE tap is enough: the story goes on 1.4 s after the first
+  tap and later taps never extend it (they used to restart a 2.5 s wait, so guests tapped many times to get past); 3.5 s without a tap), and the **couple quiz** (`Project.quiz`,
   `lib/quiz.tsx`): `buildTimeline` inserts a `quiz` scene before the closing scene, a pure function of time like any scene (question,
   A/B/C, the right answer lights up at `QUIZ_REVEAL`), so the MP4 shows it too; on the guest page the story holds at `QUIZ_ASK`,
   `QuizAsk` takes the answer, then seeks to the reveal. Counts `quiz_right/quiz_total` on the link record (`/api/share/<name>/quiz`, shown
@@ -333,7 +336,8 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   `guest`, `rsvp` and `quiz` follow the couple across a design switch (`defaultProject`).
 - **₹9 entry designs** (2026-11-17, owner: "for the free template do the 9rs"): Blush Botanical, Aurora Modern and Sagai Rings (and
   Sagai's language versions) cost ₹9, `PRICE_FLOOR` 9, no design is free any more (`FREE_COUNT` 0, its copy hides itself). Links made
-  while they were free stay free: `priceForLink(templateId, createdAt)` in `lib/pricing.ts` (`FREE_UNTIL`, 2026-11-18 00:00 IST). Price a
+  while they were free stay free: `priceForLink(templateId, createdAt)` in `lib/pricing.ts` (`FREE_UNTIL` = 17 Nov 16:35 IST, the ₹9 release; it was first midnight, which left that evening's links free although the
+  studio showed ₹9). Price a
   real link with `priceForLink` (invite page, `/api/pay/order`), never `priceOf`.
 - **Search pages** (2026-11-17): `/invitations/<function>` and `/wedding-invitations/<state>` (static, `lib/landing.ts`: text + FAQ,
   `components/site/LandingAbout.tsx`, the design browser with `landing` so the page's state wins and the URL stays clean), wording
@@ -397,6 +401,8 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 - Never run two `next dev` servers on the same `.next` folder (e.g. a second one on another port): they corrupt each other's
   manifests (`Unexpected end of JSON input`, then `reading 'run'` 500s) and `EPERM .next\trace`. Stopping a backgrounded
   `npx next dev` wrapper can leave the server alive; check `node.exe` processes. Fix: kill both, start one.
+- **No blue flash on taps** (2026-11-18): `html { -webkit-tap-highlight-color: transparent }` and `.guest-ui` blocks long-press selection and
+  the iOS callout (hold = pause selected text and painted the invite blue); inputs stay selectable. Keep both in globals.css.
 - Seeded `rnd()` only. Particles, confetti and sparkles must be deterministic.
 - Sanity-check religious/cultural text: Bismillah and the dua (Abu Dawud 2130) are in `nikah-mubarak.tsx`, ਵਾਹਿਗੁਰੂ ਜੀ ਕਾ ਖ਼ਾਲਸਾ in `anand-karaj.tsx`.
   No hand-drawn Khanda or Ganesha (too easy to get wrong); text glyphs like ੴ are used instead.
