@@ -339,6 +339,14 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   while they were free stay free: `priceForLink(templateId, createdAt)` in `lib/pricing.ts` (`FREE_UNTIL` = 17 Nov 16:35 IST, the ₹9 release; it was first midnight, which left that evening's links free although the
   studio showed ₹9). Price a
   real link with `priceForLink` (invite page, `/api/pay/order`), never `priceOf`.
+- **SEO ROLLBACK (owner, 2026-11-18)**: organic traffic in Mixpanel fell after the 14-17 Nov SEO work, and the owner asked for the SEO
+  "same as 1 week ago" (features, prices and content stay). So: `pageMeta` (lib/seo.ts) sets **no canonical**; `app/robots.ts`,
+  `app/sitemap.ts` and `app/llms.txt` are deleted; `JsonLd` renders nothing; `/invitations/*`, `/wedding-invitations/*` and `/wording*`
+  are **noindex** (`pageMeta(..., { noindex: true })`); `functionPath` / `statePath` link to `/templates?category=` / `?state=` again
+  (`functionPagePath` is the /invitations address); `/templates` has its 11 Nov titles. Open Graph preview tags stay (link cards only).
+  Note when judging the drop: on 16 Nov Mixpanel also stopped counting automated browsers (`automated()` in lib/analytics.ts), which
+  lowers page views without fewer people. Bring the SEO pieces back one at a time, and set `SITE_URL=https://futureproof.co.in` in
+  Vercel before any canonical tag returns. The notes below describe the pages as built.
 - **Search pages** (2026-11-17): `/invitations/<function>` and `/wedding-invitations/<state>` (static, `lib/landing.ts`: text + FAQ,
   `components/site/LandingAbout.tsx`, the design browser with `landing` so the page's state wins and the URL stays clean), wording
   guides `/wording` + `/wording/<language>` (`lib/wording.ts`, **not reviewed by native speakers**), `/llms.txt` for AI assistants,

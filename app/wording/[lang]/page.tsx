@@ -26,6 +26,7 @@ export function generateMetadata({ params }: { params: { lang: string } }): Meta
     "Wedding invitation wording in " + w.language + " · " + BRAND,
     "Sample " + w.language + " lines for a wedding invitation, the haldi and the reception, with their meaning in English, ready to copy into an animated invitation.",
     "/wording/" + w.id,
+    { noindex: true }, // SEO rollback 2026-11-18 (lib/seo.ts)
   );
 }
 

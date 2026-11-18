@@ -22,8 +22,11 @@ const FUNCTION_SLUG: Record<CategoryId, string> = {
   "save-the-date": "save-the-date",
 };
 
-export const functionPath = (c: CategoryId) => "/invitations/" + FUNCTION_SLUG[c];
-export const statePath = (regionId: string) => "/wedding-invitations/" + regionId;
+// SEO rollback (2026-11-18, lib/seo.ts): the site links to the /templates views again, as before 17 Nov. The pages
+// /invitations/<slug> and /wedding-invitations/<state> still exist (noindex) for anyone who has their address.
+export const functionPath = (c: CategoryId) => "/templates?category=" + c;
+export const statePath = (regionId: string) => "/templates?state=" + regionId;
+export const functionPagePath = (c: CategoryId) => "/invitations/" + FUNCTION_SLUG[c];
 export const categoryForSlug = (slug: string) => CATEGORIES.find((c) => FUNCTION_SLUG[c.id] === slug) ?? null;
 export const FUNCTION_SLUGS = CATEGORIES.map((c) => FUNCTION_SLUG[c.id]);
 

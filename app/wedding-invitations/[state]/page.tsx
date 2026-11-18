@@ -41,7 +41,8 @@ export function generateMetadata({ params }: { params: { state: string } }): Met
   return pageMeta(
     copy.title + " · " + BRAND,
     "Animated " + r.language + " invitations for " + ritualList(r.designs) + ", written in " + r.language + " for families in " + r.label + ". Preview free with your names, share one link on WhatsApp.",
-    statePath(r.id),
+    "/wedding-invitations/" + r.id,
+    { noindex: true }, // SEO rollback 2026-11-18 (lib/seo.ts)
   );
 }
 

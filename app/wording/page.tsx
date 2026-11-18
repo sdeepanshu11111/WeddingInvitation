@@ -15,6 +15,7 @@ export const metadata: Metadata = pageMeta(
   "Wedding invitation wording in Hindi, Tamil, Telugu, Marathi and more · " + BRAND,
   "Sample wedding, haldi and reception invitation lines in English, Hindi, Tamil, Telugu, Malayalam, Kannada, Marathi, Bengali and Punjabi, with their meaning in English.",
   "/wording",
+  { noindex: true }, // SEO rollback 2026-11-18 (lib/seo.ts)
 );
 
 export default function WordingIndex() {
