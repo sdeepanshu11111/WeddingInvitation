@@ -350,6 +350,17 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   Note when judging the drop: on 16 Nov Mixpanel also stopped counting automated browsers (`automated()` in lib/analytics.ts), which
   lowers page views without fewer people. Bring the SEO pieces back one at a time, and set `SITE_URL=https://futureproof.co.in` in
   Vercel before any canonical tag returns. The notes below describe the pages as built.
+- **AdSense review: "low value content"** (rejected 2026-11-23; owner: "do things so we can get approved"). Added real reading material
+  and crawl basics, without reversing the rest of the SEO rollback:
+  - **Guides** `/guides` + `/guides/<slug>` (8 practical articles in `lib/guides.ts`: timeline, what to write, English wording samples,
+    WhatsApp etiquette, digital vs printed, function invites, RSVPs, checklist; 500-950 words each). Rules at the top of that file: our own
+    words, no invented statistics/quotes/reviews, customs as "many families", product mentions only where true. Rendered by
+    `components/site/GuideText.tsx` (`[text](/path)` inline links) on the policy-page frame (`.legal-body.guide`, styles in globals.css).
+  - **`/about`** (`app/(legal)/about`): who runs it (lib/legal.ts), what it does, what we promise. Only true statements.
+  - **`app/robots.ts` and `app/sitemap.ts` are back**, listing only indexable pages (home, /templates, the 26 DESIGNS, guides, about,
+    policies); the noindex rollback pages and the 40 language versions stay out. Canonical tags and JSON-LD are still off.
+  - Header nav: "Guides"; phone menu: Wedding guides + About us; footer: Wedding guides, About us. New guides go in `lib/guides.ts`
+    (the sitemap and the index read it). Before requesting review again: submit the sitemap in Search Console and let traffic build.
 - **Search pages** (2026-11-17): `/invitations/<function>` and `/wedding-invitations/<state>` (static, `lib/landing.ts`: text + FAQ,
   `components/site/LandingAbout.tsx`, the design browser with `landing` so the page's state wins and the URL stays clean), wording
   guides `/wording` + `/wording/<language>` (`lib/wording.ts`, **not reviewed by native speakers**), `/llms.txt` for AI assistants,

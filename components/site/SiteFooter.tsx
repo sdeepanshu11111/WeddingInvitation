@@ -25,6 +25,7 @@ export function SiteFooter() {
         <div>
           <span className="mono-label">Product</span>
           <Link href="/templates">All templates</Link>
+          <Link href="/guides">Wedding guides</Link>
           <Link href="/wording">Invitation wording</Link>
           <Link href="/#how">How it works</Link>
           <Link href="/#pricing">Free preview</Link>
@@ -33,6 +34,7 @@ export function SiteFooter() {
         </div>
         <div>
           <span className="mono-label">Support</span>
+          <Link href="/about">About us</Link>
           {LEGAL_PAGES.map((p) => (
             <Link key={p.href} href={p.href}>
               {p.label}

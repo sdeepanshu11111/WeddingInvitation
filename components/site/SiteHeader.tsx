@@ -102,7 +102,7 @@ export function SiteHeader() {
             </div>
           </div>
           <Link href="/#how">How it works</Link>
-          <Link href="/#pricing">Free preview</Link>
+          <Link href="/guides">Guides</Link>
           <Link href="/#faq">FAQ</Link>
         </nav>
         <div className="head-end">
@@ -129,8 +129,10 @@ export function SiteHeader() {
           <div className="m-sep" />
           <Link href="/#how">How it works</Link>
           <Link href="/#pricing">Free preview</Link>
+          <Link href="/guides">Wedding guides</Link>
           <Link href="/#faq">FAQ</Link>
           <Link href="/create">Open studio</Link>
+          <Link href="/about">About us</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/templates" className="cta-btn block">
             Make my invitation →

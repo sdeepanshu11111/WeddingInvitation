@@ -13,7 +13,7 @@
 import { LINK_PRICE_INR, PAYMENTS } from "./features";
 import { baseOf } from "./variants";
 
-/** Every link made from FLAT_FROM on costs this, whatever the design (owner, 2026-11-23). */
+/** Every link made by the flat-price release or later (`flat` in its share.json) costs this, whatever the design (owner, 2026-11-23). */
 export const FLAT_PRICE_INR = 99;
 
 /** What a link made today costs to clear of the watermark: FLAT_PRICE_INR, or 0 when payments are off. */
