@@ -14,7 +14,6 @@ import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
 import { fmt } from "@/lib/anim";
 import { sceneForField } from "@/lib/fieldScene";
 import { PAYMENTS } from "@/lib/features";
-import { PACK_PRICE_INR, packCovers, priceOf } from "@/lib/pricing";
 import { SIZES, type StartNames } from "@/lib/project";
 import { languageOptions, useChosenInView } from "@/components/LanguagePicker";
 import { REGIONS } from "@/lib/regions";
@@ -124,25 +123,14 @@ export function TemplateDetail({ id }: { id: string }) {
               <b>Free</b>
               <span>preview &amp; share link</span>
             </div>
-            {PAYMENTS && priceOf(t.id) ? (
+            {PAYMENTS ? (
               <div>
-                <b>₹{priceOf(t.id)}</b>
-                <span>one time, removes the watermark</span>
-              </div>
-            ) : PAYMENTS ? (
-              <div>
-                <b>No watermark</b>
-                <span>this design is free</span>
+                <b>Watch it first</b>
+                <span>without the watermark, before you pay</span>
               </div>
             ) : null}
           </div>
 
-          {/* Several functions: the pack is cheaper than paying for each one (lib/pricing.ts). */}
-          {packCovers(priceOf(t.id)) ? (
-            <p className="pack-note">
-              Inviting for several functions? The <b>Wedding pack, ₹{PACK_PRICE_INR}</b>, removes the watermark from every invite of your wedding.
-            </p>
-          ) : null}
 
           <div className="editable">
             <span className="opt-label">What you can change</span>
@@ -192,7 +180,7 @@ export function TemplateDetail({ id }: { id: string }) {
             <span className="step-n">3</span>
             <h3>Send</h3>
             <p>
-              Post the link on WhatsApp.{PAYMENTS && priceOf(t.id) ? " Remove the watermark for ₹" + priceOf(t.id) + " whenever you're ready, on the same link." : PAYMENTS ? " This design is free: no watermark, nothing to pay." : ""}
+              Post the link on WhatsApp.{PAYMENTS ? " Watch it without the watermark first; remove it once, on the same link, when you love it." : ""}
             </p>
           </article>
         </div>

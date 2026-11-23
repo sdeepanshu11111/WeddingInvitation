@@ -6,7 +6,6 @@ import { Frame, Stage } from "@/components/Frame";
 import { useDemoTimeline, useNearViewport } from "@/components/LivePreview";
 import { CATEGORIES, countIn } from "@/lib/catalog";
 import { PAYMENTS } from "@/lib/features";
-import { PRICE_MIN } from "@/lib/pricing";
 import { PayIcons } from "@/components/PayIcons";
 import { momentGlyphs, momentKind } from "@/app/e/[slug]/Interactive";
 import { sceneForField } from "@/lib/fieldScene";
@@ -95,7 +94,7 @@ export function Hero({ reviews, made = 0 }: { reviews?: ReviewSummary; made?: nu
   // draft to it. A function chip is a choice: the visitor said what they are inviting for.
   const create = chosen || fnPicked ? "/create?template=" + t.id : "/create";
   const fnLabel = (c: CategoryId) => CATEGORIES.find((x) => x.id === c)!.label;
-  const kicker = PAYMENTS ? "Free preview · from ₹" + PRICE_MIN + " · Send on WhatsApp" : "Free preview · Send on WhatsApp";
+  const kicker = "Free preview · Send on WhatsApp"; // no price before the couple has their link (owner, 2026-11-23)
 
   // Grid areas, so phones and desktop can order the same parts differently (site.css, .hero):
   // desktop = copy, function chips, names, button, designs on the left and the playing phone on the right;
@@ -194,7 +193,7 @@ export function Hero({ reviews, made = 0 }: { reviews?: ReviewSummary; made?: nu
         {PAYMENTS ? (
           <div className="hero-trust">
             <p className="hero-price">
-              Free to make. Like it? Remove the watermark from <b>₹{PRICE_MIN}</b>, one time.
+              Free to make. <b>Watch your invite before you pay.</b>
             </p>
             <PayIcons size={15} />
           </div>

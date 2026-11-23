@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     if (share?.kind !== "live") return NextResponse.json({ error: "No such invite link" }, { status: 404 });
     const project = await getLiveProject(share.token);
     if (!project) return NextResponse.json({ error: "No such invite link" }, { status: 404 });
-    const price = priceForLink(project.templateId, share.createdAt); // a link made while its design was free costs 0
+    const price = priceForLink(project.templateId, share); // a link made while its design was free costs 0
     const due = await amountDue(share.token, price);
     if (due <= 0) {
       // Nothing to pay (paid, or a free design), yet someone still sees the watermark: refresh the cached page.

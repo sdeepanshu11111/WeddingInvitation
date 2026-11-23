@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { LEADS, VIDEO_EXPORT, exportOff } from "@/lib/features";
-import { CONTACT_NOTICE, normalizeEmail, normalizePhone } from "@/lib/contact";
+import { CONTACT_NOTICE, CONTACT_NOTICE_LINK, normalizeEmail, normalizePhone } from "@/lib/contact";
 import { slugify } from "@/lib/slug";
 import { saveShareLead } from "@/lib/server/leads";
 import { linkFacts, linkOrigin, recordLinkCreated, recordLinkUpdated } from "@/lib/server/links";
@@ -14,7 +14,9 @@ export const dynamic = "force-dynamic";
 /**
  * POST { project, title, card, name?, auto?, phone?, email? } -> live invitation at /e/<name> (default: 1-<first names>,
  *      the first free number for that couple; auto: true = name is that automatic one, so a clash takes the next number).
- *      phone, email: how to reach the couple (lead capture), stored privately, never in the published project
+ *      phone, email: how to reach the couple (lead capture), stored privately, never in the published project. The studio
+ *      asks for the mobile number before every link (required there since 2026-11-23); the server still accepts a post
+ *      without one, so a studio tab opened before that release keeps working.
  *      meta: { source, visit_source, internal } = where the maker came from (lib/analytics.ts), kept with the link's record
  * POST { project, title, card, update: name, key }     -> the owner republishes their invite to the same link /e/<name>
  *      (key = the owner key that link's creator got back; 403 without it). Returns the same shape plus updated: true.
@@ -63,7 +65,7 @@ export async function POST(req: Request) {
   }
   // Losing a lead must never cost the couple their link, so a database error is only logged (without their details).
   if ((phone || email) && share.kind === "live")
-    await saveShareLead(share.token, title, { phone, email }, CONTACT_NOTICE).catch((e) => console.error("Lead not saved:", e?.message));
+    await saveShareLead(share.token, title, { phone, email }, phone ? CONTACT_NOTICE_LINK : CONTACT_NOTICE).catch((e) => console.error("Lead not saved:", e?.message));
   // The link's record (lib/server/links.ts): every link, with its address, design and where its maker came from.
   // Like the lead, best effort: a database error is logged and the couple still gets their link.
   if (share.kind === "live") {

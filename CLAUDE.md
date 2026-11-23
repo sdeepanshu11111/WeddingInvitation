@@ -294,7 +294,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   (`components/LanguagePicker.tsx`; `template_selected` source `language`). Price = the design's (`priceOf` falls back to `baseOf`);
   `inviteDetails` and `MAIN` use `baseOf`. A new version language = a block in `languages.tsx` + `LANGUAGES` + a region.
   `scripts/snapshot.mjs --only=` takes lists and `*` patterns (`--only=*-tamil`).
-- **Wedding pack** (owner, 2026-11-17: ₹199 for all of a couple's functions; `PACK_PRICE_INR`, `PACK_COVERS` = 149 in `lib/pricing.ts`).
+- **Wedding pack** (NOT SOLD since 2026-11-23; packs already bought keep working, the server side stays) (owner, 2026-11-17: ₹199 for all of a couple's functions; `PACK_PRICE_INR`, `PACK_COVERS` = 149 in `lib/pricing.ts`).
   Offered under "Remove watermark" in the owner sheet when the design is one it covers (`packCovers`). `POST /api/pay/order {pack: true}`
   charges the pack price and records `pack: true` on the order (Razorpay `notes.kind`); verify and webhook then `markPack()` →
   `shares/<name>/pack.json` (markPaid gets price MAX so no false REFUND NEEDED). The browser remembers which link holds the couple's pack
@@ -305,9 +305,11 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   Terms section 6, Refunds, FAQ and the home pricing card describe it; change them together.
 - **Guest page extras** (2026-11-17, owner: "more interactive and engaging"; `app/e/[slug]/Interactive.tsx`), each on unless the couple
   switches it off in the studio's "Guest experience" group (`Project.guest`, `guestOn()` in lib/types.ts): a sealed **envelope** on the
-  cover (redesigned 2026-11-18: it floats with a sheen and a ripple round the seal; on tap the seal cracks, the flap swings open, the card
-  rises, then the cover fades (`.cover-leaving`) once the invite is ready too; `OPEN_MS` 1.7 s. Keep `.env-float` free of `preserve-3d`, or the
-  opened flap covers the card), **scratch to reveal the date** (gold foil canvas over the frame once per visit,
+  cover (calm since 2026-11-23, owner: the faster one with a cracking seal felt unprofessional: a slight float and faint sheen; on tap the
+  names and date fade (`.cover-opening`), the seal lifts away, the flap opens slowly, the card rises, then the cover fades (`.cover-leaving`, 0.7 s)
+  once the invite is ready too; `OPEN_MS` 3.1 s. Keep `.env-float` free of `preserve-3d`, or the opened flap covers the card), **scratch to
+  reveal the date** (**OFF for every invite since 2026-11-23**, owner: full-screen and annoying right after the date; `SCRATCH_OFF` in
+  LiveInvite, no studio switch, not in the home demo) (gold foil canvas over the frame once per visit,
   a moment into the scene `sceneForField("weddingDate")` finds; the clock and music wait via `running`; dissolves by itself after 6 s
   untouched; skipped when the date is still the sample), and **Send blessings** at the end (petal shower, one per device via
   `fp.blessed`, counted on the link record: `POST/GET /api/share/<name>/seen` kind `blessing`, `blessingCount`; shown from 3). Plus a
@@ -332,11 +334,12 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
   `lib/quiz.tsx`): `buildTimeline` inserts a `quiz` scene before the closing scene, a pure function of time like any scene (question,
   A/B/C, the right answer lights up at `QUIZ_REVEAL`), so the MP4 shows it too; on the guest page the story holds at `QUIZ_ASK`,
   `QuizAsk` takes the answer, then seeks to the reveal. Counts `quiz_right/quiz_total` on the link record (`/api/share/<name>/quiz`, shown
-  as "62% got it right" from 3 answers). Everything that holds the story goes through `held` in LiveInvite (clock + music wait).
+  as "62% got it right" from 3 answers). Everything that holds the story goes through `held` in LiveInvite: the clock waits, the **music does not** (since 2026-11-23 it follows
+  `playing` only, so a tap moment or the quiz never stops it; it re-syncs on a resume or a scene skip, not on the quiz jump).
   `guest`, `rsvp` and `quiz` follow the couple across a design switch (`defaultProject`).
 - **₹9 entry designs** (2026-11-17, owner: "for the free template do the 9rs"): Blush Botanical, Aurora Modern and Sagai Rings (and
   Sagai's language versions) cost ₹9, `PRICE_FLOOR` 9, no design is free any more (`FREE_COUNT` 0, its copy hides itself). Links made
-  while they were free stay free: `priceForLink(templateId, createdAt)` in `lib/pricing.ts` (`FREE_UNTIL` = 17 Nov 16:35 IST, the ₹9 release; it was first midnight, which left that evening's links free although the
+  while they were free stay free: `priceForLink(templateId, share)` in `lib/pricing.ts` (`FREE_UNTIL` = 17 Nov 16:35 IST, the ₹9 release; it was first midnight, which left that evening's links free although the
   studio showed ₹9). Price a
   real link with `priceForLink` (invite page, `/api/pay/order`), never `priceOf`.
 - **SEO ROLLBACK (owner, 2026-11-18)**: organic traffic in Mixpanel fell after the 14-17 Nov SEO work, and the owner asked for the SEO
@@ -358,7 +361,8 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
 - **Reviews from every couple** (2026-11-17): the owner sheet's rating box shows for unpaid invites too (it was clean invites only),
   and the `/admin/leads` follow-ups ask for a rating. The hero shows "N invitations made here in the last 30 days" from the link records
   (`recentLinkCount`, test links left out) once N ≥ 20; never a made-up number.
-- **Per-design prices** (2026-11-14, owner: some designs free, paid ones ₹29-600; the floor went from ₹30 to ₹29 on 2026-11-16 when
+- **Per-design prices** (SUPERSEDED for new links by the flat ₹99, see "Get wedding link" below; still how links made before
+  the flat price (no `flat` in share.json) are priced, the table is `LEGACY` now) (2026-11-14, owner: some designs free, paid ones ₹29-600; the floor went from ₹30 to ₹29 on 2026-11-16 when
   Haldi, Mehendi and Polaroid dropped from ₹49 to ₹29): `lib/pricing.ts` is the one table (`priceOf(id)`,
   0 = free; unlisted = `LINK_PRICE_INR`). Dependency-free, so the server reads it without the templates. The amount charged is
   always the server's: `/api/pay/order` reads the link's `templateId` and charges `amountDue()` (price minus `Paid.covers`).
@@ -415,8 +419,7 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
     is background. Studio, MP4 and landscape stay 1080x1920. Don't position scene content from a hard-coded 1920.
   - **Empty photo frames** show the couple's monogram on a guest's invite (`Monogram` in primitives.tsx, initials from `MonogramContext`
     that `<Frame>` provides via `monogramOf(data)`); the studio keeps its "Add a photo" hint.
-  - **Get link checks example details**: if a date / venue / address field still holds the design's sample (`sampleKeys`), `SampleCheck`
-    (components/editor/SampleCheck.tsx) asks first: "Change them" opens that field, or "Get link anyway". Event `sample_warning`.
+  - ~~Get link checks example details~~: removed 2026-11-23 (owner: "remove these type of stoppers"); `project.sample` is still stored.
   - **Branded 404** (`app/not-found.tsx`, `NotFoundBody`): a wrong invite link gets advice for the guest.
   - **Design cards show posters**: `public/posters/<id>.webp` (360x640, the names scene, first palette, sample photo), made by
     `node scripts/posters.mjs` (dev server running); `LazyPreview` mounts the live preview only once a card is played. **Re-run the
@@ -429,6 +432,37 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
     page has loaded and the phone is idle (`requestIdleCallback`, 2.5 s cap), or at once on typing, a chip or a design card.
   - Desktop hero phone is sticky at the top of its column; phone pricing cards swipe; the tap prompt is centred with margins (its
     pop-in animation overrides `transform`).
+- **The invite opens by itself** (2026-11-23, owner: the envelope still felt old-fashioned, "it should be auto"): the **envelope is off for
+  every invite** (`envelope = false` in LiveInvite, no studio switch, not in the home demo); the cover shows the names and date and opens
+  after `AUTO_OPEN_MS` (3.2 s; a fill across "Open invitation" counts down; a tap opens it at once; paused while the couple's sheet is open),
+  then dissolves into the invite (`.cover-leaving`). Auto-opened, the music starts **muted** (browsers refuse sound before a touch) and in step;
+  `soundLocked` shows "🔊 Tap for music" and the first touch anywhere turns the sound on (`unlockSound`).
+- **The couple's photo stays longer**: with a photo of their own, scenes `photo|portrait|couple|names|hero|spread` get +2.5 s
+  (`PHOTO_EXTRA_MS` in `buildTimeline`, lib/project.ts; the Ken Burns pan stretches with it; MP4 too).
+- **Watch again is always there at the end**: with the details card closed, `GuestDetails` shows "Event details" and "↻ Watch again".
+- **"Get wedding link" flow** (2026-11-23, owner: "remove these stoppers, mobile number mandatory, don't show price anywhere, 30 second
+  watermark counter, then ask to pay 99rs for each template"):
+  - **Flat ₹99 per new link**: `priceOf()` = `FLAT_PRICE_INR` (99) for every design. `createLiveShare` writes `flat: true` into share.json,
+    and `priceForLink(templateId, share)` charges ₹99 only for those; links made before this release (no `flat`) keep their old price
+    (LEGACY table, FREE_UNTIL), and a republish keeps what the link had. No cut-off clock: it follows the deploy exactly. Verify + webhook pass `priceForLink(templateId, share)` to
+    `markPaid` (they used `priceOf`). Always price a real link with `priceForLink`.
+  - **No price before the couple has their link**: no ₹ on the site (cards, template pages, hero, promo strip, home "How it's free" section,
+    FAQ, landing copy) or in the studio. The ₹ shows only on the couple's own invite after the preview (pay sheet, owner bar) and on the
+    legal pages (Terms 6, Refunds: Razorpay needs the price stated). The guest bar's pay button says "Remove".
+  - **Studio**: every button says "Get wedding link"; no SampleCheck; `GetLink` (ShareDialog.tsx) first asks the **mobile number, required**
+    (+91 field, `normalizePhone`; skipped when this device already gave one, `savedPhone()`; `rememberContact` so Razorpay Checkout is
+    pre-filled) whenever PAYMENTS or LEADS is on. It goes to `POST /api/share {phone}` → lead store with consent `CONTACT_NOTICE_LINK`.
+    The server still accepts posts without a phone (studio tabs opened before the release). Event `link_phone_step`.
+  - **30-second clean preview** (LiveInvite.tsx, `PREVIEW_S`): on the couple's device (owner key) an unpaid invite plays WITHOUT the watermark
+    for 30 s of playing time (`previewLeft`, counts only while playing and no sheet is open; kept per link in localStorage `fp.preview`, so a
+    reload doesn't restart it; no storage = no preview). A pill under the story bar counts down ("No watermark for 24s"); the owner bar is
+    hidden meanwhile. At 0 or when the invite ends first: watermark on, the invite pauses, the pay sheet opens ("Your free preview is over",
+    "Pay ₹99 · Remove watermark"). Events `free_preview_ended {reason}`, `owner_sheet_opened {trigger: "preview_end"}`. Guests always see
+    the watermark until it is paid. Terms section 1 and Privacy section 5 describe it.
+- **The couple's pay sheet is focused** (2026-11-23, owner: "simpler so they easily pay, without distraction"): while the invite has the
+  watermark the owner sheet shows one message, "Pay ₹N · Remove watermark", the payment logos, and "Not now" (no pack line since 2026-11-23);
+  sharing, personal links, RSVP counts, rating and contact appear only after "Not now" (`more`) or once paid. Guests' end screen on free /
+  unpaid invites has a clear "Make an invitation like this" button (`.end-make`); paid invites keep the quiet credit line.
 - **No blue flash on taps** (2026-11-18): `html { -webkit-tap-highlight-color: transparent }` and `.guest-ui` blocks long-press selection and
   the iOS callout (hold = pause selected text and painted the invite blue); inputs stay selectable. Keep both in globals.css.
 - Seeded `rnd()` only. Particles, confetti and sparkles must be deterministic.

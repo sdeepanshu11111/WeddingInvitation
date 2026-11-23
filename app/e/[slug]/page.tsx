@@ -55,7 +55,7 @@ export default async function WatchPage({ params }: { params: { slug: string } }
     // Free links carry a watermark while paid links are on; paying revalidates this page (api/pay/verify).
     // What is still due is the design's price (lib/pricing.ts) minus what was paid; free designs never have one.
     // priceForLink: a link made while its design was free stays free (lib/pricing.ts, FREE_UNTIL).
-    const price = priceForLink(project.templateId, s.createdAt);
+    const price = priceForLink(project.templateId, s);
     const due = PAYMENTS ? await amountDue(s.token, price) : 0;
     return <LiveInvite project={project} title={s.title} name={s.token} watermark={due > 0} price={due} free={PAYMENTS && price === 0} />;
   }

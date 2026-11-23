@@ -31,8 +31,7 @@ export type Events = {
   state_selected: { state: string };
   /** The couple rated their invite in the owner sheet (app/api/review). The stars only: never the words or names. */
   review_submitted: { rating: number; has_text: boolean; is_public: boolean };
-  /** Get link found the date / venue still the design's example (components/editor/SampleCheck): what the couple chose. */
-  sample_warning: { template_id: string; field_count: number; choice: "fix" | "anyway" };
+  link_phone_step: { template_id: string; action: "shown" | "submitted" | "cancelled" };
   /** The couple tapped one of their other functions in the owner sheet (lib/nextInvites.ts): a second purchase starting. */
   next_invite_clicked: { template_id: string; from_template_id: string };
   /** The studio (/create) finished loading a project. has_design_param: arrived with a chosen design
@@ -60,6 +59,7 @@ export type Events = {
     price_inr: number; // what removing the watermark costs for this design (0 = free design)
     is_free: boolean;
     sample_field_count: number; // date / venue fields still holding the template's sample
+    has_phone?: boolean; // the couple gave their mobile number at Get wedding link (never the number itself)
   };
   /** The couple changed their invite and published it again to the link they already had (no new link). */
   invite_link_updated: { invite_id: string; template_id: string };
@@ -100,7 +100,9 @@ export type Events = {
   /** The couple made a personal link for one guest (?to=<name>). The name is never sent. */
   invite_personalised: { invite_id: string; channel: "whatsapp" | "copy" };
   /** The couple's sheet (remove watermark, share) came up: by itself on the cover or at the end, or from their bar. */
-  owner_sheet_opened: { trigger: "cover" | "end" | "bar" };
+  owner_sheet_opened: { trigger: "cover" | "end" | "bar" | "preview_end" };
+  /** The couple's 30-second watermark-free preview of their own new invite ended: the watermark came on and the pay sheet opened. */
+  free_preview_ended: { reason: "timer" | "end" };
 };
 /* `payment_confirmed` is NOT here: the server sends it, once per payment (lib/server/mixpanel.ts). */
 

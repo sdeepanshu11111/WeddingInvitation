@@ -54,11 +54,18 @@ export function GuestDetails({ project, title, name, onReplay, onRsvp }: { proje
   const countdown = next ? countdownText(daysUntil(next.date)) : "";
   const calHref = (i: number) => (ios && name ? "/e/" + name + "/calendar.ics" : googleCalendarUrl(events[i], title, link));
 
+  // Tucked away: the details pill, and Watch again beside it (owner, 2026-11-23: with the card closed there was no
+  // way to replay the invite).
   if (small)
     return (
-      <button className="gd-pill" onClick={() => setSmall(false)}>
-        <CalIcon /> Event details{rsvp ? " & RSVP" : ""}
-      </button>
+      <div className="gd-mini" onClick={(e) => e.stopPropagation()}>
+        <button className="gd-pill" onClick={() => setSmall(false)}>
+          <CalIcon /> Event details{rsvp ? " & RSVP" : ""}
+        </button>
+        <button className="gd-pill" onClick={onReplay}>
+          ↻ Watch again
+        </button>
+      </div>
     );
   return (
     <div className="gd" onClick={(e) => e.stopPropagation()}>

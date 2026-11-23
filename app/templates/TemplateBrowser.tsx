@@ -5,7 +5,6 @@ import { StatePicker, useRegion } from "@/components/site/StatePicker";
 import { TemplateCard } from "@/components/site/TemplateCard";
 import { CATEGORIES, COMMUNITIES, countIn, filterTemplates, type Filter } from "@/lib/catalog";
 import { PAYMENTS } from "@/lib/features";
-import { FREE_COUNT, PRICE_MIN } from "@/lib/pricing";
 import { functionPath, statePath } from "@/lib/landing";
 import { forRegion, regionById } from "@/lib/regions";
 import { DESIGNS, TEMPLATES } from "@/lib/templates";
@@ -88,7 +87,7 @@ export function TemplateBrowser({ initial, initialState = null, landing = false 
           <span>✓ Preview free</span>
           <span>✓ Phone and TV</span>
           <span>✓ Ready in minutes</span>
-          {PAYMENTS ? <span>{FREE_COUNT ? FREE_COUNT + " free designs · others " : ""}from ₹{PRICE_MIN}, one time, to remove the watermark</span> : null}
+          {PAYMENTS ? <span>✓ Watch it before you pay</span> : null}
         </div>
         <StatePicker region={st.region} picked={st.picked} lead={st.lead} onPick={st.pick} />
       </section>

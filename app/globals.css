@@ -414,8 +414,11 @@ input[type="date"].input, input[type="time"].input { color-scheme: light; }
 .gb-wa { width: 54px; height: 54px; flex: none; border-radius: 50%; border: 0; display: grid; place-items: center; background: #25d366; color: #fff; box-shadow: 0 10px 26px -6px rgba(37, 211, 102, 0.65); transition: transform 0.12s ease; }
 .gb-wa:active { transform: scale(0.94); }
 .end-shade { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 60px 16px calc(96px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.6) 55%); }
-.end-make { color: rgba(255, 255, 255, 0.86); font-size: 13.5px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
-.end-make:hover { color: #fff; }
+/* Guests planning their own function: a clear button after the invite ends (free and unpaid invites). */
+.end-make { display: grid; gap: 2px; padding: 12px 22px; border-radius: 16px; background: rgba(255, 255, 255, 0.94); color: #241316; text-align: center; text-decoration: none; box-shadow: 0 12px 30px -14px rgba(0, 0, 0, 0.6); }
+.end-make b { font-size: 15px; font-weight: 700; }
+.end-make span { font-size: 12px; color: #6b5a5c; }
+.end-make:hover { background: #fff; }
 .end-credit { color: rgba(255, 255, 255, 0.55); font-size: 12px; letter-spacing: 0.02em; text-decoration: none; }
 .end-credit:hover { color: rgba(255, 255, 255, 0.85); text-decoration: underline; text-underline-offset: 3px; }
 
@@ -813,6 +816,7 @@ li.review.hidden { opacity: 0.6; }
 .gd-by { margin-top: -4px; color: #f0d6a6; font-size: 13px; font-weight: 600; }
 .gd-head .gd-count { margin-left: auto; }
 .gd-x { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 50%; background: transparent; color: rgba(255, 255, 255, 0.75); font-size: 12px; }
+.gd-mini { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .gd-pill { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 99px; background: rgba(15, 14, 16, 0.8); color: #fff; font-size: 14px; font-weight: 600; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: pop-in 0.25s ease both; }
 
 /* An empty photo or clip slot says "ADD A PHOTO" in the studio. Guests must never read that on someone's invite:
@@ -847,44 +851,45 @@ li.review.hidden { opacity: 0.6; }
 /* ---------- guest page extras (app/e/[slug]/Interactive.tsx) ---------- */
 /* Envelope on the cover: back, letter, front pocket, flap (opens upward), wax seal. */
 /* Envelope on the cover (Interactive.tsx, Envelope; redesigned 2026-11-18). Layers: back, card, front pocket, flap,
-   sheen, seal. Sealed: float + sheen + a ripple round the seal. .open: seal halves fall away (0-0.45 s), flap swings
-   open (0.18-0.78 s), card rises (0.55-1.25 s); LiveInvite fades the cover (.cover-leaving) to finish at OPEN_MS. */
+   sheen, seal. Sealed: a slight float and a faint sheen. .open (calm and unhurried, owner 2026-11-23: it was too fast
+   and the cracking seal looked cheap): the seal lifts away (0-0.6 s), the flap opens (0.4-1.4 s), the card rises
+   (1.2-2.4 s); LiveInvite fades the cover (.cover-leaving, 0.7 s) to finish at OPEN_MS. */
 .env { position: relative; width: min(80vw, 330px); aspect-ratio: 1.42; margin-top: 22px; container-type: inline-size; animation: cover-in 0.9s 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 /* perspective here (the flap is its child), and NO preserve-3d: in a 3D context z-index is ignored and the opened
    flap would cover the card. */
-.env-float { position: absolute; inset: 0; perspective: 1100px; animation: env-float 5.5s 1.4s ease-in-out infinite; }
-@keyframes env-float { 0%, 100% { transform: translateY(0) rotate(-0.5deg); } 50% { transform: translateY(-7px) rotate(0.5deg); } }
-.env-shadow { position: absolute; left: 10%; right: 10%; bottom: -18px; height: 24px; border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.45), transparent); filter: blur(3px); animation: env-shadow 5.5s 1.4s ease-in-out infinite; }
-@keyframes env-shadow { 50% { transform: scaleX(0.86); opacity: 0.65; } }
+.env-float { position: absolute; inset: 0; perspective: 1100px; animation: env-float 6s 1.4s ease-in-out infinite; }
+@keyframes env-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.env-shadow { position: absolute; left: 10%; right: 10%; bottom: -18px; height: 24px; border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.45), transparent); filter: blur(3px); animation: env-shadow 6s 1.4s ease-in-out infinite; }
+@keyframes env-shadow { 50% { transform: scaleX(0.94); opacity: 0.8; } }
 .env-back, .env-front, .env-flap { position: absolute; inset: 0; border-radius: 14px; }
 .env-back { background: color-mix(in srgb, var(--env-paper) 78%, #000); box-shadow: 0 30px 60px -28px rgba(0, 0, 0, 0.6), 0 0 0 1px color-mix(in srgb, var(--env-edge) 45%, transparent); }
 .env-front svg, .env-flap svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--env-edge); stroke-width: 1.2; vector-effect: non-scaling-stroke; opacity: 0.55; }
 .env-front { z-index: 2; clip-path: polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%); background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 7px), linear-gradient(165deg, color-mix(in srgb, var(--env-paper) 90%, #fff), var(--env-paper) 55%, color-mix(in srgb, var(--env-paper) 84%, #000)); }
-.env-flap { z-index: 3; clip-path: polygon(0 0, 100% 0, 50% 58%); background: linear-gradient(180deg, color-mix(in srgb, var(--env-paper) 84%, #000), color-mix(in srgb, var(--env-paper) 96%, #fff)); transform-origin: 50% 0; backface-visibility: visible; transition: transform 0.6s 0.18s cubic-bezier(0.5, 0, 0.25, 1), z-index 0s 0.5s; }
-.env-letter { position: absolute; z-index: 1; left: 7%; right: 7%; top: 7%; height: 86%; display: grid; place-content: center; justify-items: center; gap: 2px; padding: 10px; border-radius: 8px; background: #fffdf7; color: #3b2a22; text-align: center; box-shadow: inset 0 0 0 6px #fffdf7, inset 0 0 0 7px color-mix(in srgb, var(--env-edge) 55%, transparent), 0 10px 26px -12px rgba(0, 0, 0, 0.5); opacity: 0; transition: transform 0.7s 0.55s cubic-bezier(0.2, 0.85, 0.25, 1), opacity 0.2s 0.3s; }
+.env-flap { z-index: 3; clip-path: polygon(0 0, 100% 0, 50% 58%); background: linear-gradient(180deg, color-mix(in srgb, var(--env-paper) 84%, #000), color-mix(in srgb, var(--env-paper) 96%, #fff)); transform-origin: 50% 0; backface-visibility: visible; transition: transform 1s 0.4s cubic-bezier(0.45, 0, 0.25, 1), z-index 0s 0.9s; }
+.env-letter { position: absolute; z-index: 1; left: 7%; right: 7%; top: 7%; height: 86%; display: grid; place-content: center; justify-items: center; gap: 2px; padding: 10px; border-radius: 8px; background: #fffdf7; color: #3b2a22; text-align: center; box-shadow: inset 0 0 0 6px #fffdf7, inset 0 0 0 7px color-mix(in srgb, var(--env-edge) 55%, transparent), 0 10px 26px -12px rgba(0, 0, 0, 0.5); opacity: 0; transition: transform 1.2s 1.2s cubic-bezier(0.22, 0.7, 0.2, 1), opacity 0.5s 0.9s; }
 .env-letter small { font-family: var(--f-cinzel); font-size: 9px; font-size: clamp(7px, 2.8cqw, 9px); letter-spacing: 0.3em; text-transform: uppercase; color: color-mix(in srgb, var(--env-edge) 80%, #3b2a22); }
 .env-letter b { font-family: var(--f-cinzel); font-size: 20px; font-size: clamp(14px, 6cqw, 20px); font-weight: 700; letter-spacing: 0.12em; color: color-mix(in srgb, var(--env-seal) 70%, #3b2a22); }
 .env-letter span { max-width: 100%; font-family: var(--f-vibes); font-size: 24px; font-size: clamp(15px, 7cqw, 24px); line-height: 1.1; overflow-wrap: anywhere; }
 .env-sheen { position: absolute; inset: 0; z-index: 4; border-radius: 14px; overflow: hidden; pointer-events: none; }
-.env-sheen::after { content: ""; position: absolute; top: -20%; bottom: -20%; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.22), transparent); transform: skewX(-18deg); animation: env-sheen 4.8s 2s ease-in-out infinite; }
+.env-sheen::after { content: ""; position: absolute; top: -20%; bottom: -20%; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.14), transparent); transform: skewX(-18deg); animation: env-sheen 7s 2.5s ease-in-out infinite; }
 @keyframes env-sheen { 0%, 55% { left: -60%; } 85%, 100% { left: 130%; } }
 .env-seal { position: absolute; z-index: 5; left: 50%; top: 54%; width: 62px; height: 62px; margin: -31px 0 0 -31px; display: grid; place-items: center; }
-.env-seal::before { content: ""; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--env-seal); opacity: 0; animation: env-ripple 2.6s 1.6s ease-out infinite; }
+.env-seal::before { display: none; } /* no ripple: calm (owner, 2026-11-23) */
 @keyframes env-ripple { 0% { transform: scale(1); opacity: 0.55; } 80%, 100% { transform: scale(1.9); opacity: 0; } }
-.env-half { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--env-seal) 62%, #fff), var(--env-seal) 52%, color-mix(in srgb, var(--env-seal) 68%, #000)); box-shadow: 0 5px 14px rgba(0, 0, 0, 0.35), inset 0 -3px 6px rgba(0, 0, 0, 0.25); transition: transform 0.5s cubic-bezier(0.3, 0.7, 0.2, 1), opacity 0.45s 0.05s; }
+.env-half { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--env-seal) 62%, #fff), var(--env-seal) 52%, color-mix(in srgb, var(--env-seal) 68%, #000)); box-shadow: 0 5px 14px rgba(0, 0, 0, 0.35), inset 0 -3px 6px rgba(0, 0, 0, 0.25); transition: transform 0.6s cubic-bezier(0.3, 0.6, 0.3, 1), opacity 0.6s; }
 .env-half.l { clip-path: polygon(0 0, 52% 0, 46% 30%, 56% 56%, 47% 100%, 0 100%); }
 .env-half.r { clip-path: polygon(52% 0, 100% 0, 100% 100%, 47% 100%, 56% 56%, 46% 30%); }
-.env-seal span { position: relative; color: var(--env-ink); font-family: var(--f-cinzel); font-size: 14px; font-weight: 700; letter-spacing: 0.04em; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25); transition: opacity 0.15s; }
+.env-seal span { position: relative; color: var(--env-ink); font-family: var(--f-cinzel); font-size: 14px; font-weight: 700; letter-spacing: 0.04em; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25); transition: opacity 0.4s, transform 0.6s; }
 .env.open .env-float, .env.open .env-shadow { animation-play-state: paused; }
 .env.open .env-sheen, .env.open .env-seal::before { display: none; }
-.env.open .env-half.l { transform: translate(-30px, 46px) rotate(-42deg); opacity: 0; }
-.env.open .env-half.r { transform: translate(30px, 46px) rotate(42deg); opacity: 0; }
-.env.open .env-seal span { opacity: 0; }
+.env.open .env-half.l { transform: translateY(-10px) scale(0.92); opacity: 0; }
+.env.open .env-half.r { transform: translateY(-10px) scale(0.92); opacity: 0; }
+.env.open .env-seal span { opacity: 0; transform: translateY(-10px); }
 .env.open .env-flap { transform: rotateX(180deg); z-index: 0; }
-.env.open .env-letter { opacity: 1; transform: translateY(-60%) scale(1.05); }
+.env.open .env-letter { opacity: 1; transform: translateY(-58%) scale(1.04); }
 /* LiveInvite: the cover fades into the invite once the card is out AND the invite is ready (OPEN_MS, FADE_MS). */
-.cover-leaving { animation: cover-leave 0.45s ease forwards; }
-@keyframes cover-leave { to { opacity: 0; transform: scale(1.04); } }
+.cover-leaving { animation: cover-leave 0.7s ease forwards; }
+@keyframes cover-leave { to { opacity: 0; transform: scale(1.02); } }
 @media (prefers-reduced-motion: reduce) { .env-float, .env-shadow, .env-sheen::after, .env-seal::before { animation: none; } }
 .env-cta { margin-top: 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
 /* Scratch-to-reveal date */
@@ -957,11 +962,45 @@ li.review.hidden { opacity: 0.6; }
 .qa-result span { color: rgba(255, 255, 255, 0.75); font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .tm-hand { animation: none; } .tm-burst span { animation-duration: 0.01s; } }
 
-/* Get link's check for example date / venue (components/editor/SampleCheck.tsx). */
-.sample-check { display: grid; gap: 10px; max-width: 440px; }
-.sample-check .sc-lead { margin: 0; color: var(--muted); font-size: 14.5px; }
-.sc-list { list-style: none; margin: 4px 0 6px; padding: 0; display: grid; gap: 6px; }
-.sc-list li { display: flex; justify-content: space-between; gap: 12px; padding: 10px 12px; border-radius: 10px; background: rgba(160, 29, 56, 0.06); font-size: 14px; }
-.sc-list li span { color: var(--muted); }
-.sc-list li b { text-align: right; overflow-wrap: anywhere; }
-.sample-check .btn { width: 100%; min-height: 46px; justify-content: center; }
+
+/* The couple's sheet while the invite still has the watermark: paying and nothing else (LiveInvite, OwnerSheet). */
+.os-pay.simple { display: grid; gap: 10px; text-align: center; }
+.os-pay.simple h3 { margin: 0 auto; font-size: 26px; }
+.os-kicker { color: #d9b77c; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
+.os-sub { margin: 0 auto 4px; max-width: 34ch; color: rgba(236, 232, 227, 0.72); font-size: 14px; line-height: 1.45; }
+.os-cta.big { width: 100%; min-height: 56px; justify-content: center; font-size: 17px; font-weight: 700; border-radius: 16px; }
+.os-pay.simple .trust-row { margin-top: 0; }
+.os-pack-link { display: grid; gap: 2px; margin-top: 4px; padding: 10px 12px; border: 1px dashed rgba(217, 183, 124, 0.45); border-radius: 12px; background: none; color: rgba(236, 232, 227, 0.85); font-size: 14px; text-align: center; cursor: pointer; }
+.os-pack-link b { color: #f0d6a6; }
+.os-pack-link small { color: rgba(236, 232, 227, 0.5); font-size: 12px; }
+.os-later { justify-self: center; margin-top: 2px; padding: 6px 10px; border: 0; background: none; color: rgba(236, 232, 227, 0.55); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
+/* While the envelope opens, the names, date and countdown above it fade away, so the opening flap and the rising card
+   never overlap text (LiveInvite: .cover-opening on the cover). */
+.cover-opening > :not(.env) { animation: cover-text-out 0.5s ease forwards; }
+@keyframes cover-text-out { to { opacity: 0; transform: translateY(-6px); } }
+
+/* Cover: the invite opens by itself after AUTO_OPEN_MS; a soft fill crosses the button as the countdown (LiveInvite). */
+.open-fill { position: absolute; inset: 0; transform: scaleX(0); transform-origin: left center; background: rgba(255, 255, 255, 0.22); }
+.open-btn.counting .open-fill { animation: open-fill var(--open-ms, 3200ms) linear 0.6s forwards; }
+@keyframes open-fill { to { transform: scaleX(1); } }
+/* Music that started silently (auto-opened): one tap turns the sound on. */
+.sound-pill { position: absolute; z-index: 8; top: calc(70px + env(safe-area-inset-top)); left: 0; right: 0; margin: 0 auto; width: max-content; display: flex; align-items: center; gap: 6px; padding: 10px 18px; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 99px; background: rgba(15, 14, 16, 0.75); color: #fff; font-size: 14px; font-weight: 600; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: pop-in 0.35s ease both; }
+@media (prefers-reduced-motion: reduce) { .open-btn.counting .open-fill { animation: none; } }
+
+/* "Get wedding link": the mobile number step (components/editor/ShareDialog.tsx, 2026-11-23). */
+.gl-phone { display: grid; justify-items: center; text-align: center; }
+.gl-step { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
+.gl-phone h3 { margin: 8px 0 6px; }
+.gl-tel { display: flex; align-items: center; width: 100%; height: 56px; margin-top: 18px; border: 1.5px solid var(--line-2); border-radius: 14px; background: var(--bg); overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
+.gl-tel:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(160, 29, 56, 0.12); }
+.gl-tel.bad { border-color: var(--danger); }
+.gl-tel .cc { flex: none; height: 100%; display: grid; place-items: center; padding: 0 14px; border-right: 1.5px solid var(--line); color: var(--muted); font-size: 17px; font-weight: 600; }
+.gl-tel input { flex: 1; min-width: 0; height: 100%; padding: 0 14px; border: 0; outline: none; background: transparent; color: var(--text); font-size: 19px; font-weight: 600; letter-spacing: 0.04em; }
+.gl-note { margin: 8px 0 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
+.gl-note.bad { color: var(--danger); }
+.gl-phone .gl-open { margin-top: 16px; }
+
+/* The couple's 30-second watermark-free preview (LiveInvite.tsx, PREVIEW_S): a countdown under the story bar. */
+.preview-pill { position: absolute; z-index: 7; top: calc(22px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 8px; border-radius: 99px; background: rgba(0, 0, 0, 0.5); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #fff; font: 600 13px/1 var(--ui, system-ui), system-ui, sans-serif; white-space: nowrap; pointer-events: none; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); }
+.preview-pill b { font-variant-numeric: tabular-nums; color: #f3d38f; }
+.pp-ring { width: 18px; height: 18px; border-radius: 50%; background: conic-gradient(#f3d38f calc(var(--pp, 1) * 360deg), rgba(255, 255, 255, 0.22) 0); -webkit-mask: radial-gradient(circle, transparent 5px, #000 5.5px); mask: radial-gradient(circle, transparent 5px, #000 5.5px); transition: background 0.3s; }

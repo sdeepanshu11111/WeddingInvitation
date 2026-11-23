@@ -10,15 +10,13 @@ import { Envelope, ScratchCard, TapMoment } from "@/app/e/[slug]/Interactive";
 import { Arrow } from "./Landing";
 
 /* Home page, "What your guests will do" (owner, 2026-11-17: an interactive, conversion-focused home page). The visitor
-   tries the guest page's moments themselves in a phone frame: open the envelope, scratch the date, shower the couple,
+   tries the guest page's moments themselves in a phone frame: shower the couple,
    answer a quiz, RSVP. The same components as the real guest page (app/e/[slug]/Interactive.tsx), in a demo that
    sends nothing anywhere: no counts, no WhatsApp, only the analytics event `home_demo_step`. Mounted only near the
    viewport, so the home page stays light. Sample couple, labelled as an example. */
 
-type Step = "open" | "scratch" | "shower" | "quiz" | "rsvp";
+type Step = "shower" | "quiz" | "rsvp"; // no envelope or scratch card since 2026-11-23 (both off on every invite)
 const STEPS: { id: Step; label: string; title: string; text: string }[] = [
-  { id: "open", label: "Open", title: "A sealed envelope", text: "Your invitation arrives sealed with your initials. Guests tap the wax seal and it opens." },
-  { id: "scratch", label: "Scratch", title: "Scratch to reveal the date", text: "Gold foil hides the big day until your guests scratch it off. Try it with your finger." },
   { id: "shower", label: "Shower", title: "Shower the couple", text: "On your names, guests tap to shower flowers. Haldi gets turmeric, sangeet gets confetti." },
   { id: "quiz", label: "Quiz", title: "How well do they know you?", text: "Ask one question about the two of you. Guests guess, then see how everyone else did." },
   { id: "rsvp", label: "RSVP", title: "RSVP in one tap", text: "Guests say if they're coming and how many, and the reply lands on your WhatsApp. You see the count on your invite." },
@@ -29,7 +27,7 @@ const QUIZ = { question: "Where did we first meet?", options: ["At college", "At
 
 export function GuestDemo() {
   const [ref, near] = useNearViewport<HTMLDivElement>();
-  const [step, setStep] = useState<Step>("open");
+  const [step, setStep] = useState<Step>("shower");
   const [run, setRun] = useState(0); // remounts the current moment ("Try again")
   const theme = useMemo(() => makeTheme(getTemplate("royal-mandala"), "maroon"), []);
   const i = STEPS.findIndex((s) => s.id === step);
@@ -83,8 +81,8 @@ export function GuestDemo() {
 type Theme = ReturnType<typeof makeTheme>;
 
 function Moment({ step, theme, onAgain }: { step: Step; theme: Theme; onAgain: () => void }) {
-  if (step === "open") return <OpenMoment theme={theme} />;
-  if (step === "scratch") return <ScratchMoment theme={theme} onAgain={onAgain} />;
+
+
   if (step === "shower") return <ShowerMoment theme={theme} onAgain={onAgain} />;
   if (step === "quiz") return <QuizMoment theme={theme} onAgain={onAgain} />;
   return <RsvpMoment theme={theme} />;

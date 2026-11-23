@@ -79,11 +79,11 @@ const initials = (title: string) =>
     .slice(0, 2)
     .join(" & ");
 
-/** A sealed envelope in the invite's colours (redesigned 2026-11-18, owner: the old one felt dated). The whole cover is
-    the tap target (LiveInvite). Sealed, it floats with a soft shadow, a sheen passes over the paper and a ripple round
-    the wax seal says "tap here". `opening`: the seal cracks in two and falls away, the flap swings open in 3D and the
-    card rises out; LiveInvite then fades the whole cover into the invite (`.cover-leaving`, OPEN_MS). CSS: `.env` in
-    globals.css; the home page's demo (GuestDemo) uses it too. */
+/** A sealed envelope in the invite's colours. The whole cover is the tap target (LiveInvite). Calm on purpose (owner,
+    2026-11-23: the faster version with a cracking seal and a ripple felt unprofessional): sealed, it floats very
+    slightly with a faint sheen; `opening`: the seal lifts away, the flap opens slowly, the card rises, and LiveInvite
+    fades the cover into the invite (`.cover-leaving`), about 3 s in all (OPEN_MS). CSS: `.env` in globals.css; the
+    home page's demo (GuestDemo) uses it too. */
 export function Envelope({ theme, title, opening }: { theme: Theme; title: string; opening: boolean }) {
   const mono = initials(title) || "♥";
   return (
@@ -118,7 +118,7 @@ export function Envelope({ theme, title, opening }: { theme: Theme; title: strin
 }
 
 /** How long opening the envelope takes before the invite starts (the cover fades out in its last part). */
-export const OPEN_MS = 1700;
+export const OPEN_MS = 3100;
 
 /* ---------------- scratch card ---------------- */
 

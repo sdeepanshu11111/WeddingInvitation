@@ -27,7 +27,7 @@ export function SiteFooter() {
           <Link href="/templates">All templates</Link>
           <Link href="/wording">Invitation wording</Link>
           <Link href="/#how">How it works</Link>
-          <Link href="/#pricing">Pricing</Link>
+          <Link href="/#pricing">Free preview</Link>
           <Link href="/#faq">FAQ</Link>
           <Link href="/create">Open studio</Link>
         </div>

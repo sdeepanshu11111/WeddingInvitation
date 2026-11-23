@@ -4,8 +4,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { Frame, Stage } from "@/components/Frame";
 import { ExportDialog } from "@/components/editor/ExportDialog";
 import { GetLink } from "@/components/editor/ShareDialog";
-import { SampleCheck, sampleLines } from "@/components/editor/SampleCheck";
-import { sampleKeys } from "@/lib/inviteDetails";
 import { AgreeNote } from "@/components/PayTrust";
 import { FieldGroups, MusicPanel } from "@/components/editor/Fields";
 import { GuestExperience, QuizPanel, RsvpPanel } from "@/components/editor/GuestPanels";
@@ -16,8 +14,7 @@ import { SIZES, buildTimeline, defaultProject, idbGet, idbSet, withNames } from 
 import { takeStart } from "@/lib/start";
 import { DESIGNS, TEMPLATES, getTemplate } from "@/lib/templates";
 import { sceneForField } from "@/lib/fieldScene";
-import { PAYMENTS, VIDEO_EXPORT } from "@/lib/features";
-import { priceOf } from "@/lib/pricing";
+import { VIDEO_EXPORT } from "@/lib/features";
 import { LegalLinks } from "@/components/LegalLinks";
 import { LanguagePicker, languageOptions } from "@/components/LanguagePicker";
 import { PalettePicker } from "@/components/PalettePicker";
@@ -222,38 +219,9 @@ export default function Editor() {
     setSharing(true);
   };
 
-  // Get link checks first that the date and venue are not still the design's example (components/editor/SampleCheck).
-  const [sampleCheck, setSampleCheck] = useState<ReturnType<typeof sampleLines> | null>(null);
-  const openShare = () => {
-    if (!project) return;
-    const keys = sampleKeys(project.data, getTemplate(project.templateId).defaults);
-    if (!keys.length) return getLink();
-    setMenu(false);
-    setPlaying(false);
-    setSampleCheck(sampleLines(getTemplate(project.templateId), project.data, keys));
-  };
-  const fixSamples = () => {
-    const first = sampleCheck?.[0]?.key;
-    if (project && sampleCheck) track("sample_warning", { template_id: project.templateId, field_count: sampleCheck.length, choice: "fix" });
-    setSampleCheck(null);
-    setTab("details");
-    // After the Details panel shows: open that field, scroll to it, and the preview jumps to its scene.
-    setTimeout(() => {
-      const box = first ? document.querySelector<HTMLElement>('[data-field="' + first + '"]') : null;
-      // Its group may be folded (only the first two open), and the wrapper is display: contents (no box to scroll to).
-      const group = box?.closest("details");
-      if (group) group.open = true;
-      const input = box?.querySelector<HTMLElement>("input, textarea, select");
-      (input ?? box)?.scrollIntoView({ block: "center", behavior: "smooth" });
-      input?.focus({ preventScroll: true });
-      if (box) showField(box);
-    }, 120);
-  };
-  const sharesAnyway = () => {
-    if (project && sampleCheck) track("sample_warning", { template_id: project.templateId, field_count: sampleCheck.length, choice: "anyway" });
-    setSampleCheck(null);
-    getLink();
-  };
+  // One tap, no stoppers (owner, 2026-11-23: the "Is this your real date and venue?" check is gone). Sample details are
+  // still stored (project.sample at Get link), so guests get no calendar or directions for a made-up date or venue.
+  const openShare = getLink;
 
   /** "Export MP4": the dialog where video export runs. The button only exists while VIDEO_EXPORT is on: the hosted
       site promotes the free invitation page and link, so it doesn't mention video at all. */
@@ -335,7 +303,7 @@ export default function Editor() {
           </li>
           <li>
             <button onClick={openShare}>
-              <b>03</b> Get link
+              <b>03</b> Get wedding link
             </button>
           </li>
         </ol>
@@ -359,7 +327,7 @@ export default function Editor() {
         {VIDEO_EXPORT ? (
           <>
             <button className="btn desk-only" onClick={openShare} title="A link that plays the invitation in your guests' browser">
-              Get link
+              Get wedding link
             </button>
             <button className="btn primary desk-only" onClick={openExport}>
               Export MP4
@@ -367,7 +335,7 @@ export default function Editor() {
           </>
         ) : (
           <button className="btn primary desk-only" onClick={openShare} title="A link that plays the invitation in your guests' browser">
-            Get invite link
+            Get wedding link
           </button>
         )}
         <div className="more mob-only">
@@ -564,15 +532,8 @@ export default function Editor() {
         {/* The end of the form, on every screen: one tap makes the link (components/editor/ShareDialog.tsx, GetLink). */}
         <div className="next-cta get-cta">
           <button className="btn primary" onClick={openShare}>
-            <span className="mob-only">Next: get your invite link →</span>
-            <span className="desk-only">Get my invite link →</span>
+            Get wedding link →
           </button>
-          {/* The price before the tap, so it is never a surprise on the invite page (the link itself is free). */}
-          {PAYMENTS && project && priceOf(project.templateId) ? (
-            <p className="get-price">
-              Free link with a preview watermark · <b>₹{priceOf(project.templateId)}</b> once to remove it
-            </p>
-          ) : null}
           <AgreeNote creating />
         </div>
       </aside>
@@ -603,7 +564,6 @@ export default function Editor() {
 
       {music ? <audio ref={audio} src={music.src} preload="auto" /> : null}
       {exporting ? <ExportDialog project={project} onClose={() => setExporting(false)} /> : null}
-      {sampleCheck ? <SampleCheck lines={sampleCheck} onFix={fixSamples} onAnyway={sharesAnyway} /> : null}
       {sharing ? <GetLink project={project} onClose={() => setSharing(false)} /> : null}
       {gallery ? (
         <TemplateGallery

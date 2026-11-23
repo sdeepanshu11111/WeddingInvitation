@@ -1,11 +1,13 @@
-/* How we can reach the couple: a WhatsApp number or an email (one of them), optional, left in the owner sheet on their
-   own invite page (app/e/[slug]/LiveInvite.tsx; before 2026-10-21 in the "Get link" step)
+/* How we can reach the couple: their mobile number, asked (required) when they tap "Get wedding link" in the studio
+   (since 2026-11-23), or a WhatsApp number / email left in the owner sheet on their own invite page (app/e/[slug]/LiveInvite.tsx)
    (lead capture), and reused to pre-fill Razorpay Checkout. Shared by the browser and the server, so both
    accept exactly the same input. */
 
 /** Which notice the person saw when they gave their details (stored with the lead as proof of consent).
     Change it whenever the wording under the fields changes. */
 export const CONTACT_NOTICE = "invite-page-contact-2026-10-21";
+/** The notice under the mobile number that "Get wedding link" asks for, required since 2026-11-23 (components/editor/ShareDialog.tsx). */
+export const CONTACT_NOTICE_LINK = "get-link-mobile-2026-11-23";
 
 /**
  * "98765 43210", "098765-43210", "+91 98765 43210" or "919876543210" → "+919876543210".

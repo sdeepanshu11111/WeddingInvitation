@@ -1,7 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { LEADS, PAYMENTS, VIDEO_EXPORT } from "@/lib/features";
-import { FREE_COUNT, PACK_COVERS, PACK_PRICE_INR, PRICE_RANGE } from "@/lib/pricing";
 
 /** text: the answer as plain words, for search engines (FAQ structured data, faqJsonLd). Needed when `a` is not a string. */
 export type QA = { q: string; a: ReactNode; text?: string };
@@ -23,7 +22,7 @@ export function faqItems(): QA[] {
   const items: QA[] = [
     {
       q: "How long does it take?",
-      a: "About two minutes. Choose a design, type the names, date and venue, and the preview updates as you type. Your link is ready the moment you press Get link.",
+      a: "About two minutes. Choose a design, type the names, date and venue, and the preview updates as you type. Your link is ready the moment you press Get wedding link.",
     },
     {
       q: "Do guests need an app?",
@@ -31,11 +30,11 @@ export function faqItems(): QA[] {
     },
     {
       q: "Can I change it after sharing?",
-      a: "Yes. Edit it in the studio on the same phone or computer you made it on and press Get link again: the same link updates for everyone who has it, and a paid invite stays paid. From another device, the change goes on a new link.",
+      a: "Yes. Edit it in the studio on the same phone or computer you made it on and press Get wedding link again: the same link updates for everyone who has it, and a paid invite stays paid. From another device, the change goes on a new link.",
     },
     {
       q: "What can guests do on the invitation?",
-      a: "More than watch it. They open a sealed envelope, scratch gold foil off your date, tap to shower you with flowers, answer a question about the two of you and send blessings. When it ends they can add every function to their calendar and open directions to the venue. You can switch each of these off.",
+      a: "More than watch it. They tap to shower you with flowers, answer a question about the two of you and send blessings. When it ends they can add every function to their calendar and open directions to the venue. You can switch each of these off.",
     },
     {
       q: "Can guests RSVP?",
@@ -48,33 +47,21 @@ export function faqItems(): QA[] {
   ];
   if (VIDEO_EXPORT)
     items.push({ q: "Can I download an MP4?", a: "Yes. Export a real MP4 in 9:16 for Reels and WhatsApp Status or 16:9 for YouTube and TV, at 720p, 1080p or 4K." });
-  if (LEADS)
+  if (LEADS || PAYMENTS)
     items.push({
-      q: "Do I have to give my WhatsApp number or email?",
-      a: "It is optional: your link works without it. If you add one, we use it only to help you with your invitation and remind you about it. We never sell or share your details, and we stop as soon as you reply STOP.",
+      q: "Why do you ask for my mobile number?",
+      a: "Your wedding link is made with it, so we can help you with your invitation if something goes wrong and remind you about it. We never sell or share it, and we stop as soon as you reply STOP.",
     });
   if (PAYMENTS)
     items.push({
-      q: "What does Premium include, and can I get a refund?",
+      q: "Is it free? And can I get a refund?",
       text:
-        "A one-time payment per invitation (" + PRICE_RANGE + ", shown on each design) removes the watermark from that link, instantly, at the same address your guests already have. If you pay and the watermark stays, we fix it or refund you.",
+        "Making your invitation and getting your wedding link is free. You watch it without the watermark first; after that the watermark comes on, and a one-time payment removes it from that link, instantly, at the same address your guests already have. If you pay and the watermark stays, we fix it or refund you.",
       a: (
         <>
-          A one-time payment per invitation ({PRICE_RANGE}, shown on each design{FREE_COUNT ? "; " + FREE_COUNT + " designs are free and have no watermark" : ""})
-          removes the watermark from that link, instantly, at the same address your guests already have. If you pay and the watermark stays, we fix it or refund you. Details in our <Link href="/refunds">refund policy</Link>.
-        </>
-      ),
-    });
-  if (PAYMENTS)
-    items.push({
-      q: "We have several functions. Do we pay for each invite?",
-      text:
-        "You can, or take the Wedding pack: ₹" + PACK_PRICE_INR + " once, from any of your invites, and every invite you make for the same couple on that phone has no watermark, each on a link of its own. Each invite is covered up to ₹" + PACK_COVERS + ".",
-      a: (
-        <>
-          You can, or take the Wedding pack: ₹{PACK_PRICE_INR} once, from any of your invites, and every invite you make for the same couple on that
-          phone has no watermark: engagement, haldi, mehendi, sangeet, wedding and reception, each on a link of its own. Each invite is covered up to
-          ₹{PACK_COVERS}, so Shaadi Utsav and Cinematic Reel need only the difference.
+          Making your invitation and getting your wedding link is free. You watch it without the watermark first; after that the watermark comes on,
+          and a one-time payment removes it from that link, instantly, at the same address your guests already have. If you pay and the watermark
+          stays, we fix it or refund you. Details in our <Link href="/refunds">refund policy</Link>.
         </>
       ),
     });

@@ -11,7 +11,6 @@ import { SiteHeader } from "@/components/site/SiteHeader";
 import { BRAND } from "@/lib/brand";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
 import { PAYMENTS } from "@/lib/features";
-import { FREE_COUNT, PACK_PRICE_INR, PRICE_MIN, PRICE_RANGE } from "@/lib/pricing";
 import { SITE_URL } from "@/lib/site";
 import { pageMeta } from "@/lib/seo";
 import { DESIGNS } from "@/lib/templates";
@@ -292,86 +291,37 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* ---------- pricing ---------- */}
+      {/* ---------- pricing: no numbers before the couple has their link (owner, 2026-11-23); the price shows on the
+           pay sheet of their own invite, after a 30-second preview without the watermark ---------- */}
       <section className="sec" id="pricing">
-        <SectionHead label="Pricing" center>
-          {PAYMENTS ? (
-            <>
-              Free to make. <em>From ₹{PRICE_MIN}</em> to make it yours.
-            </>
-          ) : (
-            <>
-              Free to make, <em>free</em> to share.
-            </>
-          )}
+        <SectionHead label="How it's free" center>
+          Free to make. <em>Watch it</em> before you pay.
         </SectionHead>
         <p className="sec-lead centered">
           {PAYMENTS
-            ? "Try every design with your own details for as long as you like. Pay once, only when you're happy with it." + (FREE_COUNT ? " " + FREE_COUNT + " designs are free, with no watermark at all." : "")
+            ? "Make your invitation with your own details and get your wedding link. Watch it without the watermark first; pay once, only if you love it."
             : "Every design, your own details, one link for all your guests."}
         </p>
-        <div className={"price-grid" + (PAYMENTS ? "" : " one")}>
-          <div className="price-card">
-            <span className="kicker">Preview</span>
-            <div className="price-num">Free</div>
-            <p>Your full invitation with your details, shared as a link.</p>
+        <div className="price-grid one">
+          <div className="price-card best">
+            <span className="kicker">Your wedding link</span>
             <ul>
               <li>Every design and colour palette</li>
               <li>Names, dates, photos and music</li>
-              <li>Share link for WhatsApp</li>
-              {PAYMENTS ? <li className="minus">Watermark on the invitation{FREE_COUNT ? " (none on the free designs)" : ""}</li> : null}
+              <li>One link for WhatsApp, for every guest</li>
+              {PAYMENTS ? <li>Watch it first without the watermark</li> : null}
+              {PAYMENTS ? <li>The watermark comes off the same link, one time</li> : null}
             </ul>
-            <CtaLink href="/templates" section="pricing" className="ghost-btn block">
-              Start free
+            <CtaLink href="/templates" section="pricing" className="cta-btn block">
+              Get wedding link <Arrow />
             </CtaLink>
-          </div>
-          {PAYMENTS ? (
-            <div className="price-card best">
-              <span className="best-tag">One-time · per invitation</span>
-              <span className="kicker">Premium</span>
-              <div className="price-num">
-                <small>from</small> ₹{PRICE_MIN}
-              </div>
-              <p>
-                {PRICE_RANGE} by design; each design shows its price. The watermark comes off the same link, instantly. Guests keep the link they
-                already have.
-              </p>
-              <ul>
-                <li>No watermark, for every guest</li>
-                <li>Same link, nothing to resend</li>
-                <li>UPI, cards and net banking</li>
-                <li>No subscription, no hidden charges</li>
-              </ul>
-              <CtaLink href="/templates" section="pricing" className="cta-btn block">
-                Choose a design <Arrow />
-              </CtaLink>
+            {PAYMENTS ? (
               <div className="price-pay">
                 <PayIcons size={18} />
               </div>
-            </div>
-          ) : null}
-          {PAYMENTS ? (
-            <div className="price-card">
-              <span className="kicker">Wedding pack</span>
-              <div className="price-num">₹{PACK_PRICE_INR}</div>
-              <p>One payment for every function&apos;s invite: engagement, haldi, mehendi, sangeet, wedding and reception.</p>
-              <ul>
-                <li>No watermark on any of them</li>
-                <li>Each function on a link of its own</li>
-                <li>Your names carry over to every invite</li>
-                <li>Buy it from any of your invites</li>
-              </ul>
-              <CtaLink href="/invitations/wedding" section="pricing_pack" className="ghost-btn block">
-                Start with your wedding invite
-              </CtaLink>
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
-        {PAYMENTS ? (
-          <p className="price-note">
-            The pack covers the invites you make on the same phone for the same couple. Shaadi Utsav and Cinematic Reel need only the difference.
-          </p>
-        ) : null}
       </section>
 
       {/* ---------- FAQ ---------- */}

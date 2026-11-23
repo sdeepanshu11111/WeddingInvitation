@@ -4,8 +4,8 @@ import { LEADS } from "@/lib/features";
 import { afterPayment } from "@/lib/server/afterPayment";
 import { savePaymentLead } from "@/lib/server/leads";
 import { webhookSignatureValid } from "@/lib/server/razorpay";
-import { priceOf } from "@/lib/pricing";
-import { getLiveProject, markPack, markPaid, orderBelongsTo, orderIsPack } from "@/lib/server/share";
+import { priceForLink } from "@/lib/pricing";
+import { getLiveProject, getShare, markPack, markPaid, orderBelongsTo, orderIsPack } from "@/lib/server/share";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -29,10 +29,16 @@ export async function POST(req: Request) {
   if (typeof name !== "string" || !(await orderBelongsTo(name, order.id))) return NextResponse.json({ ignored: "unknown order" });
   const project = await getLiveProject(name);
   const pack = await orderIsPack(name, order.id);
-  const fresh = await markPaid(name, { orderId: order.id, paymentId: payment?.id ?? "", amount: order.amount_paid ?? 0, paidAt: Date.now() }, pack ? Number.MAX_SAFE_INTEGER : priceOf(project?.templateId ?? ""));
+  const fresh = await markPaid(name, { orderId: order.id, paymentId: payment?.id ?? "", amount: order.amount_paid ?? 0, paidAt: Date.now() }, pack ? Number.MAX_SAFE_INTEGER : await linkPrice(name, project?.templateId ?? ""));
   if (pack) await markPack(name, { orderId: order.id, paymentId: payment?.id ?? "" });
   if (LEADS) await savePaymentLead(name, { contact: payment?.contact, email: payment?.email, amount: order.amount_paid ?? 0 }).catch((e) => console.error("Lead not saved:", e?.message));
   await afterPayment(name, { paymentId: payment?.id ?? "", orderId: order.id, amountInr: Math.round((order.amount_paid ?? 0) / 100), templateId: project?.templateId ?? "", via: "webhook" }, fresh);
   revalidatePath("/e/" + name);
   return NextResponse.json({ ok: true });
+}
+
+/** What this link costs (lib/pricing.ts, priceForLink: links made before the flat price keep their old one). */
+async function linkPrice(name: string, templateId: string): Promise<number> {
+  const share = await getShare(name);
+  return priceForLink(templateId, share?.kind === "live" ? share : { createdAt: Date.now(), flat: true });
 }

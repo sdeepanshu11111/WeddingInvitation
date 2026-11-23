@@ -56,7 +56,7 @@ export default function TemplatePage({ params }: { params: { id: string } }) {
           <p>
             You fill in your own names, dates and photos, watch it play, and get one link to send on WhatsApp. It opens in any phone&rsquo;s
             browser, with no app to install.{" "}
-            {PAYMENTS ? (price ? "Making and sharing it is free; removing the watermark costs ₹" + price + ", one time." : "This design is free and has no watermark.") : ""}
+            {PAYMENTS ? "Making it and getting the link is free; you watch it without the watermark before you decide to remove it." : ""}
           </p>
           <h3>People use it for</h3>
           <ul>

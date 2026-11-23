@@ -3,7 +3,8 @@ import React, { useEffect, useRef, useState } from "react";
 import type { Project } from "@/lib/types";
 import { buildTimeline, coupleTitle, inviteDate, makeTheme } from "@/lib/project";
 import { getTemplate } from "@/lib/templates";
-import { PAYMENTS, SHARE_STORE } from "@/lib/features";
+import { LEADS, PAYMENTS, SHARE_STORE } from "@/lib/features";
+import { normalizePhone, rememberContact, savedPhone, typingPhone } from "@/lib/contact";
 import { inviteId, track, visitorOrigin } from "@/lib/analytics";
 import { priceOf } from "@/lib/pricing";
 import { MEDIA_TYPES, allSrcs, mapDataUrls } from "@/lib/media";
@@ -76,7 +77,7 @@ async function hashOf(file: Blob): Promise<string | null> {
 }
 const REDIRECT_S = 3;
 
-type Stage = { kind: "working"; step: string } | { kind: "done"; token: string; url: string; lanUrl: string | null; updated?: boolean } | { kind: "error"; message: string };
+type Stage = { kind: "phone" } | { kind: "working"; step: string } | { kind: "done"; token: string; url: string; lanUrl: string | null; updated?: boolean } | { kind: "error"; message: string };
 
 const EnvelopeIcon = () => (
   <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
@@ -85,10 +86,15 @@ const EnvelopeIcon = () => (
   </svg>
 );
 
+/** "Get wedding link" asks for the couple's mobile number first, required (owner, 2026-11-23). It goes to the lead
+    store with the link (app/api/share, never into the published project) and pre-fills Razorpay Checkout later. A number
+    this device already gave is used again without asking. Off when there is neither payment nor lead capture (local dev). */
+const ASK_PHONE = PAYMENTS || !!LEADS;
+
 /**
- * "Get invite link": no form and no choices. The link is created the moment they tap, celebrated, and 3 seconds
- * later the studio hands over to the invite itself (/e/<name>). There the couple watches it as their guests will
- * and finds their owner tools: remove the watermark, share it, leave a number (app/e/[slug]/LiveInvite.tsx).
+ * "Get wedding link": the mobile number (once per device), then the link is created, celebrated, and 3 seconds
+ * later the studio hands over to the invite itself (/e/<name>). There the couple watches it clean for 30 seconds,
+ * then the watermark comes on and the owner sheet asks for the payment (app/e/[slug]/LiveInvite.tsx).
  * This browser keeps the link's owner key (lib/owner.ts), which is what unlocks those tools.
  */
 export function GetLink({ project, onClose }: { project: Project; onClose: () => void }) {
@@ -99,6 +105,23 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
   const title = coupleTitle(project.data);
   const uploaded = useRef<Project | null>(null); // a retry doesn't upload the photos again
   const started = useRef(false);
+  const phone = useRef<string | null>(null); // "+919876543210", sent with the link
+  const [typed, setTyped] = useState("");
+  const [phoneErr, setPhoneErr] = useState("");
+
+  const submitPhone = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    const p = normalizePhone(typed);
+    if (!p) return setPhoneErr("Enter your 10-digit mobile number. Outside India? Start with + and the country code.");
+    phone.current = p;
+    rememberContact(p, null); // this device: the next link, and Razorpay Checkout, are pre-filled
+    track("link_phone_step", { template_id: project.templateId, action: "submitted" });
+    create();
+  };
+  const cancelPhone = () => {
+    track("link_phone_step", { template_id: project.templateId, action: "cancelled" });
+    onClose();
+  };
 
   const create = async () => {
     setStage({ kind: "working", step: "Getting your invite ready…" });
@@ -137,7 +160,11 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
       const t = makeTheme(getTemplate(project.templateId), project.paletteId);
       const card = { bg: t.bg, bg2: t.bg2, ink: t.ink, soft: t.soft, accent: t.accent, line: t.line, date: inviteDate(project.data) };
       const post = (extra: Record<string, unknown>) =>
-        fetch("/api/share", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ project: shared, title, card, meta: visitorOrigin(), ...extra }) });
+        fetch("/api/share", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ project: shared, title, card, meta: visitorOrigin(), ...(LEADS && phone.current ? { phone: phone.current } : null), ...extra }),
+        });
       // Editing an invite they already have a link for (same couple AND same function, made on this device): publish
       // to that SAME link, so guests who have it see the correction and a paid link stays paid. Another function
       // (their Haldi after their wedding) is a new invite with a link of its own: 1-aarav-ananya-haldi.
@@ -172,6 +199,7 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
         duration_seconds: Math.round(buildTimeline(project).total / (project.speed || 1) / 100) / 10,
         price_inr: priceOf(project.templateId),
         is_free: priceOf(project.templateId) === 0,
+        has_phone: !!phone.current,
         sample_field_count: clean.sample?.length ?? 0,
       });
       setLeft(REDIRECT_S);
@@ -185,7 +213,15 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
   useEffect(() => {
     if (started.current) return;
     started.current = true;
-    create();
+    const known = savedPhone() ? normalizePhone(savedPhone()) : null;
+    if (!ASK_PHONE || known) {
+      phone.current = known;
+      create();
+      return;
+    }
+    setTyped(typingPhone(savedPhone()));
+    setStage({ kind: "phone" });
+    track("link_phone_step", { template_id: project.templateId, action: "shown" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -219,7 +255,42 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
     <div className="backdrop-m golink-back">
       {stage.kind === "done" ? <Confetti /> : null}
       <div className="modal golink" role="dialog" aria-label="Your invite link" aria-live="polite">
-        {stage.kind === "working" ? (
+        {stage.kind === "phone" ? (
+          <form className="gl-phone" onSubmit={submitPhone}>
+            <span className="gl-step">Last step</span>
+            <h3>Your mobile number</h3>
+            <p className="gl-sub">Your wedding link is made the moment you add it.</p>
+            <label className={"gl-tel" + (phoneErr ? " bad" : "")}>
+              <span className="cc" aria-hidden>
+                +91
+              </span>
+              <input
+                type="tel"
+                inputMode="tel"
+                autoComplete="tel-national"
+                placeholder="98765 43210"
+                autoFocus
+                value={typed}
+                onChange={(e) => {
+                  setTyped(typingPhone(e.target.value));
+                  setPhoneErr("");
+                }}
+                aria-label="Your mobile number"
+                aria-invalid={!!phoneErr}
+              />
+            </label>
+            <p className={"gl-note" + (phoneErr ? " bad" : "")}>
+              {phoneErr || "Only to help you with this invite. We never sell or share it."}
+            </p>
+            <button className="btn primary gl-open" type="submit">
+              <span>Get wedding link →</span>
+            </button>
+            <button type="button" className="gl-stay" onClick={cancelPhone}>
+              Back to editing
+            </button>
+            <AgreeNote creating />
+          </form>
+        ) : stage.kind === "working" ? (
           <div className="gl-working">
             <div className="gl-orb" aria-hidden>
               <span className="gl-ring" />
@@ -248,7 +319,7 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
         ) : (
           <div className="gl-done">
             <DrawnCheck />
-            <h3>{stage.updated ? "Your invite is updated! 🎉" : "Your invite is live! 🎉"}</h3>
+            <h3>{stage.updated ? "Your invite is updated! 🎉" : "Your wedding link is ready! 🎉"}</h3>
             <p className="gl-sub">
               {stage.updated ? <>Same link as before: everyone who has it now sees this version. </> : null}
               {stay ? (
@@ -273,7 +344,7 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
               href={"/e/" + stage.token}
               style={{ ["--secs" as any]: REDIRECT_S + "s" }}
             >
-              <span>Open my invite now →</span>
+              <span>Watch my invite now →</span>
             </a>
             <button className="gl-stay" onClick={stay ? onClose : () => setStay(true)}>
               {stay ? "Back to editing" : "Stay in the studio"}

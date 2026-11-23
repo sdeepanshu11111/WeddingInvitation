@@ -4,8 +4,8 @@ import { LEADS, PAYMENTS } from "@/lib/features";
 import { checkoutSignatureValid, confirmPayment } from "@/lib/server/razorpay";
 import { savePaymentLead } from "@/lib/server/leads";
 import { afterPayment } from "@/lib/server/afterPayment";
-import { priceOf } from "@/lib/pricing";
-import { getLiveProject, markPack, markPaid, orderBelongsTo, orderIsPack } from "@/lib/server/share";
+import { priceForLink } from "@/lib/pricing";
+import { getLiveProject, getShare, markPack, markPaid, orderBelongsTo, orderIsPack } from "@/lib/server/share";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     const project = await getLiveProject(name);
     // A wedding pack pays more than this one design costs on purpose: no "REFUND NEEDED" for it (markPaid).
     const pack = await orderIsPack(name, orderId);
-    const fresh = await markPaid(name, { orderId, paymentId, amount: p.amount, paidAt: Date.now() }, pack ? Number.MAX_SAFE_INTEGER : priceOf(project?.templateId ?? ""));
+    const fresh = await markPaid(name, { orderId, paymentId, amount: p.amount, paidAt: Date.now() }, pack ? Number.MAX_SAFE_INTEGER : await linkPrice(name, project?.templateId ?? ""));
     if (pack) await markPack(name, { orderId, paymentId }); // this link now holds the couple's pack (app/api/pay/pack)
     if (LEADS) await savePaymentLead(name, p).catch((e) => console.error("Lead not saved:", e?.message));
     await afterPayment(name, { paymentId, orderId, amountInr: Math.round(p.amount / 100), templateId: project?.templateId ?? "", via: "checkout" }, fresh);
@@ -36,4 +36,10 @@ export async function POST(req: Request) {
   }
   revalidatePath("/e/" + name); // drop the cached watermarked page
   return NextResponse.json({ ok: true });
+}
+
+/** What this link costs (lib/pricing.ts, priceForLink: links made before the flat price keep their old one). */
+async function linkPrice(name: string, templateId: string): Promise<number> {
+  const share = await getShare(name);
+  return priceForLink(templateId, share?.kind === "live" ? share : { createdAt: Date.now(), flat: true });
 }

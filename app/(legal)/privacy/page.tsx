@@ -34,7 +34,7 @@ export default function Privacy() {
           you are editing, this stays in your own browser (saved automatically on your device) and is not sent to us.
         </li>
         <li>
-          <b>Shared invitations</b>: when you tap &ldquo;Get link&rdquo; and create a link, we upload that invitation&rsquo;s content and media to our
+          <b>Shared invitations</b>: when you tap &ldquo;Get wedding link&rdquo; and create a link, we upload that invitation&rsquo;s content and media to our
           servers so your guests can open it. The link name (for example <i>/e/1-aarav-ananya</i>) is part of the web address.
           {LEADS
             ? " We also keep a private record of each link: its address, the design, when it was made and changed, the kind of device it was made on, the site that brought you to us (for example a search engine), and its payment status."
@@ -42,7 +42,9 @@ export default function Privacy() {
         </li>
         {LEADS ? (
           <li>
-            <b>Your WhatsApp number or email</b>: after you create a link, your invitation page (on the device you made it on) lets you leave a WhatsApp number or an email address. It is optional: the link works without it. If you give one, we keep it
+            <b>Your mobile number, and optionally an email</b>: when you tap &ldquo;Get wedding link&rdquo; we ask for your mobile number, and the link is
+            made with it (a number you already gave on that device is used again). Your invitation page (on the device you made it on) also lets you leave
+            a WhatsApp number or an email address, which is optional. We keep them
             privately with the name of that link (it is never part of the invitation your guests see) and use it only to contact you about that
             invitation, for example to help you or to remind you while it still has the watermark. We never sell it or share it for anyone else&rsquo;s
             use. Reply STOP at any time and we will not contact you again.
@@ -178,7 +180,8 @@ export default function Privacy() {
         We use your browser&rsquo;s storage to autosave the invitation you are editing, to remember the invitation links you made on that
         device (a random key, so your invitation page shows you its owner options), to remember the state you picked for designs (and, in a
         cookie, the approximate state your connection comes from; see section 2) and to keep the anonymous analytics ID
-        {LEADS ? " and the WhatsApp number or email you last entered, so you don't have to type it again" : ""}. Google Analytics, and
+        , the mobile number{LEADS ? " or email" : ""} you last entered, so you don't have to type it again (it also fills in the payment form), and how much of the
+        watermark-free preview of each of your links you have watched. Google Analytics, and
         advertising tools such as {META_PIXEL_ID ? "the Meta Pixel and " : ""}Google AdSense, may set cookies. You can clear or block cookies and site data in your browser settings at any time; the editor still works, but
         an unsaved draft on that device will be lost. You can control{" "}
         {META_PIXEL_ID ? (

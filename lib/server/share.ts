@@ -34,7 +34,9 @@ export type Share =
   /** origin: the site the share was created on (e.g. https://x.vercel.app), for the absolute preview-card URL. */
   /** ownerHash: sha256 of the key only the creator's browser got back (see ownerKey below); missing on older links. */
   /** updatedAt: set when the owner republished the invite to this same link; versions the preview card. */
-  | { token: string; kind: "live"; title: string; createdAt: number; updatedAt?: number; card: Card; origin?: string; ownerHash?: string }
+  /** flat: made by the "Get wedding link" release (2026-11-23) or later, so it costs FLAT_PRICE_INR (lib/pricing.ts, priceForLink);
+      a link without it keeps the per-design price it was made with. A republish keeps whatever the link had. */
+  | { token: string; kind: "live"; title: string; createdAt: number; updatedAt?: number; card: Card; origin?: string; ownerHash?: string; flat?: true }
   | { token: string; kind: "video"; title: string; createdAt: number; file: string; vertical: boolean };
 
 export const SHARE_DIR = path.join(EXPORT_DIR, "shares");
@@ -241,6 +243,7 @@ export async function createLiveShare(project: Project, title: string, card: Par
     origin: origin && /^https?:\/\/[\w.-]+(:\d+)?$/.test(origin) ? origin : undefined,
     ownerHash,
     card: cardOf(card, stored),
+    flat: true,
   };
   await store.writeJSON(token + "/share.json", share);
   return share;

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
 import { pageMeta } from "@/lib/seo";
-import { PACK_PRICE_INR, PRICE_RANGE } from "@/lib/pricing";
+import { PRICE_RANGE } from "@/lib/pricing";
 import { LEGAL } from "@/lib/legal";
 
 export const metadata: Metadata = pageMeta("Refund & Cancellation Policy · " + BRAND, `Refunds, cancellations and delivery for the ${BRAND} Premium plan.`, "/refunds");
@@ -15,10 +15,10 @@ export default function Refunds() {
       <p className="legal-meta">Last updated: {LEGAL.updated}</p>
 
       <p>
-        {BRAND} is free to use. The paid items are the <b>Premium plan</b>: a one-time payment ({PRICE_RANGE}, depending on the design) that removes the watermark
-        from one invitation link, and the <b>Wedding pack</b> (₹{PACK_PRICE_INR}, once) that removes it from all of one couple&rsquo;s invitation links made on
-        the same device (see our Terms, section 6). This page explains how cancellations, refunds and delivery work for them; for the pack, &ldquo;your
-        link&rdquo; below means each link it covers.
+        {BRAND} is free to use. The paid item is the <b>Premium plan</b>: a one-time payment ({PRICE_RANGE} per invitation link created from 23 November
+        2026; earlier links keep the price they had) that removes the watermark from one invitation link (see our Terms, section 6). A Wedding pack bought
+        before 23 November 2026 covers all of one couple&rsquo;s links made on the same device. This page explains how cancellations, refunds and
+        delivery work; for a pack, &ldquo;your link&rdquo; below means each link it covers.
       </p>
 
       <h2>Delivery</h2>
@@ -44,7 +44,7 @@ export default function Refunds() {
       </ul>
       <p>
         Once your link is live without the watermark, the service has been delivered in full, so we do not give refunds for a change of mind, a typo
-        in your own invitation, or an event that is postponed or cancelled. You can create a free preview link and check it before you pay.
+        in your own invitation, or an event that is postponed or cancelled. You can watch your invitation without the watermark before you pay, and check it as often as you like with the watermark.
       </p>
 
       <h2>How to ask for a refund</h2>

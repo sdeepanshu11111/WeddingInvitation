@@ -103,7 +103,7 @@ const FUNCTION_COPY: Record<CategoryId, Omit<FunctionCopy, "faqs"> & { faqs?: La
   },
 };
 
-/** Questions every function page answers; `price` is "from ₹X" for that function's designs. */
+/** Questions every function page answers; `priceFrom` null = payments off (no price is named since 2026-11-23). */
 export function functionCopy(c: CategoryId, priceFrom: number | null, label: string): FunctionCopy {
   const base = FUNCTION_COPY[c];
   const lower = label.toLowerCase();
@@ -117,7 +117,7 @@ export function functionCopy(c: CategoryId, priceFrom: number | null, label: str
       a:
         priceFrom === null
           ? "Making the invitation and its link is free."
-          : "Making the invitation and its link is free, with a small watermark. Removing the watermark is a one-time payment from ₹" + priceFrom + ", depending on the design, and the same link turns clean for every guest.",
+          : "Making the invitation and its link is free. You watch your invite without the watermark first; removing the watermark from that link is a one-time payment, and the same link turns clean for every guest.",
     },
     {
       q: "Do guests need an app?",
@@ -147,7 +147,7 @@ export function stateCopy(r: Region, rituals: string, weddingFrom: number | null
         a:
           weddingFrom === null
             ? "Making the invitation and its link is free."
-            : "Making it and its link is free, with a small watermark. Removing the watermark is a one-time payment from ₹" + weddingFrom + " for a wedding design; the functions cost less.",
+            : "Making the invitation and its link is free. You watch your invite without the watermark first; removing the watermark from that link is a one-time payment, and the same link turns clean for every guest.",
       },
       {
         q: "Is there " + r.language + " wording I can copy?",

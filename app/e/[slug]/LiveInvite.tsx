@@ -6,8 +6,7 @@ import { guestOn, type Orientation, type Project } from "@/lib/types";
 import { sceneForField } from "@/lib/fieldScene";
 import { LEADS } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
-import { claimPack, packFor, rememberPack } from "@/lib/pack";
-import { PACK_PRICE_INR, packCovers, priceOf } from "@/lib/pricing";
+import { claimPack, packFor } from "@/lib/pack";
 import { inviteId, startAnalytics, track, isInternal } from "@/lib/analytics";
 import { BRAND } from "@/lib/brand";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
@@ -34,6 +33,30 @@ import { RsvpSheet, RsvpSummary } from "./Rsvp";
    this is decided in the browser. */
 
 type Phase = "cover" | "opening" | "playing" | "paused" | "ended";
+/** How long the cover shows before the invite opens by itself. */
+const AUTO_OPEN_MS = 3200;
+/* The couple's clean look at their new invite (owner, 2026-11-23): PREVIEW_S seconds of playing time without the
+   watermark, on their own device only (guests always get the watermark until it is paid), with a countdown at the top.
+   At 0, or when the invite reaches its end first, the watermark comes on, the invite pauses and the pay sheet opens.
+   Seconds left are kept per link on this device (fp.preview), so a reload doesn't start it over. */
+const PREVIEW_S = 30;
+const PREVIEW_KEY = "fp.preview";
+function previewLeftFor(name: string): number {
+  try {
+    const v = (JSON.parse(localStorage.getItem(PREVIEW_KEY) || "{}") || {})[name];
+    return typeof v === "number" ? Math.max(0, Math.min(PREVIEW_S, v)) : PREVIEW_S;
+  } catch {
+    return 0; // no storage (private mode): no preview, rather than a fresh one on every visit
+  }
+}
+function savePreviewLeft(name: string, left: number) {
+  try {
+    const all = { ...(JSON.parse(localStorage.getItem(PREVIEW_KEY) || "{}") || {}), [name]: left };
+    localStorage.setItem(PREVIEW_KEY, JSON.stringify(Object.fromEntries(Object.entries(all).slice(-100))));
+  } catch {}
+}
+/** The scratch card is off for every invite (see scratchAt). */
+const SCRATCH_OFF: boolean = true;
 
 /** Photos decoded up front, so none appears half-loaded. */
 function decodeImages(project: Project): Promise<unknown> {
@@ -166,6 +189,18 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
   const [o, setO] = useState<Orientation>(project.orientation);
   const [T, setT] = useState(0);
   const [muted, setMuted] = useState(false);
+  // Opened by itself (no tap), the music starts muted, which browsers allow, and in step with the story; the first touch
+  // anywhere (or "Tap for music") turns the sound on. Browsers refuse sound before the visitor has touched the page.
+  const [soundLocked, setSoundLocked] = useState(false);
+  const unlockSound = () => {
+    if (!soundLocked) return;
+    setSoundLocked(false);
+    const a = audio.current;
+    if (a) {
+      a.muted = muted;
+      a.play().catch(() => {});
+    }
+  };
   const audio = useRef<HTMLAudioElement | null>(null);
   const wantMusic = useRef(false);
   const images = useRef<Promise<unknown> | null>(null);
@@ -196,11 +231,15 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
   const held = scratching || moment || quizAsking || rsvpOpen;
   const running = playing && !held;
   const greeting = useGreeting(); // "Dear Sharma ji" from ?to= (browser only, never stored or tracked)
-  const envelope = guestOn(project, "envelope"); // the cover opens like a sealed envelope (Interactive.tsx)
+  // The sealed envelope is off for every invite (owner, 2026-11-23: still felt old-fashioned; the invite now opens by
+  // itself, AUTO_OPEN_MS after the cover shows). The component stays in Interactive.tsx; the studio switch is gone.
+  const envelope = false && guestOn(project, "envelope");
   const watched = useRef(false);
   const [paidHere, setPaidHere] = useState(false); // paid on this page: drop the watermark now, no reload needed
-  const marked = watermark && !paidHere;
   const [ownerKey, setOwnerKey] = useState<string | null>(null); // set: the couple who made this link
+  const [previewLeft, setPreviewLeft] = useState(0); // seconds of the couple's watermark-free preview still to run (PREVIEW_S)
+  const previewing = previewLeft > 0;
+  const marked = watermark && !paidHere && !previewing;
   const [welcome, setWelcome] = useState(false); // they just came from "Get link"
   const [sheet, setSheet] = useState(false);
   const sheetShown = useRef(false);
@@ -217,17 +256,20 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     const fresh = !!key && takeJustCreated(name);
     setOwnerKey(key);
     setWelcome(fresh);
-    // The couple coming BACK to a link that still has the watermark: show their options on the cover, not only after
-    // the invite ends. (Every payment so far was started from this sheet, and half the couples never reach the end.)
-    // Straight after "Get link" they watch it first, as before.
-    const onCover = !!key && watermark && !fresh && !sheetShown.current;
+    // The couple's own unpaid invite: first the watermark-free preview, if this device hasn't used it up.
+    const left = key && name && watermark && price > 0 ? previewLeftFor(name) : 0;
+    setPreviewLeft(left);
+    // The couple coming BACK to a link that still has the watermark, preview used: show their options on the cover,
+    // not only after the invite ends. (Every payment so far was started from this sheet, and half the couples never
+    // reach the end.)
+    const onCover = !!key && watermark && !fresh && left <= 0 && !sheetShown.current;
     if (onCover) {
       sheetShown.current = true;
       setSheet(true);
     }
     startAnalytics("guest_page", { invite_id: name && inviteId(name), template_id: project.templateId, is_watermarked: watermark, is_owner: !!key });
     if (onCover) track("owner_sheet_opened", { trigger: "cover" }); // after startAnalytics: it carries the invite's properties
-  }, [name, project, watermark]);
+  }, [name, project, watermark, price]);
 
   // One more open / one more watch to the end on this link's record (/admin/links): a count, nothing about the
   // visitor. Not the couple's own views, not the owner's test devices, not automated browsers.
@@ -235,10 +277,35 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     if (!name || ownerKey || isInternal() || navigator.webdriver) return;
     fetch("/api/share/" + name + "/seen", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind }), keepalive: true }).catch(() => {});
   };
+  // The preview's clock runs while the invite plays (not on the cover, not while paused or behind a sheet).
+  const endPreview = (reason: "timer" | "end") => {
+    if (!name) return;
+    savePreviewLeft(name, 0);
+    setPreviewLeft(0);
+    track("free_preview_ended", { reason });
+    setPhase((p) => (p === "playing" ? "paused" : p)); // the pay sheet gets their full attention; ▶ carries on after
+    sheetShown.current = true;
+    setSheet(true);
+    track("owner_sheet_opened", { trigger: "preview_end" });
+  };
+  useEffect(() => {
+    if (!previewing || !playing || sheet || !name) return;
+    const id = setTimeout(() => {
+      const left = previewLeft - 1;
+      savePreviewLeft(name, left);
+      if (left <= 0) endPreview("timer");
+      else setPreviewLeft(left);
+    }, 1000);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewing, previewLeft, playing, sheet, name]);
+
   useEffect(() => {
     if (phase !== "ended") return;
+    // The invite ended inside the preview: the watermark and the pay sheet now.
+    if (previewing) endPreview("end");
     // The couple has just watched their invite: now is the moment for the owner sheet (once per visit).
-    if (ownerKey && !sheetShown.current) {
+    else if (ownerKey && !sheetShown.current) {
       sheetShown.current = true;
       setSheet(true);
       track("owner_sheet_opened", { trigger: "end" });
@@ -289,23 +356,27 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     return () => document.removeEventListener("visibilitychange", hide);
   }, []);
 
-  /* ---------- music (synced on play/pause, like the editor) ---------- */
+  /* ---------- music ----------
+     It follows `playing` (the guest's own pause: holding the screen, leaving the tab, the end), NOT `running`: while
+     a tap moment, the quiz or the RSVP sheet holds the story, the music plays on (owner, 2026-11-23: it used to stop
+     at every such moment and jump back when the story went on). It is put back in step with the story only when the
+     guest resumes after a pause or skips a scene (seek). */
   useEffect(() => {
     const a = audio.current;
     if (!a || !music) return;
-    wantMusic.current = running;
-    if (running) {
+    wantMusic.current = playing;
+    if (playing) {
       a.currentTime = (music.offset || 0) + T / speed / 1000;
-      a.muted = muted;
+      a.muted = muted || soundLocked;
       a.play().catch(() => {});
     } else a.pause();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [running]);
+  }, [playing]);
 
   useEffect(() => {
     const a = audio.current;
     if (!a || !music) return;
-    a.muted = muted;
+    a.muted = muted || soundLocked;
     const fade = Math.min(1, (total - T) / speed / 2200, T / speed / 600 + 0.0001);
     a.volume = Math.max(0, Math.min(1, music.volume * fade));
   }, [T, total, speed, music, muted]);
@@ -318,7 +389,8 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     a.play().then(() => !wantMusic.current && a.pause()).catch(() => {});
   };
 
-  const open = async () => {
+  const open = async (auto = false) => {
+    if (auto && music) setSoundLocked(true);
     unlockAudio();
     track("invite_opened", { orientation: o });
     count("open");
@@ -326,16 +398,24 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     const ready = Promise.race([Promise.all([fonts.current!.promise, images.current]), new Promise((r) => setTimeout(r, 6000))]);
     // The envelope opens (seal, flap, card), then the cover fades into the invite: the fade starts only once the
     // invite is ready too, so a slow phone keeps the opened envelope on screen instead of a frozen first frame.
-    const FADE_MS = 450;
+    const FADE_MS = 700;
     await Promise.all([ready, envelope ? new Promise((r) => setTimeout(r, OPEN_MS - FADE_MS)) : null]);
-    if (envelope) {
-      setLeaving(true);
-      await new Promise((r) => setTimeout(r, FADE_MS));
-    }
+    // The cover always dissolves into the invite (it used to cut straight to it without the envelope).
+    setLeaving(true);
+    await new Promise((r) => setTimeout(r, FADE_MS));
     setT(0);
     setPhase("playing");
     setLeaving(false);
   };
+
+  // The invite opens by itself a moment after the cover shows (owner, 2026-11-23: "it should be auto"). Not while the
+  // couple's sheet is open on the cover; it starts over when they close it.
+  useEffect(() => {
+    if (phase !== "cover" || sheet) return;
+    const id = setTimeout(() => open(true), AUTO_OPEN_MS);
+    return () => clearTimeout(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, sheet]);
 
   const toggle = useCallback(() => {
     if (phase === "playing") setPhase("paused");
@@ -376,6 +456,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     setPhase("playing");
   };
   const onDown = (e: React.PointerEvent) => {
+    unlockSound();
     if (phase !== "playing") return;
     const p = { x: e.clientX / window.innerWidth, held: false, timer: setTimeout(() => {
       p.held = true;
@@ -431,7 +512,9 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
   // Scratch to reveal the date: once per visit, a moment into the scene that shows the date (lib/fieldScene.ts), on
   // invites that have a real date (not the template's sample) and keep the extra on.
   const scratchAt = useMemo(() => {
-    if (!guestOn(project, "scratch") || project.sample?.includes("weddingDate") || !project.data.weddingDate) return null;
+    // Off for every invite (owner, 2026-11-23: a full-screen foil right after the date felt unprofessional and annoying).
+    // The component stays in Interactive.tsx; the studio no longer offers the switch.
+    if (SCRATCH_OFF) return null;
     const i = sceneForField("weddingDate", tl.scenes);
     if (i < 0) return null;
     return { from: tl.slots[i].start + Math.min(1600, tl.scenes[i].duration * 0.35), to: tl.slots[i].start + tl.scenes[i].duration };
@@ -635,7 +718,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
           answer={quiz.answer}
           counts={!ownerKey && !isInternal()}
           onDone={() => {
-            seek(quizAt.reveal);
+            setT(quizAt.reveal); // the story only: the music plays on through the quiz, it never jumps
             setQuizAsking(false);
           }}
         />
@@ -645,10 +728,22 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
       {hint && phase === "playing" && !held ? <div className="tap-hint">Tap to skip ›&nbsp; · &nbsp;Hold to pause</div> : null}
 
       {marked ? <Watermark /> : null}
+      {previewing && phase !== "cover" ? (
+        <div className="preview-pill" role="timer" aria-live="off">
+          <span className="pp-ring" style={{ ["--pp" as any]: previewLeft / PREVIEW_S }} aria-hidden />
+          No watermark for <b>{previewLeft}s</b>
+        </div>
+      ) : null}
 
       {music && (phase === "playing" || phase === "paused") ? (
-        <button aria-label={muted ? "Unmute" : "Mute"} onClick={() => setMuted((m) => !m)} style={{ ...round(42), position: "absolute", top: 24, right: 14, fontSize: 18 }}>
-          {muted ? "🔇" : "🔊"}
+        <button aria-label={muted ? "Unmute" : "Mute"} onClick={() => (soundLocked ? unlockSound() : setMuted((m) => !m))} style={{ ...round(42), position: "absolute", top: 24, right: 14, fontSize: 18 }}>
+          {muted || soundLocked ? "🔇" : "🔊"}
+        </button>
+      ) : null}
+      {/* Opened by itself: the music is playing silently until the guest touches the page (browsers' rule). */}
+      {music && soundLocked && (phase === "playing" || phase === "paused") ? (
+        <button className="sound-pill" onClick={unlockSound}>
+          🔊 Tap for music
         </button>
       ) : null}
 
@@ -666,7 +761,8 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
               find the maker. Paid links stay clean. The utm tags attribute the visit (lib/analytics keeps them); no invite details go along. */}
           {(marked || free) && !ownerKey ? (
             <a className="end-make" href={"/templates/" + project.templateId + "?utm_source=invite&utm_medium=guest_page"} onClick={() => track("guest_action_clicked", { action: "make_own" })}>
-              Make your own invitation →
+              <b>Make an invitation like this</b>
+              <span>Free preview · ready in 2 minutes</span>
             </a>
           ) : null}
           {/* Paid links (owner, 2026-11-17): one quiet credit line after the invite has ended, never on the invite itself
@@ -683,8 +779,8 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
       {/* cover: rendered on the server, so the page shows instantly */}
       {phase === "cover" || phase === "opening" ? (
         <div
-          onClick={phase === "cover" ? open : undefined}
-          className={leaving ? "cover-leaving" : undefined}
+          onClick={phase === "cover" ? () => open() : undefined}
+          className={(envelope && phase === "opening" ? "cover-opening" : "") + (leaving ? " cover-leaving" : "") || undefined}
           style={{
             position: "absolute",
             inset: 0,
@@ -735,12 +831,16 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
               </div>
             </>
           ) : (
+            // Opens by itself after AUTO_OPEN_MS (the fill across the button shows the time left); a tap opens it now,
+            // with sound. Re-keyed when the couple's sheet closes, so the countdown starts over.
             <button
-              className="btn primary open-btn"
-              style={{ position: "relative", marginTop: 16, padding: "14px 34px", fontSize: 15, borderRadius: 99, background: theme.accent, color: theme.bg2 }}
+              key={sheet ? "wait" : "auto"}
+              className={"btn primary open-btn cover-in d3" + (phase === "cover" && !sheet ? " counting" : "")}
+              style={{ position: "relative", marginTop: 16, padding: "14px 34px", fontSize: 15, borderRadius: 99, background: theme.accent, color: theme.bg2, overflow: "hidden", ["--open-ms" as any]: AUTO_OPEN_MS + "ms" }}
               disabled={phase === "opening"}
             >
-              {phase === "opening" ? "Opening..." : "✉  Open invitation"}
+              <span className="open-fill" aria-hidden />
+              <span style={{ position: "relative" }}>{phase === "opening" ? "Opening…" : "Open invitation"}</span>
             </button>
           )}
           {music ? (
@@ -754,7 +854,11 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
       {/* The couple's own visit: a note on the cover, their bar, their sheet. Guests get the guest bar. */}
       {ownerKey && (phase === "cover" || phase === "opening") ? (
         <div className={"owner-note" + (welcome ? " welcome" : "")}>
-          {welcome ? (
+          {previewing ? (
+            <>
+              <b>{welcome ? "🎉 Your wedding link is ready!" : "Your invite"}</b> Watch it without the watermark for {previewLeft} seconds.
+            </>
+          ) : welcome ? (
             <>
               <b>🎉 Your invite is live!</b> This is exactly what your guests will see. Tap to watch it.
             </>
@@ -767,16 +871,19 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
       ) : null}
       {ownerKey && name ? (
         <>
-          <OwnerBar
-            title={title}
-            name={name}
-            watermark={marked}
-            price={price}
-            onOpen={() => {
-              track("owner_sheet_opened", { trigger: "bar" });
-              setSheet(true);
-            }}
-          />
+          {/* Hidden during the preview: nothing to pay for yet, nothing in the way of watching. */}
+          {previewing ? null : (
+            <OwnerBar
+              title={title}
+              name={name}
+              watermark={marked}
+              price={price}
+              onOpen={() => {
+                track("owner_sheet_opened", { trigger: "bar" });
+                setSheet(true);
+              }}
+            />
+          )}
           {sheet ? (
             <OwnerSheet title={title} name={name} project={project} ownerKey={ownerKey} watermark={marked} price={price} onPaid={() => setPaidHere(true)} onClose={() => setSheet(false)} />
           ) : null}
@@ -845,6 +952,7 @@ function OwnerSheet({
 }) {
   const [pay, setPay] = useState<PayState>("idle");
   const [copied, setCopied] = useState(false);
+  const [more, setMore] = useState(false); // "Not now": the rest of the sheet while the invite still has the watermark
   const [canShare, setCanShare] = useState(false);
   useEffect(() => setCanShare(!!navigator.share), []);
   const link = inviteUrl(name);
@@ -862,25 +970,11 @@ function OwnerSheet({
     }
   };
 
-  // Wedding pack (lib/pricing.ts): offered when the pack covers this design and the couple has none on this phone yet.
-  const [packed, setPacked] = useState(false); // a pack covers this couple (bought now or before)
-  const [cleared, setCleared] = useState(0); // their other invites the pack just cleared
+  // A wedding pack bought before 2026-11-23 (lib/pack.ts) still covers this couple's invites; it is no longer sold
+  // (one price per invite, nothing else on the pay sheet).
+  const [packed, setPacked] = useState(false);
+  const cleared = 0;
   useEffect(() => setPacked(!!packFor(name)), [name]);
-  const offerPack = packCovers(priceOf(project.templateId)) && !packed;
-  const buyPack = async () => {
-    setPay("paying-pack");
-    try {
-      if ((await payToRemoveWatermark(name, title, PACK_PRICE_INR, true)) === "paid") {
-        rememberPack(name);
-        setPacked(true);
-        onPaid();
-        setPay("paid");
-        setCleared((await claimPack(name)).length); // the invites they already made for this couple on this phone
-      } else setPay("idle");
-    } catch (e: any) {
-      setPay({ error: e?.message || String(e) });
-    }
-  };
 
   const copy = async () => {
     track("invite_shared", { channel: "copy", invite_id: inviteId(name) });
@@ -902,60 +996,35 @@ function OwnerSheet({
         </button>
 
         {watermark ? (
-          <section className="os-pay">
-            <h3>Remove the watermark before you send it</h3>
-            <p>
-              Guests will see &ldquo;{BRAND.toUpperCase()} · PREVIEW&rdquo; across your invite. Remove it once and this same link turns clean for
-              everyone.
+          // Paying, with nothing else in the way (owner, 2026-11-23: "simpler so they easily pay, without distraction"):
+          // one message, one button, the payment logos. The pack is one line; sharing, RSVP counts, personal links, the
+          // rating and the contact box wait behind "Not now" (`more`) and come back once the invite is paid.
+          <section className="os-pay simple">
+            <span className="os-kicker">Your free preview is over</span>
+            <h3>Send it without the watermark</h3>
+            <p className="os-sub">
+              Until then guests see &ldquo;{BRAND.toUpperCase()} · PREVIEW&rdquo; across it. Pay once and this same link turns clean for everyone in
+              seconds.
             </p>
-            <div className="os-price">
-              <b>₹{price}</b>
-              <span>one-time · no subscription</span>
-            </div>
-            <ul className="os-ticks">
-              <li>Same link, nothing to resend</li>
-              <li>Clean for every guest</li>
-              <li>Done in seconds</li>
-            </ul>
-            <button className="btn primary os-cta" onClick={removeWatermark} disabled={pay === "paying" || pay === "paying-pack"}>
+            <button className="btn primary os-cta big" onClick={removeWatermark} disabled={pay === "paying" || pay === "paying-pack"}>
               {pay === "paying" ? (
                 <>
                   <span className="spin" aria-hidden /> Waiting for payment…
                 </>
               ) : (
                 <>
-                  <LockIcon /> Remove watermark · ₹{price}
+                  <LockIcon /> Pay ₹{price} · Remove watermark
                 </>
               )}
             </button>
-            {offerPack ? (
-              <div className="os-pack">
-                <div className="os-or">
-                  <span>or, for all your functions</span>
-                </div>
-                <div className="os-pack-head">
-                  <b>Wedding pack</b>
-                  <span>₹{PACK_PRICE_INR} once</span>
-                </div>
-                <p>
-                  This invite and every other one you make for {title}: engagement, haldi, mehendi, sangeet, wedding and reception. No
-                  watermark on any of them.
-                </p>
-                <button className="btn os-pack-cta" onClick={buyPack} disabled={pay === "paying" || pay === "paying-pack"}>
-                  {pay === "paying-pack" ? (
-                    <>
-                      <span className="spin" aria-hidden /> Waiting for payment…
-                    </>
-                  ) : (
-                    <>Get the wedding pack · ₹{PACK_PRICE_INR}</>
-                  )}
-                </button>
-                <small>For invites made on this phone with the same names. Shaadi Utsav and Cinematic Reel need only the difference.</small>
-              </div>
-            ) : null}
-            {typeof pay === "object" ? <p className="os-err">{pay.error}</p> : null}
             <TrustRow />
+            {typeof pay === "object" ? <p className="os-err">{pay.error}</p> : null}
             <AgreeNote paying />
+            {!more ? (
+              <button className="os-later" onClick={() => setMore(true)}>
+                Not now, share it with the watermark
+              </button>
+            ) : null}
           </section>
         ) : (
           <section className="os-done">
@@ -974,8 +1043,10 @@ function OwnerSheet({
           </section>
         )}
 
+        {!watermark || more ? (
+        <>
         <section className="os-share">
-          <span className="os-label">{watermark ? "Or share it as it is" : "Your link"}</span>
+          <span className="os-label">{watermark ? "Share it as it is" : "Your link"}</span>
           <div className={"os-link" + (copied ? " copied" : "")}>
             <span className="url" title={link}>
               {link.replace(/^https?:\/\/(www\.)?/, "")}
@@ -1007,6 +1078,8 @@ function OwnerSheet({
             records whether the link had paid, and the hero shows "Paid customer" or "Made their invite here" accordingly. */}
         {LEADS ? <OwnerReview name={name} ownerKey={ownerKey} title={title} /> : null}
         {LEADS ? <OwnerContact name={name} ownerKey={ownerKey} watermark={watermark} /> : null}
+        </>
+        ) : null}
       </div>
     </div>
   );
@@ -1034,7 +1107,7 @@ function OwnerNext({ project, packed }: { project: Project; packed: boolean }) {
           >
             <span className="os-next-thumb">{x.template.thumb(x.template.palettes[0])}</span>
             <b>{x.label}</b>
-            <small>{!x.price ? "Free" : packed && packCovers(x.price) ? "In your pack" : "₹" + x.price}</small>
+            <small>{packed ? "In your pack" : "Make it"}</small>
           </a>
         ))}
       </div>
@@ -1262,7 +1335,7 @@ function GuestBar({ title, name, watermark, price, onPaid }: { title: string; na
           </div>
           <button className="btn primary sm" onClick={pay} disabled={busy}>
             {busy ? <span className="spin" aria-hidden /> : null}
-            Pay ₹{price}
+            Remove
           </button>
         </div>
       ) : (

@@ -11,8 +11,6 @@ import { LETTERS } from "@/lib/quiz";
 type Props = { project: Project; update: (patch: Partial<Project>) => void };
 
 const EXTRAS = [
-  ["envelope", "Sealed envelope", "Guests tap a wax seal to open the invite"],
-  ["scratch", "Scratch to reveal the date", "Guests scratch gold foil off the date"],
   ["moment", "Tap to shower the couple", "On your names, guests tap to shower flowers (haldi, confetti… by function)"],
   ["actions", "Buttons on the scenes", "Add to calendar on the date, Directions on the venue, RSVP at the end"],
   ["blessings", "Send blessings", "A button at the end that showers petals and counts blessings"],

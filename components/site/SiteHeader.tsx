@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import { CATEGORIES } from "@/lib/catalog";
 import { PAYMENTS } from "@/lib/features";
-import { PRICE_MIN } from "@/lib/pricing";
 
 /** The Mangalam lockup (public/brand/mangalam-logo.png, 546×290, transparent). Its height comes from CSS. */
 export function Logo() {
@@ -56,7 +55,7 @@ export function SiteHeader() {
         <span className="promo-long">
           {PAYMENTS ? (
             <>
-              Preview your invitation free with your own names. Remove the watermark from <b>₹{PRICE_MIN}</b>, one time.
+              Make your invitation free with your own names, and <b>watch it before you pay</b>.
             </>
           ) : (
             <>Create your invitation free and share it on WhatsApp in minutes.</>
@@ -65,7 +64,7 @@ export function SiteHeader() {
         <span className="promo-short">
           {PAYMENTS ? (
             <>
-              Preview free · remove the watermark from <b>₹{PRICE_MIN}</b>
+              Make it free · <b>watch it before you pay</b>
             </>
           ) : (
             <>Create free · share on WhatsApp</>
@@ -103,7 +102,7 @@ export function SiteHeader() {
             </div>
           </div>
           <Link href="/#how">How it works</Link>
-          <Link href="/#pricing">Pricing</Link>
+          <Link href="/#pricing">Free preview</Link>
           <Link href="/#faq">FAQ</Link>
         </nav>
         <div className="head-end">
@@ -129,7 +128,7 @@ export function SiteHeader() {
           </Link>
           <div className="m-sep" />
           <Link href="/#how">How it works</Link>
-          <Link href="/#pricing">Pricing</Link>
+          <Link href="/#pricing">Free preview</Link>
           <Link href="/#faq">FAQ</Link>
           <Link href="/create">Open studio</Link>
           <Link href="/contact">Contact</Link>

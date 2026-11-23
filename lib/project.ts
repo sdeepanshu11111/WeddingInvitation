@@ -58,10 +58,26 @@ export function defaultProject(templateId: string, prev?: Project): Project {
   };
 }
 
+/** Extra time on a scene that shows the couple's photo, when they added one. */
+const PHOTO_EXTRA_MS = 2500;
+/** Scene ids that carry the couple's photo across the designs (photo, portrait, couple, names, hero, spread). */
+const PHOTO_SCENE = /^(photo|portrait|couple|names|hero|spread)$/;
+/** The couple uploaded a photo of their own (an image field or a gallery). The sample photo in previews counts too:
+    previews then show the same pacing the real invite will have. */
+function hasOwnPhoto(d: Record<string, any>): boolean {
+  const isImg = (v: any) => v && typeof v === "object" && typeof v.src === "string" && v.src && (v.kind ?? "image") === "image";
+  return Object.values(d ?? {}).some((v) => (Array.isArray(v) ? v.some(isImg) : isImg(v)));
+}
+
 export function buildTimeline(project: Project) {
   const template = getTemplate(project.templateId);
   const theme = makeTheme(template, project.paletteId);
-  const scenes: Scene[] = [...template.build(project.data, project.orientation, theme)];
+  // The couple's own photo stays on screen longer (owner, 2026-11-23: it went by too fast, about 3.5 s clear): every
+  // scene that shows it gets PHOTO_EXTRA_MS, and the Ken Burns pan, which runs over the scene's duration, slows with it.
+  const withPhoto = hasOwnPhoto(project.data);
+  const scenes: Scene[] = template
+    .build(project.data, project.orientation, theme)
+    .map((s) => (withPhoto && PHOTO_SCENE.test(s.id) ? { ...s, duration: s.duration + PHOTO_EXTRA_MS } : s));
   // The couple's quiz (lib/quiz.tsx) goes just before the closing scene.
   const quiz = quizOf(project.quiz);
   if (quiz) scenes.splice(Math.max(1, scenes.length - 1), 0, quizScene(quiz, project.orientation === "vertical", theme));
