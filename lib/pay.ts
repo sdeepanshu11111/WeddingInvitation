@@ -3,7 +3,7 @@
 
 import { BRAND } from "./brand";
 import { deviceId, inviteId, track } from "./analytics";
-import { savedEmail, savedPhone } from "./contact";
+import { rememberContact, savedEmail, savedPhone } from "./contact";
 
 let checkoutScript: Promise<void> | null = null;
 
@@ -27,13 +27,13 @@ function loadCheckout(): Promise<void> {
  * Opens Checkout for removing the watermark from /e/<name>.
  * Resolves "paid" once the server has confirmed the payment, "cancelled" if the buyer closed Checkout.
  */
-export async function payToRemoveWatermark(name: string, title: string, priceInr: number, pack = false): Promise<"paid" | "cancelled"> {
+export async function payToRemoveWatermark(name: string, title: string, priceInr: number, pack = false, ownerKey?: string | null): Promise<"paid" | "cancelled"> {
   const invite_id = inviteId(name);
   // priceInr is what the page showed; the amount actually charged is the server's (app/api/pay/order).
   // pack: the wedding pack (lib/pricing.ts): this invite now, the couple's others from it (lib/pack.ts).
   track("payment_started", { invite_id, amount_inr: priceInr });
   try {
-    const r = await checkout(name, title, invite_id, pack);
+    const r = await checkout(name, title, invite_id, pack, ownerKey ?? null);
     if (r === "cancelled") track("payment_cancelled", { invite_id });
     return r;
   } catch (e) {
@@ -42,16 +42,23 @@ export async function payToRemoveWatermark(name: string, title: string, priceInr
   }
 }
 
-async function checkout(name: string, title: string, invite_id: string, pack: boolean): Promise<"paid" | "cancelled"> {
+async function checkout(name: string, title: string, invite_id: string, pack: boolean, ownerKey: string | null): Promise<"paid" | "cancelled"> {
   // device: this browser's anonymous analytics id, so the server's own "payment_confirmed" lands on the same visitor
   // even if this tab is gone by then (a UPI app switch can close it). Null when analytics is off or blocked.
   const device = await deviceId();
-  const res = await fetch("/api/pay/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, device, pack }) });
+  // The number given at Get wedding link is saved on this device (lib/contact.ts) and fills Checkout's phone field. If it
+  // is missing, the couple's owner key asks the server for the one stored with their link (app/api/pay/order).
+  const phone = savedPhone();
+  const key = !phone && ownerKey ? ownerKey : undefined;
+  const res = await fetch("/api/pay/order", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, device, pack, key }) });
   const order = await res.json();
   if (!res.ok) throw new Error(order.error || "Could not start the payment");
   // Nothing due: this link is clean already. For a pack that means nothing was bought, so say so instead of "paid".
   if (order.paid && pack) throw new Error("This invite is already paid. Get the pack from one of your other invites.");
   if (order.paid) return "paid";
+  const contact = phone || order.prefill?.contact || "";
+  const email = savedEmail() || order.prefill?.email || "";
+  if (!phone && order.prefill) rememberContact(order.prefill.contact ?? null, order.prefill.email ?? null); // next time from the device
   await loadCheckout();
   return new Promise((resolve, reject) => {
     const rzp = new (window as any).Razorpay({
@@ -62,8 +69,8 @@ async function checkout(name: string, title: string, invite_id: string, pack: bo
       name: BRAND,
       description: (pack ? "Wedding pack (every invite, no watermark): " : "Premium invite link (no watermark): ") + title,
       theme: { color: "#d9b77c" },
-      // What they gave in the Share step on this device: less to type.
-      prefill: { contact: savedPhone() || undefined, email: savedEmail() || undefined },
+      // The mobile number they gave at Get wedding link (and an email if they left one): nothing to type again.
+      prefill: { contact: contact || undefined, email: email || undefined },
       handler: async (r: { razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }) => {
         try {
           await verify({ name, orderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature });

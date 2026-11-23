@@ -4,7 +4,7 @@ import type { Collection } from "mongodb";
 import type { Project } from "../types";
 import { LEADS } from "../features";
 import { inviteId } from "../inviteId";
-import { priceOf } from "../pricing";
+import { priceForLink, priceOf } from "../pricing";
 import { SITE_URL } from "../site";
 import { mongoDb } from "./db";
 import { EXPORT_DIR } from "./paths";
@@ -38,7 +38,9 @@ export type LinkRecord = {
   template_id: string;
   palette_id: string;
   orientation: string;
-  price_inr: number; // the design's price when last published; 0 = a free design
+  price_inr: number; // what this link costs to clear (priceForLink): ₹99 for flat links; 0 = a free design
+  flat: boolean; // made by the flat-price release (2026-11-23): ₹99 whatever the design; false = older per-design price
+  has_phone: boolean; // the couple gave a mobile number at "Get wedding link" (the number itself is only in leads)
   has_music: boolean;
   photo_count: number;
   has_video: boolean;
@@ -64,7 +66,19 @@ export type LinkRecord = {
   quiz_total: number;
   rsvp: RsvpCounts; // RSVP replies sent through the invite (lib/rsvp.ts): counts only, never who
   last_opened_at: string | null;
+  /* The couple's own side (POST /api/share/<name>/owner, owner key required; recordOwnerEvent): */
+  owner_visits: number; // times the couple opened their own invite
+  last_owner_visit_at: string | null;
+  preview_ended_at: string | null; // their 30 s watermark-free preview ended (first time)
+  preview_end_reason: "timer" | "end" | null; // 30 s ran out, or the invite reached its end first
+  paysheet_opens: number; // times the pay sheet ("Pay ₹99 · Remove watermark") came up
+  last_paysheet_at: string | null;
+  pay_later: number; // times they tapped "Not now" on it
 };
+
+/** What the couple did on their own invite page (POST /api/share/<name>/owner). */
+export type OwnerEvent = "visit" | "preview_end" | "paysheet" | "pay_later";
+export const isOwnerEvent = (v: unknown): v is OwnerEvent => v === "visit" || v === "preview_end" || v === "paysheet" || v === "pay_later";
 
 /** RSVP replies on a link: how many said yes / maybe / no, and how many people the "yes" replies bring. A guest who
     changes their answer moves their count (one reply per device), so these stay close to the real numbers, but
@@ -75,8 +89,8 @@ type RsvpKind = (typeof RSVP_KINDS)[number];
 export const isRsvpKind = (v: unknown): v is RsvpKind => RSVP_KINDS.includes(v as RsvpKind);
 
 /** The facts of a link that come from its project: what was published. The project is whatever the browser sent,
-    so everything is coerced and cut to size. */
-export function linkFacts(project: Project, title: string, url: string) {
+    so everything is coerced and cut to size. `share` (its createdAt and flat marker) prices it as the order will. */
+export function linkFacts(project: Project, title: string, url: string, share?: { createdAt: number; flat?: boolean }) {
   const media = Object.values(project?.data ?? {})
     .flat()
     .filter((v: any) => v && typeof v === "object" && typeof v.src === "string") as { kind?: string }[];
@@ -87,7 +101,8 @@ export function linkFacts(project: Project, title: string, url: string) {
     template_id: templateId,
     palette_id: String(project?.paletteId ?? "").slice(0, 40),
     orientation: project?.orientation === "horizontal" ? "horizontal" : "vertical",
-    price_inr: priceOf(templateId),
+    price_inr: share ? priceForLink(templateId, share) : priceOf(templateId),
+    flat: share ? !!share.flat : true,
     has_music: !!project?.music,
     photo_count: media.filter((m) => m.kind === "image").length,
     has_video: media.some((m) => m.kind === "video"),
@@ -127,8 +142,16 @@ async function col() {
 
 const FILE = path.join(EXPORT_DIR, "links.json");
 const readDisk = async (): Promise<Record<string, Record<string, any>>> => JSON.parse(await fs.readFile(FILE, "utf8").catch(() => "{}"));
-/** Local development: read, change one record, write back. `create: false` leaves an unknown link alone. */
-async function editDisk(link: string, fn: (rec: Record<string, any>, now: string) => void, create = true) {
+/** Local development: read, change one record, write back. `create: false` leaves an unknown link alone. One edit at a
+    time (diskQueue): the couple's page sends events that arrive together (preview end + pay sheet), and two overlapping
+    read-modify-writes lost one and left a broken file. */
+let diskQueue: Promise<unknown> = Promise.resolve();
+function editDisk(link: string, fn: (rec: Record<string, any>, now: string) => void, create = true): Promise<void> {
+  const run = diskQueue.then(() => editDiskNow(link, fn, create));
+  diskQueue = run.catch(() => {});
+  return run;
+}
+async function editDiskNow(link: string, fn: (rec: Record<string, any>, now: string) => void, create: boolean) {
   const all = await readDisk();
   const now = new Date().toISOString();
   if (!all[link]) {
@@ -175,6 +198,15 @@ const normalize = (link: string, d: Record<string, any>): LinkRecord => ({
   quiz_total: d.quiz_total ?? 0,
   rsvp: rsvpOf(d),
   last_opened_at: iso(d.last_opened_at),
+  flat: !!d.flat,
+  has_phone: !!d.has_phone,
+  owner_visits: d.owner_visits ?? 0,
+  last_owner_visit_at: iso(d.last_owner_visit_at),
+  preview_ended_at: iso(d.preview_ended_at),
+  preview_end_reason: d.preview_end_reason === "timer" || d.preview_end_reason === "end" ? d.preview_end_reason : null,
+  paysheet_opens: d.paysheet_opens ?? 0,
+  last_paysheet_at: iso(d.last_paysheet_at),
+  pay_later: d.pay_later ?? 0,
 });
 
 /* ---- writes (each one is called inside a .catch by its API route) ---- */
@@ -279,6 +311,39 @@ export async function recordGuestEvent(link: string, kind: "open" | "watched" | 
           r.last_opened_at = now;
         } else if (kind === "watched") r.watched = (r.watched ?? 0) + 1;
         else r.blessings = (r.blessings ?? 0) + 1;
+      },
+      false,
+    );
+  }
+}
+
+/** The couple did something on their own invite (the API checked their owner key): opened it, their watermark-free
+    preview ended, the pay sheet came up, or they tapped "Not now" on it. Counts and times only; never creates a
+    record. preview_ended_at keeps the first time ($min), and its reason is the first one too. */
+export async function recordOwnerEvent(link: string, kind: OwnerEvent, reason?: "timer" | "end") {
+  if (!/^[\w-]{3,64}$/.test(link)) return;
+  if (LEADS === "mongo") {
+    const now = new Date();
+    const c = await col();
+    if (kind === "visit") await c.updateOne({ _id: link }, { $inc: { owner_visits: 1 }, $set: { last_owner_visit_at: now } });
+    else if (kind === "paysheet") await c.updateOne({ _id: link }, { $inc: { paysheet_opens: 1 }, $set: { last_paysheet_at: now } });
+    else if (kind === "pay_later") await c.updateOne({ _id: link }, { $inc: { pay_later: 1 } });
+    else await c.updateOne({ _id: link, preview_ended_at: { $exists: false } }, { $set: { preview_ended_at: now, preview_end_reason: reason ?? "timer" } });
+  } else if (LEADS === "disk") {
+    await editDisk(
+      link,
+      (d, now) => {
+        if (kind === "visit") {
+          d.owner_visits = (d.owner_visits ?? 0) + 1;
+          d.last_owner_visit_at = now;
+        } else if (kind === "paysheet") {
+          d.paysheet_opens = (d.paysheet_opens ?? 0) + 1;
+          d.last_paysheet_at = now;
+        } else if (kind === "pay_later") d.pay_later = (d.pay_later ?? 0) + 1;
+        else if (!d.preview_ended_at) {
+          d.preview_ended_at = now;
+          d.preview_end_reason = reason ?? "timer";
+        }
       },
       false,
     );
@@ -410,7 +475,7 @@ export async function importLinks(batch = 24): Promise<{ imported: number; faile
     const rupees = paid ? paid.covers ?? Math.round(paid.amount / 100) : 0;
     const paidAt = paid ? new Date(paid.paidAt) : null;
     await put(link, {
-      ...linkFacts(project, share.title, (share.origin ?? SITE_URL) + "/e/" + link),
+      ...linkFacts(project, share.title, (share.origin ?? SITE_URL) + "/e/" + link, share),
       invite_id: inviteId(link),
       imported: true,
       created_at: new Date(share.createdAt),

@@ -163,6 +163,15 @@ export async function savePaymentLead(link: string, p: { contact?: string | null
     });
 }
 
+/** The number and email kept for one link (the Get-link number first, then what the payment form had), or nulls.
+    Only for the couple's own browser: the caller checks the owner key (app/api/pay/order, Checkout prefill). */
+export async function leadContact(link: string): Promise<{ phone: string | null; email: string | null }> {
+  let l: { phone?: string | null; email?: string | null; pay_phone?: string | null; pay_email?: string | null } | null | undefined = null;
+  if (LEADS === "mongo") l = await (await mongo()).findOne({ _id: link }, { projection: { phone: 1, email: 1, pay_phone: 1, pay_email: 1 } });
+  else if (LEADS === "disk") l = (await readFile())[link];
+  return { phone: l?.phone ?? l?.pay_phone ?? null, email: l?.email ?? l?.pay_email ?? null };
+}
+
 /** Newest first. */
 export async function listLeads(): Promise<Lead[]> {
   if (LEADS === "mongo") return (await (await mongo()).find().sort({ created_at: -1 }).limit(2000).toArray()).map(fromDoc);

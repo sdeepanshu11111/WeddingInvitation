@@ -212,8 +212,8 @@ export default function Editor() {
     setPlaying(true);
   };
 
-  const getLink = () => {
-    if (project) track("share_dialog_opened", { template_id: project.templateId });
+  const getLink = (from: "header" | "steps" | "form" | "tab") => {
+    if (project) track("share_dialog_opened", { template_id: project.templateId, from });
     setMenu(false);
     setPlaying(false);
     setSharing(true);
@@ -302,7 +302,7 @@ export default function Editor() {
             <b>02</b> Details
           </li>
           <li>
-            <button onClick={openShare}>
+            <button onClick={() => openShare("steps")}>
               <b>03</b> Get wedding link
             </button>
           </li>
@@ -326,7 +326,7 @@ export default function Editor() {
         </label>
         {VIDEO_EXPORT ? (
           <>
-            <button className="btn desk-only" onClick={openShare} title="A link that plays the invitation in your guests' browser">
+            <button className="btn desk-only" onClick={() => openShare("header")} title="A link that plays the invitation in your guests' browser">
               Get wedding link
             </button>
             <button className="btn primary desk-only" onClick={openExport}>
@@ -334,7 +334,7 @@ export default function Editor() {
             </button>
           </>
         ) : (
-          <button className="btn primary desk-only" onClick={openShare} title="A link that plays the invitation in your guests' browser">
+          <button className="btn primary desk-only" onClick={() => openShare("header")} title="A link that plays the invitation in your guests' browser">
             Get wedding link
           </button>
         )}
@@ -531,7 +531,7 @@ export default function Editor() {
         </details>
         {/* The end of the form, on every screen: one tap makes the link (components/editor/ShareDialog.tsx, GetLink). */}
         <div className="next-cta get-cta">
-          <button className="btn primary" onClick={openShare}>
+          <button className="btn primary" onClick={() => openShare("form")}>
             Get wedding link →
           </button>
           <AgreeNote creating />
@@ -554,7 +554,7 @@ export default function Editor() {
             {label}
           </button>
         ))}
-        <button className="mtab share" onClick={openShare}>
+        <button className="mtab share" onClick={() => openShare("tab")}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
           </svg>

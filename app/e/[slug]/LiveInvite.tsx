@@ -49,6 +49,16 @@ function previewLeftFor(name: string): number {
     return 0; // no storage (private mode): no preview, rather than a fresh one on every visit
   }
 }
+/** The couple's own actions, onto their link's record for /admin/links (app/api/share/[token]/owner; owner key
+    required). Counts and times only; best effort, never in the way. */
+function ownerEvent(name: string, key: string, kind: "visit" | "preview_end" | "paysheet" | "pay_later", reason?: "timer" | "end") {
+  fetch("/api/share/" + name + "/owner", {
+    method: "POST",
+    headers: { "Content-Type": "application/json", "x-owner-key": key },
+    body: JSON.stringify(reason ? { kind, reason } : { kind }),
+    keepalive: true,
+  }).catch(() => {});
+}
 function savePreviewLeft(name: string, left: number) {
   try {
     const all = { ...(JSON.parse(localStorage.getItem(PREVIEW_KEY) || "{}") || {}), [name]: left };
@@ -269,7 +279,27 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     }
     startAnalytics("guest_page", { invite_id: name && inviteId(name), template_id: project.templateId, is_watermarked: watermark, is_owner: !!key });
     if (onCover) track("owner_sheet_opened", { trigger: "cover" }); // after startAnalytics: it carries the invite's properties
+    if (key && name && !visited.current) {
+      visited.current = true;
+      ownerEvent(name, key, "visit");
+    }
   }, [name, project, watermark, price]);
+  const visited = useRef(false);
+
+  // The pay sheet came up on the couple's unpaid invite (any trigger): one more on their link's record.
+  useEffect(() => {
+    if (sheet && marked && ownerKey && name) ownerEvent(name, ownerKey, "paysheet");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sheet]);
+
+  // The preview started playing (once per visit), for the funnel link created → preview started → ended → paid.
+  const previewStarted = useRef(false);
+  useEffect(() => {
+    if (!previewing || !playing || previewStarted.current) return;
+    previewStarted.current = true;
+    track("free_preview_started", { seconds_left: previewLeft });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [previewing, playing]);
 
   // One more open / one more watch to the end on this link's record (/admin/links): a count, nothing about the
   // visitor. Not the couple's own views, not the owner's test devices, not automated browsers.
@@ -282,7 +312,9 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     if (!name) return;
     savePreviewLeft(name, 0);
     setPreviewLeft(0);
-    track("free_preview_ended", { reason });
+    // watched_seconds: of this visit's preview (a reload carries on where it stopped, fp.preview)
+    track("free_preview_ended", { reason, watched_seconds: reason === "timer" ? PREVIEW_S : PREVIEW_S - previewLeft });
+    if (ownerKey) ownerEvent(name, ownerKey, "preview_end", reason);
     setPhase((p) => (p === "playing" ? "paused" : p)); // the pay sheet gets their full attention; ▶ carries on after
     sheetShown.current = true;
     setSheet(true);
@@ -956,12 +988,16 @@ function OwnerSheet({
   const [canShare, setCanShare] = useState(false);
   useEffect(() => setCanShare(!!navigator.share), []);
   const link = inviteUrl(name);
+  const close = (how: "x" | "backdrop") => {
+    track("owner_sheet_closed", { how, is_watermarked: watermark, paid_now: pay === "paid" });
+    onClose();
+  };
 
   const removeWatermark = async () => {
     setPay("paying");
     try {
       // Paid: the server has refreshed this link for everyone; here the watermark goes at once (no reload).
-      if ((await payToRemoveWatermark(name, title, price)) === "paid") {
+      if ((await payToRemoveWatermark(name, title, price, false, ownerKey)) === "paid") {
         onPaid();
         setPay("paid");
       } else setPay("idle");
@@ -988,10 +1024,10 @@ function OwnerSheet({
   };
 
   return (
-    <div className="owner-back" onClick={(e) => e.target === e.currentTarget && onClose()}>
+    <div className="owner-back" onClick={(e) => e.target === e.currentTarget && close("backdrop")}>
       {pay === "paid" ? <Confetti y={30} /> : null}
       <div className="owner-sheet" role="dialog" aria-label="Your invite">
-        <button className="os-x" onClick={onClose} aria-label="Close">
+        <button className="os-x" onClick={() => close("x")} aria-label="Close">
           ✕
         </button>
 
@@ -1021,7 +1057,14 @@ function OwnerSheet({
             {typeof pay === "object" ? <p className="os-err">{pay.error}</p> : null}
             <AgreeNote paying />
             {!more ? (
-              <button className="os-later" onClick={() => setMore(true)}>
+              <button
+                className="os-later"
+                onClick={() => {
+                  setMore(true);
+                  track("pay_later_clicked", { amount_inr: price });
+                  ownerEvent(name, ownerKey, "pay_later");
+                }}
+              >
                 Not now, share it with the watermark
               </button>
             ) : null}

@@ -112,7 +112,10 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
   const submitPhone = (e?: React.FormEvent) => {
     e?.preventDefault();
     const p = normalizePhone(typed);
-    if (!p) return setPhoneErr("Enter your 10-digit mobile number. Outside India? Start with + and the country code.");
+    if (!p) {
+      track("link_phone_step", { template_id: project.templateId, action: "invalid" });
+      return setPhoneErr("Enter your 10-digit mobile number. Outside India? Start with + and the country code.");
+    }
     phone.current = p;
     rememberContact(p, null); // this device: the next link, and Razorpay Checkout, are pre-filled
     track("link_phone_step", { template_id: project.templateId, action: "submitted" });
@@ -216,6 +219,7 @@ export function GetLink({ project, onClose }: { project: Project; onClose: () =>
     const known = savedPhone() ? normalizePhone(savedPhone()) : null;
     if (!ASK_PHONE || known) {
       phone.current = known;
+      if (known) track("link_phone_step", { template_id: project.templateId, action: "skipped" });
       create();
       return;
     }

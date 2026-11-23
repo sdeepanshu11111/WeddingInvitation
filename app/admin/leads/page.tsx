@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { BRAND } from "@/lib/brand";
 import { LEADS, PAYMENTS } from "@/lib/features";
-import { formatPhone } from "@/lib/contact";
+import { CONTACT_NOTICE, CONTACT_NOTICE_LINK, formatPhone } from "@/lib/contact";
 import { type Lead, listLeads } from "@/lib/server/leads";
 import { SITE_URL } from "@/lib/site";
 import { LeadActions } from "./LeadActions";
@@ -16,6 +16,11 @@ export const metadata: Metadata = { title: "Leads · " + BRAND, robots: { index:
 
 const when = (iso: string) =>
   new Date(iso).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+
+/** Where the details came from: the required number at Get wedding link (since 2026-11-23), the optional box on the
+    couple's invite, or only the payment form. */
+const origin = (l: Lead) =>
+  l.consent === CONTACT_NOTICE_LINK ? "Given at Get wedding link" : l.consent === CONTACT_NOTICE ? "Left on their invite" : l.pay_phone || l.pay_email ? "From the payment" : l.consent ? "Given at Get link (before Oct 21)" : null;
 
 /** The message the WhatsApp and Email buttons start with. */
 function message(l: Lead, url: string) {
@@ -91,6 +96,7 @@ export default async function Leads({ searchParams }: { searchParams: { show?: s
                   {num ? <span>{formatPhone(num)}</span> : null}
                   {mail ? <span>{mail}</span> : null}
                   {!num && !mail ? <span className="dim">No contact details</span> : null}
+                  {origin(l) ? <span className="dim">{origin(l)}</span> : null}
                   {l.phone && l.pay_phone && l.pay_phone !== l.phone ? <span>Paid from {formatPhone(l.pay_phone)}</span> : null}
                   {l.email && l.pay_email && l.pay_email !== l.email ? <span>Paid as {l.pay_email}</span> : null}
                   <span className="dim">Created {when(l.created_at)}</span>

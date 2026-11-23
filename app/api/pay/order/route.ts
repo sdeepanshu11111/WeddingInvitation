@@ -4,7 +4,9 @@ import { PAYMENTS } from "@/lib/features";
 import { PACK_PRICE_INR, packCovers, priceForLink } from "@/lib/pricing";
 import { createOrder, publicKeyId } from "@/lib/server/razorpay";
 import { recordCheckout } from "@/lib/server/links";
-import { amountDue, getLiveProject, getShare, recordOrder } from "@/lib/server/share";
+import { amountDue, getLiveProject, getShare, isOwnerKey, recordOrder } from "@/lib/server/share";
+import { leadContact } from "@/lib/server/leads";
+import { LEADS } from "@/lib/features";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,10 +15,12 @@ export const dynamic = "force-dynamic";
     amount from the browser): { orderId, amount, currency, keyId }, or { paid: true } when nothing is due.
     pack: the wedding pack instead (PACK_PRICE_INR), offered only on a watermarked invite whose design it covers.
     device: the buyer's anonymous Mixpanel id, kept with the checkout record so the server's `payment_confirmed`
-    lands on the same person (lib/server/mixpanel.ts). */
+    lands on the same person (lib/server/mixpanel.ts).
+    key: the couple's owner key, sent only when their browser has no saved number: the answer then carries
+    `prefill` (the number given at Get wedding link) so Razorpay Checkout opens with it filled in. Never without the key. */
 export async function POST(req: Request) {
   if (!PAYMENTS) return NextResponse.json({ error: "Payments are not set up" }, { status: 404 });
-  const { name, device, pack } = (await req.json().catch(() => ({}))) as { name?: string; device?: string; pack?: boolean };
+  const { name, device, pack, key } = (await req.json().catch(() => ({}))) as { name?: string; device?: string; pack?: boolean; key?: string };
   try {
     // Inside the try: a storage error is "try again" (502), not "no such link".
     const share = typeof name === "string" ? await getShare(name) : null;
@@ -38,7 +42,16 @@ export async function POST(req: Request) {
     await recordCheckout(share.token, { orderId: order.id, amountInr: amount, device: typeof device === "string" ? device.slice(0, 80) : null }).catch((e) =>
       console.error("Checkout not recorded:", e?.message),
     );
-    return NextResponse.json({ orderId: order.id, amount: amount * 100, currency: "INR", keyId: publicKeyId(), name: share.token });
+    // The couple's own number for Checkout, when their browser lost it (best effort: no number is no reason to fail).
+    const prefill = LEADS && key && isOwnerKey(share, key) ? await leadContact(share.token).catch(() => null) : null;
+    return NextResponse.json({
+      orderId: order.id,
+      amount: amount * 100,
+      currency: "INR",
+      keyId: publicKeyId(),
+      name: share.token,
+      ...(prefill?.phone || prefill?.email ? { prefill: { contact: prefill.phone ?? undefined, email: prefill.email ?? undefined } } : null),
+    });
   } catch (e: any) {
     return NextResponse.json({ error: "Could not start the payment: " + (e?.message || e) }, { status: 502 });
   }

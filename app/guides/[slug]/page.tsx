@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AdSense } from "@/components/AdSense";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { SiteHeader } from "@/components/site/SiteHeader";
+import { GuideCta } from "@/components/site/GuideCta";
 import { Block } from "@/components/site/GuideText";
 import { BRAND } from "@/lib/brand";
 import { GUIDES, guideBySlug } from "@/lib/guides";
@@ -67,9 +68,7 @@ export default function GuidePage({ params }: { params: { slug: string } }) {
         <aside className="guide-cta">
           <b>Making your invitation?</b>
           <p>Type your names and details into a design and get an animated invitation page to send on WhatsApp, with directions, calendar and RSVP buttons for your guests.</p>
-          <Link href="/templates" className="cta-btn">
-            Browse designs →
-          </Link>
+          <GuideCta slug={g.slug} />
         </aside>
 
         {related.length ? (

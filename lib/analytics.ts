@@ -31,7 +31,10 @@ export type Events = {
   state_selected: { state: string };
   /** The couple rated their invite in the owner sheet (app/api/review). The stars only: never the words or names. */
   review_submitted: { rating: number; has_text: boolean; is_public: boolean };
-  link_phone_step: { template_id: string; action: "shown" | "submitted" | "cancelled" };
+  /** The mobile-number step of "Get wedding link" (components/editor/ShareDialog.tsx). shown: asked; skipped: this device
+      already gave a number, so it was not asked; invalid: they pressed the button with a number that isn't valid;
+      submitted: a valid number, the link is being made; cancelled: back to editing. Never the number. */
+  link_phone_step: { template_id: string; action: "shown" | "skipped" | "invalid" | "submitted" | "cancelled" };
   /** The couple tapped one of their other functions in the owner sheet (lib/nextInvites.ts): a second purchase starting. */
   next_invite_clicked: { template_id: string; from_template_id: string };
   /** The studio (/create) finished loading a project. has_design_param: arrived with a chosen design
@@ -41,7 +44,8 @@ export type Events = {
   invite_edit_started: { template_id: string; field: string };
   /** language: the studio's Language row switched the design to another language version (lib/variants.ts). */
   template_selected: { template_id: string; source: "sidebar" | "gallery" | "template_page" | "language" };
-  share_dialog_opened: { template_id: string };
+  /** "Get wedding link" tapped. from: which button (header, the 01-02-03 steps, the end of the form, the phone tab bar). */
+  share_dialog_opened: { template_id: string; from?: "header" | "steps" | "form" | "tab" };
   /** Get link did not produce a link: media upload or link creation failed (stage). */
   invite_link_failed: { template_id: string; stage: "upload" | "create" };
   /** The value moment: the couple has a link guests can open. */
@@ -102,7 +106,15 @@ export type Events = {
   /** The couple's sheet (remove watermark, share) came up: by itself on the cover or at the end, or from their bar. */
   owner_sheet_opened: { trigger: "cover" | "end" | "bar" | "preview_end" };
   /** The couple's 30-second watermark-free preview of their own new invite ended: the watermark came on and the pay sheet opened. */
-  free_preview_ended: { reason: "timer" | "end" };
+  free_preview_ended: { reason: "timer" | "end"; watched_seconds: number };
+  /** The couple's watermark-free preview started playing on their invite (once per visit). seconds_left: 30 the first time. */
+  free_preview_started: { seconds_left: number };
+  /** "Not now" on the pay sheet (they go on with the watermark). amount_inr: the price they were shown. */
+  pay_later_clicked: { amount_inr: number };
+  /** The couple closed their sheet. is_watermarked: still unpaid; paid_now: they paid in this sheet. */
+  owner_sheet_closed: { how: "x" | "backdrop"; is_watermarked: boolean; paid_now: boolean };
+  /** A wedding guide's "Browse designs" box was tapped (app/guides/[slug]): which guide sent them. */
+  guide_cta_clicked: { slug: string };
 };
 /* `payment_confirmed` is NOT here: the server sends it, once per payment (lib/server/mixpanel.ts). */
 

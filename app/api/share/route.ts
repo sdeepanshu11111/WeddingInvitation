@@ -69,7 +69,8 @@ export async function POST(req: Request) {
   // The link's record (lib/server/links.ts): every link, with its address, design and where its maker came from.
   // Like the lead, best effort: a database error is logged and the couple still gets their link.
   if (share.kind === "live") {
-    const facts = linkFacts(body.project, share.title, (process.env.SITE_URL ? SITE_URL : origin) + "/e/" + share.token);
+    // has_phone only ever goes on (an edit without the number step must not erase it); the number itself is in leads only.
+    const facts = { ...linkFacts(body.project, share.title, (process.env.SITE_URL ? SITE_URL : origin) + "/e/" + share.token, share), ...(phone ? { has_phone: true } : null) };
     await (updating
       ? recordLinkUpdated(share.token, facts, share.createdAt)
       : recordLinkCreated(share.token, facts, linkOrigin(body.meta, req.headers.get("user-agent")), share.createdAt)

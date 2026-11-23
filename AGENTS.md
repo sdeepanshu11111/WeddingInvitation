@@ -102,15 +102,19 @@ wrong property, so update that type first.
 |---|---|---|---|
 | `$mp_web_page_view` | A site page (each route), the editor or a guest page loaded | (super properties) | `lib/analytics.ts` |
 | `sample_warning` | **Retired 2026-11-23** (the check was removed: no stoppers before the link). Was: Get link found the date / venue still the design's example | `template_id`, `field_count`, `choice` | (none) |
-| `link_phone_step` | The mobile-number step of "Get wedding link" (required since 2026-11-23; skipped when this device already gave a number). The number is never sent | `template_id`, `action` (`shown` / `submitted` / `cancelled` = went back to editing) | `components/editor/ShareDialog.tsx` (`GetLink`) |
-| `free_preview_ended` | The couple's 30-second watermark-free preview of their own unpaid invite ended: the watermark came on, the invite paused and the pay sheet opened | `reason` (`timer` = 30 s of playing time / `end` = the invite ended first) | `app/e/[slug]/LiveInvite.tsx` |
+| `link_phone_step` | The mobile-number step of "Get wedding link" (required since 2026-11-23). The number is never sent | `template_id`, `action` (`shown` = asked / `skipped` = this device already gave a number, not asked / `invalid` = pressed the button with a number that isn't valid / `submitted` = valid, the link is being made / `cancelled` = went back to editing) | `components/editor/ShareDialog.tsx` (`GetLink`) |
+| `free_preview_started` | The couple's watermark-free preview of their own unpaid invite started playing (once per visit) | `seconds_left` (30 the first time; less when a reload carries on) | `app/e/[slug]/LiveInvite.tsx` |
+| `free_preview_ended` | The couple's 30-second watermark-free preview of their own unpaid invite ended: the watermark came on, the invite paused and the pay sheet opened | `reason` (`timer` = 30 s of playing time / `end` = the invite ended first), `watched_seconds` | `app/e/[slug]/LiveInvite.tsx` |
+| `pay_later_clicked` | "Not now, share it with the watermark" on the couple's pay sheet | `amount_inr` (the price they were shown) | `app/e/[slug]/LiveInvite.tsx` (`OwnerSheet`) |
+| `owner_sheet_closed` | The couple closed their sheet | `how` (`x` / `backdrop`), `is_watermarked` (still unpaid), `paid_now` (paid in this sheet) | `app/e/[slug]/LiveInvite.tsx` (`OwnerSheet`) |
+| `guide_cta_clicked` | "Browse designs" at the end of a wedding guide (`/guides/<slug>`, since 2026-11-23) | `slug` (which guide) | `components/site/GuideCta.tsx` |
 | `next_invite_clicked` | The couple tapped one of their other functions in their owner sheet (once their invite is clean): a second purchase starting | `template_id` (the design it opens), `from_template_id` (the invite they were on) | `app/e/[slug]/LiveInvite.tsx` (`OwnerNext`) |
 | `review_submitted` | The couple rated their invite in their owner sheet (once it has no watermark) | `rating` (1-5), `has_text`, `is_public` (they allowed it on the site). Never the words or names | `app/e/[slug]/LiveInvite.tsx` (`OwnerReview`) |
 | `state_selected` | A visitor tapped a state in "Wedding in which state?" on `/templates` (arriving with `?state=` from an ad shows in the page view's URL instead) | `state` (a region id from `lib/regions.ts`, e.g. `tamil-nadu`, or `all`) | `components/site/StatePicker.tsx` |
 | `studio_opened` | The studio (`/create`) finished loading a project: the step between the site and Get link | `template_id`, `has_design_param` (arrived with a chosen design), `has_draft` (a saved invite was in this browser), `has_names` (names typed on the site) | `app/create/page.tsx` |
 | `invite_edit_started` | The first field changed in a studio visit (once per visit): this visitor is making an invite, not only looking | `template_id`, `field` (the field's key, never its content) | `app/create/page.tsx` (`setField`) |
 | `template_selected` | Couple picks a template (in the editor, or arrives from "Customize" on a template page with a different one) | `template_id` (a language version is `<design>-<language>`, e.g. `haldi-marigold-tamil`), `source` (`sidebar`/`gallery`/`template_page`/`language` = the studio's Language row) | `app/create/page.tsx` |
-| `share_dialog_opened` | Couple taps Get wedding link (the mobile-number step, if this device has no number yet, then the link is created) | `template_id` | `app/create/page.tsx` |
+| `share_dialog_opened` | Couple taps Get wedding link (the mobile-number step, if this device has no number yet, then the link is created) | `template_id`, `from` (`header` / `steps` = the 01-02-03 row / `form` = the end of the form / `tab` = the phone tab bar) | `app/create/page.tsx` |
 | `invite_link_failed` | Get link did not produce a link | `template_id`, `stage` (`upload` = sending photos/music, `create` = making the link) | `ShareDialog.tsx` (`GetLink`) |
 | `invite_link_created` ★ | Share link saved (value moment) | `invite_id`, `template_id`, `palette_id`, `orientation`, `plan` (`free`/`premium`, only with payments on), `is_custom_name`, `has_music`, `photo_count`, `has_video`, `duration_seconds`, `price_inr` (what removing the watermark will cost: ₹99 for every new link since 2026-11-23), `is_free`, `sample_field_count` (date / venue fields still holding the template's sample), `has_phone` (the mobile number was given; never the number) | `components/editor/ShareDialog.tsx` |
 | `invite_link_updated` | The couple edited their invite and Get link published it to the link they already had (same address, stays paid) | `invite_id`, `template_id` | `ShareDialog.tsx` (`GetLink`) |
@@ -167,7 +171,11 @@ Mixpanel stays the product analytics tool.
 
 - **Creator funnel:** `$mp_web_page_view` (surface `site`) → `studio_opened` → `invite_edit_started` → `share_dialog_opened` →
   `invite_link_created`. Break down by `first_source` (google / chatgpt / invite / direct) and by `$os`.
-- **Sales funnel:** `invite_link_created` → `free_preview_ended` → `owner_sheet_opened` → `payment_started` → `checkout_opened` → `payment_confirmed`.
+- **Get-link funnel (since 2026-11-23):** `share_dialog_opened` → `link_phone_step` (`shown` or `skipped`) → `link_phone_step` (`submitted`) →
+  `invite_link_created`. `invalid` counts show friction in the number field; `cancelled` is people who backed out at the number.
+- **Sales funnel:** `invite_link_created` → `free_preview_started` → `free_preview_ended` → `owner_sheet_opened` (`preview_end`) → `payment_started` →
+  `checkout_opened` → `payment_confirmed`. `pay_later_clicked` / `owner_sheet_closed` with `is_watermarked` = who left the pay sheet.
+- **Guides:** `$mp_web_page_view` on `/guides/*` → `guide_cta_clicked` → `studio_opened`. Break down by `slug`.
   A gap between `checkout_opened` and `payment_confirmed` is an abandoned or failed payment; the link is on `/admin/links`
   under "Tried to pay".
 - **Guests:** `invite_opened` → `invite_watched` → `guest_action_clicked`, filtered to `is_owner != true`.
@@ -181,6 +189,12 @@ design, price, created / edited times, `source` and `visit_source` (the same wor
 `POST /api/share`), OS, every checkout attempt, every payment, and two counters (`opens`, `watched`) that the guest page
 increments through `POST /api/share/<name>/seen` (a count only; not the couple's own views, not internal devices). That is
 where to look for one specific invite; Mixpanel is where to look for behaviour across invites.
+
+Since 2026-11-23 a record also has `flat` (made by the ₹99 flat-price release; `price_inr` is what that link really costs,
+`priceForLink`), `has_phone` (a number was given at Get wedding link; the number itself is only in `leads`) and the couple's own
+side, sent with their owner key through `POST /api/share/<name>/owner` (`recordOwnerEvent`): `owner_visits`, `preview_ended_at`
++ `preview_end_reason`, `paysheet_opens`, `pay_later`. `/admin/links` shows them on each link, a "Saw price" tab (saw the pay
+sheet or finished the preview, never opened Checkout: the people to follow up first) and the flat-price funnel at the top.
 
 ## Vercel Web Analytics
 

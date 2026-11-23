@@ -464,12 +464,20 @@ TemplateDef (fields + palettes + build()) → buildTimeline() → <Frame T={ms}/
     (+91 field, `normalizePhone`; skipped when this device already gave one, `savedPhone()`; `rememberContact` so Razorpay Checkout is
     pre-filled) whenever PAYMENTS or LEADS is on. It goes to `POST /api/share {phone}` → lead store with consent `CONTACT_NOTICE_LINK`.
     The server still accepts posts without a phone (studio tabs opened before the release). Event `link_phone_step`.
+  - **Checkout opens with that number** (`lib/pay.ts`): `prefill.contact` = `savedPhone()` (the Get-link number on this device); if it is
+    missing, the couple's owner key goes with `POST /api/pay/order {key}` and the answer carries `prefill` from the link's lead
+    (`leadContact`, only with a valid owner key), which is also saved on the device again.
   - **30-second clean preview** (LiveInvite.tsx, `PREVIEW_S`): on the couple's device (owner key) an unpaid invite plays WITHOUT the watermark
     for 30 s of playing time (`previewLeft`, counts only while playing and no sheet is open; kept per link in localStorage `fp.preview`, so a
     reload doesn't restart it; no storage = no preview). A pill under the story bar counts down ("No watermark for 24s"); the owner bar is
     hidden meanwhile. At 0 or when the invite ends first: watermark on, the invite pauses, the pay sheet opens ("Your free preview is over",
     "Pay ₹99 · Remove watermark"). Events `free_preview_ended {reason}`, `owner_sheet_opened {trigger: "preview_end"}`. Guests always see
     the watermark until it is paid. Terms section 1 and Privacy section 5 describe it.
+  - **Tracking** (2026-11-23): Mixpanel `share_dialog_opened {from}`, `link_phone_step` (shown/skipped/invalid/submitted/cancelled),
+    `free_preview_started`, `free_preview_ended {reason, watched_seconds}`, `pay_later_clicked`, `owner_sheet_closed`, `guide_cta_clicked`
+    (AGENTS.md has the funnels). Link records add `flat`, `has_phone` and the couple's side via `POST /api/share/<name>/owner`
+    (owner key in `x-owner-key`; `visit`, `preview_end`, `paysheet`, `pay_later` → `recordOwnerEvent`). `/admin/links`: flat-price funnel at
+    the top, a "Saw price" tab, and those facts per link; `/admin/leads` says where each number came from (consent version).
 - **The couple's pay sheet is focused** (2026-11-23, owner: "simpler so they easily pay, without distraction"): while the invite has the
   watermark the owner sheet shows one message, "Pay ₹N · Remove watermark", the payment logos, and "Not now" (no pack line since 2026-11-23);
   sharing, personal links, RSVP counts, rating and contact appear only after "Not now" (`more`) or once paid. Guests' end screen on free /
