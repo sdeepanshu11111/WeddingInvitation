@@ -413,7 +413,6 @@ export async function importLinks(batch = 24): Promise<{ imported: number; faile
       invite_id: inviteId(link),
       imported: true,
       created_at: new Date(share.createdAt),
-      ...(share.updatedAt ? { updated_at: new Date(share.updatedAt) } : {}),
       ...(paid && paidAt ? { payments: [{ payment_id: paid.paymentId || paid.orderId, order_id: paid.orderId, amount_inr: rupees, at: paidAt, via: "import" }], paid_inr: rupees, paid_at: paidAt } : {}),
     });
     imported++;
