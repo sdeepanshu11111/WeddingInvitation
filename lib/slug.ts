@@ -14,10 +14,3 @@ export function slugify(s: string): string {
     .slice(0, 50)
     .replace(/-+$/, "");
 }
-
-/** The function part of a link name (components/editor/ShareDialog.tsx, functionOf): 1-aarav-ananya-haldi. */
-const FUNCTION_SUFFIX = /-(haldi|mehendi|sangeet|reception|engagement|save-the-date)$/;
-
-/** The couple a link is for, from its name: "3-aarav-ananya-haldi" → "aarav-ananya". The wedding pack covers every
-    link with the same couple (lib/pricing.ts); links made before function names (2026-11-17) have none to strip. */
-export const coupleBase = (name: string) => name.replace(/^\d+-/, "").replace(FUNCTION_SUFFIX, "");

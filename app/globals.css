@@ -29,12 +29,6 @@
 }
 
 * { box-sizing: border-box; }
-/* No grey/blue flash on every tap (Android Chrome, iOS Safari): buttons show their own pressed states instead. */
-html { -webkit-tap-highlight-color: transparent; }
-/* The invite is played by tapping and holding (hold = pause): a long press must not select text or open the iOS
-   callout, which painted the screen blue. Fields guests type in (RSVP, quiz, contact) stay selectable. */
-.guest-ui { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-.guest-ui input, .guest-ui textarea, .guest-ui select { -webkit-user-select: text; user-select: text; -webkit-touch-callout: default; }
 html, body { margin: 0; height: 100%; }
 body {
   background: var(--bg);
@@ -414,13 +408,8 @@ input[type="date"].input, input[type="time"].input { color-scheme: light; }
 .gb-wa { width: 54px; height: 54px; flex: none; border-radius: 50%; border: 0; display: grid; place-items: center; background: #25d366; color: #fff; box-shadow: 0 10px 26px -6px rgba(37, 211, 102, 0.65); transition: transform 0.12s ease; }
 .gb-wa:active { transform: scale(0.94); }
 .end-shade { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 60px 16px calc(96px + env(safe-area-inset-bottom)); background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.6) 55%); }
-/* Guests planning their own function: a clear button after the invite ends (free and unpaid invites). */
-.end-make { display: grid; gap: 2px; padding: 12px 22px; border-radius: 16px; background: rgba(255, 255, 255, 0.94); color: #241316; text-align: center; text-decoration: none; box-shadow: 0 12px 30px -14px rgba(0, 0, 0, 0.6); }
-.end-make b { font-size: 15px; font-weight: 700; }
-.end-make span { font-size: 12px; color: #6b5a5c; }
-.end-make:hover { background: #fff; }
-.end-credit { color: rgba(255, 255, 255, 0.55); font-size: 12px; letter-spacing: 0.02em; text-decoration: none; }
-.end-credit:hover { color: rgba(255, 255, 255, 0.85); text-decoration: underline; text-underline-offset: 3px; }
+.end-make { color: rgba(255, 255, 255, 0.86); font-size: 13.5px; font-weight: 500; text-decoration: underline; text-underline-offset: 3px; }
+.end-make:hover { color: #fff; }
 
 /* SharePanel (video exports): the link card */
 .link-card .url { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; color: var(--muted); }
@@ -602,16 +591,6 @@ li.lead.out { opacity: 0.6; }
 .lead-meta .stop { color: var(--danger); }
 .lead-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .lead-actions a.btn { text-decoration: none; }
-.admin-note { margin: -6px 0 14px; color: var(--muted); font-size: 13px; }
-.rv-stars { color: #c98a1a; letter-spacing: 1px; }
-li.review.hidden { opacity: 0.6; }
-.rv-text { margin: 8px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
-.rv-text.dim, .lead-top .dim { color: var(--muted); font-weight: 400; }
-.add-review { margin-bottom: 14px; }
-.add-review-form { display: grid; gap: 8px; margin-bottom: 14px; padding: 14px 16px; border: 1px solid var(--line); border-radius: 12px; background: var(--panel); }
-.add-review-form .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 8px; }
-.add-review-form .check { display: flex; gap: 8px; align-items: flex-start; font-size: 13px; }
-.add-review-form .stop { margin: 0; color: var(--danger); }
 
 /* ---------- template page (/templates/<id>): colour picker under the preview ----------
    Kept here, not in site.css: each option shows the palette's real colours and its name, with a 44px+ target. */
@@ -638,12 +617,7 @@ li.review.hidden { opacity: 0.6; }
 .looks .pal-opt, .looks-m .pal-opt { flex: 0 0 auto; min-width: 120px; background: var(--panel); }
 .looks-m { margin-bottom: 18px; }
 .looks-m .pal-opts { margin: 0 -14px; padding: 8px 14px 2px; }
-.lang-opts { display: flex; gap: 6px; max-width: 100%; overflow-x: auto; scrollbar-width: none; padding: 8px 8px 2px; }
-.lang-opts::-webkit-scrollbar { display: none; }
-.lang-opt { flex: 0 0 auto; min-height: 36px; padding: 6px 13px; border: 1px solid var(--line); border-radius: 99px; background: var(--panel); color: var(--text); font-size: 14px; line-height: 1.3; }
-.lang-opt.on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); color: var(--accent); font-weight: 600; }
-.looks-m .lang-opts { margin: 0 -14px 4px; padding: 8px 14px 2px; }
-@media (max-width: 860px) { .looks { display: none; } .lang-opt { font-size: 16px; } }
+@media (max-width: 860px) { .looks { display: none; } }
 
 /* Studio form: says that tapping a field shows it in the preview */
 .field-hint { margin: 0; padding: 12px 16px 2px; color: var(--muted); font-size: 12.5px; }
@@ -720,16 +694,6 @@ li.review.hidden { opacity: 0.6; }
 .os-price b { font-family: var(--display); font-size: 40px; line-height: 1; color: #f0d6a6; }
 .os-price span { color: rgba(236, 232, 227, 0.65); font-size: 13px; }
 .owner-sheet .os-err { margin-top: 8px; color: #e2766b; font-size: 13px; }
-/* Wedding pack offer (lib/pricing.ts), under the single-invite button. */
-.os-pack { margin-top: 14px; padding: 14px; border: 1px solid rgba(217, 183, 124, 0.35); border-radius: 16px; background: rgba(217, 183, 124, 0.07); }
-.os-or { display: flex; align-items: center; gap: 10px; margin: -2px 0 10px; color: rgba(236, 232, 227, 0.55); font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
-.os-or::before, .os-or::after { content: ""; flex: 1; height: 1px; background: rgba(255, 255, 255, 0.12); }
-.os-pack-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.os-pack-head b { color: #fff; font-size: 17px; }
-.os-pack-head span { color: #f0d6a6; font-family: var(--display); font-size: 22px; }
-.os-pack p { margin: 6px 0 10px; color: rgba(236, 232, 227, 0.8); font-size: 13.5px; line-height: 1.45; }
-.os-pack-cta { width: 100%; min-height: 46px; border-color: #d9b77c; color: #f0d6a6; font-weight: 600; }
-.os-pack small { display: block; margin-top: 8px; color: rgba(236, 232, 227, 0.5); font-size: 11.5px; line-height: 1.4; }
 .owner-sheet .trust-row { color: rgba(236, 232, 227, 0.65); }
 .owner-sheet .trust-row .lock { color: rgba(236, 232, 227, 0.8); border-right-color: rgba(255, 255, 255, 0.15); }
 .owner-sheet .pay-icons.mono { color: rgba(236, 232, 227, 0.6); }
@@ -756,29 +720,7 @@ li.review.hidden { opacity: 0.6; }
 .os-save { height: 44px; padding: 0 18px; border-radius: 12px; }
 .owner-sheet .os-note { margin-top: 8px; color: rgba(236, 232, 227, 0.55); font-size: 12.5px; }
 .owner-sheet .os-note.bad { color: #e2766b; }
-.os-contact.saved, .os-review.saved { color: #7fc8a0; font-size: 14px; }
-.os-review { margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(255, 255, 255, 0.1); display: grid; gap: 10px; }
-.os-review .os-label { margin-bottom: 0; }
-.os-stars { display: flex; gap: 4px; }
-.os-stars button { width: 44px; height: 44px; padding: 0; border: 0; background: none; color: rgba(255, 255, 255, 0.22); font-size: 32px; line-height: 1; cursor: pointer; }
-.os-stars button.on { color: #f2b544; }
-.os-area { height: auto; padding: 10px 12px; resize: vertical; font-family: inherit; line-height: 1.4; }
-.os-review-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.os-check { display: flex; gap: 10px; align-items: flex-start; color: rgba(236, 232, 227, 0.85); font-size: 13.5px; line-height: 1.4; }
-.os-check input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: #d9b77c; }
-.os-review .os-save { justify-self: start; }
-.owner-sheet .os-review .os-note { margin-top: 0; }
-/* Their other functions (OwnerNext): cards that scroll sideways, each opening the studio on that design. */
-.os-next { margin-top: 20px; padding-top: 18px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
-.os-next .os-label { margin-bottom: 2px; }
-.os-next-sub { margin: 0 0 10px; color: rgba(236, 232, 227, 0.65); font-size: 13px; }
-.os-next-row { display: flex; gap: 10px; overflow-x: auto; scrollbar-width: none; margin: 0 -4px; padding: 2px 4px 4px; }
-.os-next-row::-webkit-scrollbar { display: none; }
-.os-next-card { flex: 0 0 auto; width: 92px; display: grid; gap: 4px; color: #fff; text-decoration: none; text-align: center; }
-.os-next-thumb { display: grid; aspect-ratio: 3 / 4; border-radius: 12px; overflow: hidden; box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.14); }
-.os-next-card b { font-size: 12.5px; font-weight: 600; line-height: 1.25; }
-.os-next-card small { color: #d9b77c; font-size: 12px; font-weight: 600; }
-.os-next-card:hover .os-next-thumb { box-shadow: 0 0 0 2px #d9b77c; }
+.os-contact.saved { color: #7fc8a0; font-size: 14px; }
 
 /* ================================================================== *
  * Invite page, interactive (app/e/[slug]/LiveInvite.tsx + GuestDetails.tsx): story-style segments and
@@ -810,229 +752,7 @@ li.review.hidden { opacity: 0.6; }
 .gd-foot .btn { height: 46px; justify-content: center; border-radius: 13px !important; font-size: 14.5px; font-weight: 600; }
 .gd-foot .gd-replay { background: rgba(255, 255, 255, 0.1) !important; color: #fff !important; border-color: transparent !important; }
 .gd-rsvp { text-decoration: none; }
-.gd-foot { display: flex; flex-wrap: wrap; }
-.gd-foot > .btn { flex: 1 1 150px; }
-.gd-foot .gd-call { background: rgba(255, 255, 255, 0.14) !important; color: #fff !important; border-color: transparent !important; text-decoration: none; gap: 8px; }
-.gd-by { margin-top: -4px; color: #f0d6a6; font-size: 13px; font-weight: 600; }
+@media (min-width: 420px) { .gd-foot:has(.gd-rsvp) { grid-template-columns: 1.4fr 1fr; } }
 .gd-head .gd-count { margin-left: auto; }
 .gd-x { flex: none; width: 30px; height: 30px; display: grid; place-items: center; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 50%; background: transparent; color: rgba(255, 255, 255, 0.75); font-size: 12px; }
-.gd-mini { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
 .gd-pill { display: inline-flex; align-items: center; gap: 8px; padding: 11px 18px; border: 1px solid rgba(255, 255, 255, 0.18); border-radius: 99px; background: rgba(15, 14, 16, 0.8); color: #fff; font-size: 14px; font-weight: 600; backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); animation: pop-in 0.25s ease both; }
-
-/* An empty photo or clip slot says "ADD A PHOTO" in the studio. Guests must never read that on someone's invite:
-   there it is a plain panel in the design's own colour (the slot's parent already paints theme.bg2). */
-/* Empty photo / clip slot: the studio shows "Add a photo"; a guest sees the couple's monogram in the frame instead
-   (components/primitives.tsx, Monogram; owner 2026-11-18: an empty frame looked broken). */
-.ph-mono { display: none; }
-.guest-ui .ph { container-type: size; color: transparent !important; background-image: radial-gradient(circle at 50% 42%, var(--ph-glow, transparent), transparent 75%) !important; }
-.guest-ui .ph-hint { display: none; }
-.guest-ui .ph-mono { display: flex; flex-direction: column; align-items: center; gap: 4cqmin; color: var(--ph-ink, #d9b77c); letter-spacing: 0.12em; text-transform: none; }
-.guest-ui .ph-mono b { font-family: var(--f-cinzel); font-weight: 600; font-size: 13cqmin; line-height: 1; white-space: nowrap; }
-.guest-ui .ph-mono i { display: block; width: 26cqmin; height: 1px; background: linear-gradient(90deg, transparent, var(--ph-line, currentColor), transparent); }
-
-/* ---------- /admin/links and the admin nav ---------- */
-.admin-nav { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; max-width: 860px; margin: 0 auto; padding: 16px 16px 0; font-size: 13px; }
-.admin-nav a { padding: 6px 14px; border: 1px solid var(--line-2); border-radius: 999px; color: var(--muted); text-decoration: none; }
-.admin-nav a.on { border-color: var(--text); background: var(--text); color: var(--bg); }
-.admin-nav span { color: var(--muted); font-size: 12px; }
-.admin-sum { margin: 0 0 12px; color: var(--muted); }
-.admin-sum b { color: var(--text); }
-.admin-search { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 16px; }
-.admin-search input[name="q"] { flex: 1 1 260px; min-width: 0; padding: 8px 12px; border: 1px solid var(--line-2); border-radius: 10px; background: var(--panel); color: var(--text); font-size: 14px; }
-.admin-import { display: inline-flex; align-items: center; gap: 8px; }
-.admin-import em { color: var(--muted); font-size: 12.5px; font-style: normal; }
-.lead-chip.tried { background: rgba(230, 160, 60, 0.2); color: var(--danger); }
-.admin .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
-
-/* Studio: the price under Get link (app/create/page.tsx). */
-.get-price { margin: 8px 0 0; text-align: center; font-size: 12.5px; color: var(--muted); }
-.get-price b { color: var(--text); }
-
-/* ---------- guest page extras (app/e/[slug]/Interactive.tsx) ---------- */
-/* Envelope on the cover: back, letter, front pocket, flap (opens upward), wax seal. */
-/* Envelope on the cover (Interactive.tsx, Envelope; redesigned 2026-11-18). Layers: back, card, front pocket, flap,
-   sheen, seal. Sealed: a slight float and a faint sheen. .open (calm and unhurried, owner 2026-11-23: it was too fast
-   and the cracking seal looked cheap): the seal lifts away (0-0.6 s), the flap opens (0.4-1.4 s), the card rises
-   (1.2-2.4 s); LiveInvite fades the cover (.cover-leaving, 0.7 s) to finish at OPEN_MS. */
-.env { position: relative; width: min(80vw, 330px); aspect-ratio: 1.42; margin-top: 22px; container-type: inline-size; animation: cover-in 0.9s 0.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-/* perspective here (the flap is its child), and NO preserve-3d: in a 3D context z-index is ignored and the opened
-   flap would cover the card. */
-.env-float { position: absolute; inset: 0; perspective: 1100px; animation: env-float 6s 1.4s ease-in-out infinite; }
-@keyframes env-float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
-.env-shadow { position: absolute; left: 10%; right: 10%; bottom: -18px; height: 24px; border-radius: 50%; background: radial-gradient(closest-side, rgba(0, 0, 0, 0.45), transparent); filter: blur(3px); animation: env-shadow 6s 1.4s ease-in-out infinite; }
-@keyframes env-shadow { 50% { transform: scaleX(0.94); opacity: 0.8; } }
-.env-back, .env-front, .env-flap { position: absolute; inset: 0; border-radius: 14px; }
-.env-back { background: color-mix(in srgb, var(--env-paper) 78%, #000); box-shadow: 0 30px 60px -28px rgba(0, 0, 0, 0.6), 0 0 0 1px color-mix(in srgb, var(--env-edge) 45%, transparent); }
-.env-front svg, .env-flap svg { position: absolute; inset: 0; width: 100%; height: 100%; fill: none; stroke: var(--env-edge); stroke-width: 1.2; vector-effect: non-scaling-stroke; opacity: 0.55; }
-.env-front { z-index: 2; clip-path: polygon(0 0, 50% 54%, 100% 0, 100% 100%, 0 100%); background: repeating-linear-gradient(115deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 7px), linear-gradient(165deg, color-mix(in srgb, var(--env-paper) 90%, #fff), var(--env-paper) 55%, color-mix(in srgb, var(--env-paper) 84%, #000)); }
-.env-flap { z-index: 3; clip-path: polygon(0 0, 100% 0, 50% 58%); background: linear-gradient(180deg, color-mix(in srgb, var(--env-paper) 84%, #000), color-mix(in srgb, var(--env-paper) 96%, #fff)); transform-origin: 50% 0; backface-visibility: visible; transition: transform 1s 0.4s cubic-bezier(0.45, 0, 0.25, 1), z-index 0s 0.9s; }
-.env-letter { position: absolute; z-index: 1; left: 7%; right: 7%; top: 7%; height: 86%; display: grid; place-content: center; justify-items: center; gap: 2px; padding: 10px; border-radius: 8px; background: #fffdf7; color: #3b2a22; text-align: center; box-shadow: inset 0 0 0 6px #fffdf7, inset 0 0 0 7px color-mix(in srgb, var(--env-edge) 55%, transparent), 0 10px 26px -12px rgba(0, 0, 0, 0.5); opacity: 0; transition: transform 1.2s 1.2s cubic-bezier(0.22, 0.7, 0.2, 1), opacity 0.5s 0.9s; }
-.env-letter small { font-family: var(--f-cinzel); font-size: 9px; font-size: clamp(7px, 2.8cqw, 9px); letter-spacing: 0.3em; text-transform: uppercase; color: color-mix(in srgb, var(--env-edge) 80%, #3b2a22); }
-.env-letter b { font-family: var(--f-cinzel); font-size: 20px; font-size: clamp(14px, 6cqw, 20px); font-weight: 700; letter-spacing: 0.12em; color: color-mix(in srgb, var(--env-seal) 70%, #3b2a22); }
-.env-letter span { max-width: 100%; font-family: var(--f-vibes); font-size: 24px; font-size: clamp(15px, 7cqw, 24px); line-height: 1.1; overflow-wrap: anywhere; }
-.env-sheen { position: absolute; inset: 0; z-index: 4; border-radius: 14px; overflow: hidden; pointer-events: none; }
-.env-sheen::after { content: ""; position: absolute; top: -20%; bottom: -20%; width: 40%; left: -60%; background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.14), transparent); transform: skewX(-18deg); animation: env-sheen 7s 2.5s ease-in-out infinite; }
-@keyframes env-sheen { 0%, 55% { left: -60%; } 85%, 100% { left: 130%; } }
-.env-seal { position: absolute; z-index: 5; left: 50%; top: 54%; width: 62px; height: 62px; margin: -31px 0 0 -31px; display: grid; place-items: center; }
-.env-seal::before { display: none; } /* no ripple: calm (owner, 2026-11-23) */
-@keyframes env-ripple { 0% { transform: scale(1); opacity: 0.55; } 80%, 100% { transform: scale(1.9); opacity: 0; } }
-.env-half { position: absolute; inset: 0; border-radius: 50%; background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--env-seal) 62%, #fff), var(--env-seal) 52%, color-mix(in srgb, var(--env-seal) 68%, #000)); box-shadow: 0 5px 14px rgba(0, 0, 0, 0.35), inset 0 -3px 6px rgba(0, 0, 0, 0.25); transition: transform 0.6s cubic-bezier(0.3, 0.6, 0.3, 1), opacity 0.6s; }
-.env-half.l { clip-path: polygon(0 0, 52% 0, 46% 30%, 56% 56%, 47% 100%, 0 100%); }
-.env-half.r { clip-path: polygon(52% 0, 100% 0, 100% 100%, 47% 100%, 56% 56%, 46% 30%); }
-.env-seal span { position: relative; color: var(--env-ink); font-family: var(--f-cinzel); font-size: 14px; font-weight: 700; letter-spacing: 0.04em; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25); transition: opacity 0.4s, transform 0.6s; }
-.env.open .env-float, .env.open .env-shadow { animation-play-state: paused; }
-.env.open .env-sheen, .env.open .env-seal::before { display: none; }
-.env.open .env-half.l { transform: translateY(-10px) scale(0.92); opacity: 0; }
-.env.open .env-half.r { transform: translateY(-10px) scale(0.92); opacity: 0; }
-.env.open .env-seal span { opacity: 0; transform: translateY(-10px); }
-.env.open .env-flap { transform: rotateX(180deg); z-index: 0; }
-.env.open .env-letter { opacity: 1; transform: translateY(-58%) scale(1.04); }
-/* LiveInvite: the cover fades into the invite once the card is out AND the invite is ready (OPEN_MS, FADE_MS). */
-.cover-leaving { animation: cover-leave 0.7s ease forwards; }
-@keyframes cover-leave { to { opacity: 0; transform: scale(1.02); } }
-@media (prefers-reduced-motion: reduce) { .env-float, .env-shadow, .env-sheen::after, .env-seal::before { animation: none; } }
-.env-cta { margin-top: 10px; font-size: 13px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
-/* Scratch-to-reveal date */
-.scratch { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 30; touch-action: none; cursor: crosshair; transition: opacity 0.45s; }
-.scratch.gone { opacity: 0; pointer-events: none; }
-/* Blessings at the end */
-.bless-btn { display: inline-flex; flex-direction: column; align-items: center; gap: 2px; margin: 14px auto 0; padding: 12px 26px; border: 1px solid rgba(255, 255, 255, 0.35); border-radius: 99px; background: rgba(255, 255, 255, 0.12); color: #fff; font-size: 16px; font-weight: 600; cursor: pointer; backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); }
-.bless-btn small { font-size: 12px; font-weight: 500; opacity: 0.8; }
-.bless-btn.done { background: rgba(255, 255, 255, 0.2); }
-.petal-rain { position: fixed; inset: 0; z-index: 80; pointer-events: none; overflow: hidden; }
-.petal-rain span { position: absolute; top: -40px; animation: petal-fall linear forwards; }
-@keyframes petal-fall { to { transform: translate(var(--drift), 110vh) rotate(var(--spin)); opacity: 0.85; } }
-.os-personal { margin-top: 18px; }
-.os-personal .os-input { width: 100%; margin: 8px 0 10px; }
-@media (prefers-reduced-motion: reduce) { .env-seal { animation: none; } .petal-rain span { animation-duration: 0.01s !important; } }
-
-/* ---------- RSVP form (app/e/[slug]/Rsvp.tsx) ---------- */
-.rsvp-back { z-index: 40; }
-.rsvp-sheet h3 { margin-bottom: 4px; }
-.rsvp-choices { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 16px; }
-.rsvp-choice { display: flex; flex-direction: column; align-items: center; gap: 4px; min-height: 76px; padding: 10px 6px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.05); color: #ece8e3; font-size: 13.5px; font-weight: 600; cursor: pointer; }
-.rsvp-choice span { font-size: 24px; }
-.rsvp-choice.on { border-color: #d9b77c; background: rgba(217, 183, 124, 0.18); color: #fff; box-shadow: 0 0 0 2px rgba(217, 183, 124, 0.35); }
-.rsvp-form { display: grid; gap: 16px; margin-top: 18px; animation: pop-in 0.25s ease both; }
-.rsvp-field { display: block; }
-.rsvp-stepper { display: inline-flex; align-items: center; gap: 4px; padding: 4px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.14); background: #0f0e10; }
-.rsvp-stepper button { width: 44px; height: 44px; border-radius: 10px; border: 0; background: rgba(255, 255, 255, 0.08); color: #fff; font-size: 22px; cursor: pointer; }
-.rsvp-stepper button:disabled { opacity: 0.35; }
-.rsvp-stepper b { min-width: 44px; text-align: center; font-size: 20px; color: #fff; }
-.rsvp-chips { display: flex; flex-wrap: wrap; gap: 8px; }
-.rsvp-chip { min-height: 40px; padding: 0 14px; border-radius: 99px; border: 1px solid rgba(255, 255, 255, 0.16); background: transparent; color: #ece8e3; font-size: 14px; cursor: pointer; }
-.rsvp-chip.on { border-color: #d9b77c; background: rgba(217, 183, 124, 0.18); color: #fff; }
-.rsvp-note { height: auto; min-height: 64px; padding: 10px 12px; resize: none; font-family: inherit; line-height: 1.4; }
-.rsvp-send { width: 100%; height: 52px; justify-content: center; border-radius: 14px; font-size: 16px; font-weight: 700; gap: 8px; }
-.rsvp-send:disabled { opacity: 0.5; }
-.owner-sheet .rsvp-fine { margin-top: -6px; text-align: center; font-size: 12px; color: rgba(236, 232, 227, 0.5); }
-.rsvp-done { display: grid; justify-items: center; gap: 8px; padding: 12px 0 4px; text-align: center; }
-.rsvp-done h3 { margin: 0; }
-.rsvp-big { font-size: 46px; animation: check-pop 0.4s cubic-bezier(0.2, 0.8, 0.2, 1.4) both; }
-.rsvp-close { margin-top: 8px; height: 46px; padding: 0 22px; border-radius: 14px; }
-.os-rsvp { margin-top: 18px; }
-.os-rsvp-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
-.os-rsvp-grid div { display: grid; justify-items: center; padding: 10px 4px; border-radius: 12px; background: rgba(255, 255, 255, 0.05); }
-.os-rsvp-grid b { font-size: 22px; color: #fff; }
-.os-rsvp-grid span { font-size: 11.5px; color: rgba(236, 232, 227, 0.6); text-align: center; }
-
-/* ---------- buttons inside the scenes, tap moment, quiz (Interactive.tsx) ---------- */
-.scene-acts { position: absolute; z-index: 7; left: 12px; right: 12px; bottom: calc(86px + env(safe-area-inset-bottom)); display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px; pointer-events: none; }
-.scene-acts > * { pointer-events: auto; animation: pop-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-.scene-act { display: inline-flex; align-items: center; gap: 7px; min-height: 42px; padding: 0 16px; border-radius: 99px; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(15, 14, 16, 0.62); color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; cursor: pointer; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); box-shadow: 0 8px 22px -10px rgba(0, 0, 0, 0.6); }
-.scene-count { flex-basis: 100%; text-align: center; color: #fff; font-size: 13px; font-weight: 600; letter-spacing: 0.02em; text-shadow: 0 1px 6px rgba(0, 0, 0, 0.6); pointer-events: none !important; }
-.tap-moment { position: absolute; inset: 0; z-index: 30; overflow: hidden; cursor: pointer; touch-action: manipulation; transition: opacity 0.38s; }
-.tap-moment.gone { opacity: 0; pointer-events: none; }
-/* Centred with margins, not translateX: the pop-in animation sets its own transform and pushed it off to the right. */
-.tm-prompt { z-index: 2; position: absolute; left: 0; right: 0; margin: 0 auto; width: max-content; max-width: calc(100% - 32px); bottom: calc(150px + env(safe-area-inset-bottom)); display: flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 20px; border-radius: 99px; background: rgba(15, 14, 16, 0.72); color: #fff; font-size: 15px; font-weight: 600; text-align: center; pointer-events: none; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: pop-in 0.35s ease both; }
-.tm-hand { display: inline-block; animation: tm-tap 1s ease-in-out infinite; }
-@keyframes tm-tap { 50% { transform: translateY(4px) scale(0.92); } }
-.tm-burst { position: absolute; width: 0; height: 0; pointer-events: none; }
-.tm-burst span { position: absolute; left: 0; top: 0; transform: translate(-50%, -50%); animation: tm-fly 1.3s cubic-bezier(0.15, 0.7, 0.3, 1) forwards; }
-@keyframes tm-fly { 0% { opacity: 1; transform: translate(-50%, -50%) scale(0.3); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)) scale(1); } }
-.tm-skip { position: absolute; right: 14px; bottom: calc(90px + env(safe-area-inset-bottom)); min-height: 38px; padding: 0 14px; border-radius: 99px; border: 1px solid rgba(255, 255, 255, 0.3); background: rgba(15, 14, 16, 0.5); color: #fff; font-size: 13px; font-weight: 600; }
-.quiz-ask { position: absolute; z-index: 30; left: 12px; right: 12px; bottom: calc(84px + env(safe-area-inset-bottom)); max-width: 520px; margin: 0 auto; padding: 14px; border-radius: 20px; background: rgba(15, 14, 16, 0.82); color: #fff; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); box-shadow: 0 20px 50px rgba(0, 0, 0, 0.45); animation: pop-in 0.3s ease both; }
-.qa-title { margin-bottom: 10px; text-align: center; color: #f0d6a6; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
-.qa-opts { display: grid; gap: 8px; }
-.qa-opt { display: flex; align-items: center; gap: 12px; min-height: 50px; padding: 6px 14px 6px 8px; border-radius: 99px; border: 1px solid rgba(255, 255, 255, 0.18); background: rgba(255, 255, 255, 0.06); color: #fff; font-size: 15px; text-align: left; cursor: pointer; }
-.qa-opt b { flex: none; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 50%; background: #d9b77c; color: #1a1410; font-size: 15px; }
-.qa-skip { display: block; margin: 10px auto 0; border: 0; background: none; color: rgba(255, 255, 255, 0.6); font-size: 13px; }
-.qa-result { display: grid; justify-items: center; gap: 4px; padding: 10px 0; text-align: center; }
-.qa-result b { font-size: 20px; }
-.qa-result span { color: rgba(255, 255, 255, 0.75); font-size: 14px; }
-@media (prefers-reduced-motion: reduce) { .tm-hand { animation: none; } .tm-burst span { animation-duration: 0.01s; } }
-
-
-/* The couple's sheet while the invite still has the watermark: paying and nothing else (LiveInvite, OwnerSheet). */
-.os-pay.simple { display: grid; gap: 10px; text-align: center; }
-.os-pay.simple h3 { margin: 0 auto; font-size: 26px; }
-.os-kicker { color: #d9b77c; font-size: 12px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; }
-.os-sub { margin: 0 auto 4px; max-width: 34ch; color: rgba(236, 232, 227, 0.72); font-size: 14px; line-height: 1.45; }
-.os-cta.big { width: 100%; min-height: 56px; justify-content: center; font-size: 17px; font-weight: 700; border-radius: 16px; }
-.os-pay.simple .trust-row { margin-top: 0; }
-.os-pack-link { display: grid; gap: 2px; margin-top: 4px; padding: 10px 12px; border: 1px dashed rgba(217, 183, 124, 0.45); border-radius: 12px; background: none; color: rgba(236, 232, 227, 0.85); font-size: 14px; text-align: center; cursor: pointer; }
-.os-pack-link b { color: #f0d6a6; }
-.os-pack-link small { color: rgba(236, 232, 227, 0.5); font-size: 12px; }
-.os-later { justify-self: center; margin-top: 2px; padding: 6px 10px; border: 0; background: none; color: rgba(236, 232, 227, 0.55); font-size: 13px; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; }
-/* While the envelope opens, the names, date and countdown above it fade away, so the opening flap and the rising card
-   never overlap text (LiveInvite: .cover-opening on the cover). */
-.cover-opening > :not(.env) { animation: cover-text-out 0.5s ease forwards; }
-@keyframes cover-text-out { to { opacity: 0; transform: translateY(-6px); } }
-
-/* Cover: the invite opens by itself after AUTO_OPEN_MS; a soft fill crosses the button as the countdown (LiveInvite). */
-.open-fill { position: absolute; inset: 0; transform: scaleX(0); transform-origin: left center; background: rgba(255, 255, 255, 0.22); }
-.open-btn.counting .open-fill { animation: open-fill var(--open-ms, 3200ms) linear 0.6s forwards; }
-@keyframes open-fill { to { transform: scaleX(1); } }
-/* Music that started silently (auto-opened): one tap turns the sound on. */
-.sound-pill { position: absolute; z-index: 8; top: calc(70px + env(safe-area-inset-top)); left: 0; right: 0; margin: 0 auto; width: max-content; display: flex; align-items: center; gap: 6px; padding: 10px 18px; border: 1px solid rgba(255, 255, 255, 0.25); border-radius: 99px; background: rgba(15, 14, 16, 0.75); color: #fff; font-size: 14px; font-weight: 600; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); animation: pop-in 0.35s ease both; }
-@media (prefers-reduced-motion: reduce) { .open-btn.counting .open-fill { animation: none; } }
-
-/* "Get wedding link": the mobile number step (components/editor/ShareDialog.tsx, 2026-11-23). */
-.gl-phone { display: grid; justify-items: center; text-align: center; }
-.gl-step { font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: var(--accent); }
-.gl-phone h3 { margin: 8px 0 6px; }
-.gl-tel { display: flex; align-items: center; width: 100%; height: 56px; margin-top: 18px; border: 1.5px solid var(--line-2); border-radius: 14px; background: var(--bg); overflow: hidden; transition: border-color 0.2s, box-shadow 0.2s; }
-.gl-tel:focus-within { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(160, 29, 56, 0.12); }
-.gl-tel.bad { border-color: var(--danger); }
-.gl-tel .cc { flex: none; height: 100%; display: grid; place-items: center; padding: 0 14px; border-right: 1.5px solid var(--line); color: var(--muted); font-size: 17px; font-weight: 600; }
-.gl-tel input { flex: 1; min-width: 0; height: 100%; padding: 0 14px; border: 0; outline: none; background: transparent; color: var(--text); font-size: 19px; font-weight: 600; letter-spacing: 0.04em; }
-.gl-note { margin: 8px 0 0; font-size: 13px; color: var(--muted); line-height: 1.45; }
-.gl-note.bad { color: var(--danger); }
-.gl-phone .gl-open { margin-top: 16px; }
-
-/* The couple's 30-second watermark-free preview (LiveInvite.tsx, PREVIEW_S): a countdown under the story bar. */
-.preview-pill { position: absolute; z-index: 7; top: calc(22px + env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px 7px 8px; border-radius: 99px; background: rgba(0, 0, 0, 0.5); -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); color: #fff; font: 600 13px/1 var(--ui, system-ui), system-ui, sans-serif; white-space: nowrap; pointer-events: none; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); }
-.preview-pill b { font-variant-numeric: tabular-nums; color: #f3d38f; }
-.pp-ring { width: 18px; height: 18px; border-radius: 50%; background: conic-gradient(#f3d38f calc(var(--pp, 1) * 360deg), rgba(255, 255, 255, 0.22) 0); -webkit-mask: radial-gradient(circle, transparent 5px, #000 5.5px); mask: radial-gradient(circle, transparent 5px, #000 5.5px); transition: background 0.3s; }
-
-/* Wedding guides (/guides, app/guides): article pages on the policy-page frame (.legal-body), 2026-11-23. */
-.guide .crumbs { margin-bottom: 18px; }
-.guide .legal-meta { margin-top: 12px; line-height: 1.7; }
-.guide h2 { scroll-margin-top: 90px; }
-.guide ol { padding-left: 22px; }
-.guide ol li { margin: 6px 0; color: var(--ink-soft); }
-.guide-lead { font-size: 17.5px; line-height: 1.6; color: var(--text) !important; }
-.guide-toc { margin: 22px 0 8px; padding: 14px 18px; border: 1px solid var(--line); border-radius: 14px; background: var(--panel); }
-.guide-toc > span { font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-.guide-toc ol { margin: 8px 0 0; padding-left: 0; list-style: none; }
-.guide-toc li { margin: 4px 0; }
-.guide-toc a { text-decoration: none; }
-.guide-sample { margin: 14px 0; padding: 14px 18px; border-left: 3px solid var(--accent); border-radius: 0 12px 12px 0; background: #fff; box-shadow: 0 1px 0 var(--line); }
-.guide-sample figcaption { margin-bottom: 6px; font-family: var(--mono); font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
-.guide-sample p { margin: 0; white-space: pre-line; color: var(--text) !important; font-size: 15.5px; line-height: 1.6; }
-.guide-tip { margin: 14px 0; padding: 12px 16px; border-radius: 12px; background: rgba(160, 29, 56, 0.06); }
-.guide-tip b { margin-right: 6px; color: var(--accent); }
-.guide-cta { margin: 40px 0 0; padding: 20px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
-.guide-cta b { font-family: var(--display); font-size: 21px; }
-.guide-cta p { margin: 6px 0 14px; }
-.guide-cta .cta-btn { display: inline-flex; text-decoration: none; color: #fff; }
-.guide-related { margin-top: 28px; }
-.guide-related ul { padding-left: 20px; }
-.guide-list { display: grid; gap: 12px; margin-top: 24px; }
-.guide-card { display: grid; gap: 6px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 14px; background: #fff; color: var(--text) !important; text-decoration: none; transition: border-color 0.2s; }
-.guide-card:hover { border-color: var(--accent); }
-.guide-card b { font-family: var(--display); font-size: 19px; line-height: 1.25; }
-.guide-card span { color: var(--ink-soft); font-size: 14.5px; line-height: 1.5; }
-.guide-card small { color: var(--muted); font-size: 12.5px; }
-.guide-more { margin-top: 22px; }
-@media (min-width: 861px) { .guide-list { grid-template-columns: 1fr 1fr; } }

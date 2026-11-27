@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PAYMENTS } from "@/lib/features";
-import { priceForLink } from "@/lib/pricing";
-import { amountDue, getLiveProject, getShare } from "@/lib/server/share";
+import { getLiveProject, getShare, isPaid } from "@/lib/server/share";
 import { SITE_URL } from "@/lib/site";
 import { LiveInvite } from "./LiveInvite";
 import { BRAND } from "@/lib/brand";
@@ -12,8 +11,7 @@ import { ShareButtons } from "./ShareButtons";
    are in the HTML and WhatsApp/Telegram show a preview card.
    Live shares play the animation in the browser; video shares play the MP4.
 
-   A share changes only when its owner republishes it or pays (both revalidate
-   this path), so each page is rendered on its
+   A share never changes after it is created, so each page is rendered on its
    first visit and then served from the cache (on-demand ISR): the other few
    hundred guests get it from the CDN without running any server code.
    Nothing here may read headers/cookies, or the page turns dynamic again.
@@ -37,7 +35,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   const abs = absFor(s.kind === "live" ? s : {});
   if (s.kind === "live") {
     // Versioned, so the card can never be a copy cached before this share existed (see ./card/route.tsx).
-    const images = [{ url: abs("/e/" + s.token + "/card?v=" + (s.updatedAt ?? s.createdAt)), width: 1200, height: 630, alt: s.title }];
+    const images = [{ url: abs("/e/" + s.token + "/card?v=" + s.createdAt), width: 1200, height: 630, alt: s.title }];
     return { ...base, openGraph: { title: s.title, description: DESCRIPTION, type: "website", images }, twitter: { card: "summary_large_image", images } };
   }
   const video = abs("/api/share/" + s.token + "/video");
@@ -49,15 +47,11 @@ export default async function WatchPage({ params }: { params: { slug: string } }
   if (!s) notFound();
 
   if (s.kind === "live") {
-    // A storage error throws (an error page that is not cached); only a missing project is "not found".
-    const project = await getLiveProject(s.token);
+    const project = await getLiveProject(s.token).catch(() => null);
     if (!project) notFound();
     // Free links carry a watermark while paid links are on; paying revalidates this page (api/pay/verify).
-    // What is still due is the design's price (lib/pricing.ts) minus what was paid; free designs never have one.
-    // priceForLink: a link made while its design was free stays free (lib/pricing.ts, FREE_UNTIL).
-    const price = priceForLink(project.templateId, s);
-    const due = PAYMENTS ? await amountDue(s.token, price) : 0;
-    return <LiveInvite project={project} title={s.title} name={s.token} watermark={due > 0} price={due} free={PAYMENTS && price === 0} />;
+    const watermark = PAYMENTS && !(await isPaid(s.token));
+    return <LiveInvite project={project} title={s.title} name={s.token} watermark={watermark} />;
   }
 
   const video = "/api/share/" + s.token + "/video";

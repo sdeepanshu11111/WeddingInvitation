@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
-import { pageMeta } from "@/lib/seo";
-import { PACK_COVERS, PRICE_MIN, PRICE_RANGE } from "@/lib/pricing";
+import { LINK_PRICE_INR } from "@/lib/features";
 import { LEGAL, OPERATOR } from "@/lib/legal";
 
-export const metadata: Metadata = pageMeta("Terms of Service · " + BRAND, `The terms for using ${BRAND} invitation links and the Premium plan.`, "/terms");
+export const metadata: Metadata = { title: "Terms of Service · " + BRAND, description: `The terms for using ${BRAND} invitation links and the Premium plan.` };
 
 export default function Terms() {
   const mail = <a href={"mailto:" + LEGAL.email}>{LEGAL.email}</a>;
@@ -23,9 +22,8 @@ export default function Terms() {
       <h2>1. The service</h2>
       <p>
         {BRAND} lets you choose an animated invitation template, add your details, photos, video and music, and share it with guests as a web link that
-        plays in their browser. Creating and sharing a link is free and needs your mobile number. On the device you made it on, you first watch your new
-        invitation without the watermark for 30 seconds of playing time; after that, and always for your guests, an unpaid link shows a
-        &ldquo;{BRAND} · Preview&rdquo; watermark. The Premium plan removes the watermark from one invitation link. You do not need an account.
+        plays in their browser. Creating and sharing a link is free; free links show a &ldquo;{BRAND} · Preview&rdquo; watermark. The Premium plan removes
+        the watermark from one invitation link. You do not need an account.
       </p>
 
       <h2>2. Who can use it</h2>
@@ -67,18 +65,15 @@ export default function Terms() {
       <h2>5. Share links are public to anyone with the link</h2>
       <p>
         Anyone who has your invitation link can open it and forward it. Links are not listed publicly, but link names can be guessed. Do not include
-        information you want to keep private. Each link name is first come, first served; you can change your invitation later by editing
-        it and getting the link again in the same browser you made it in, which updates that same link for everyone who has it. From any other
-        browser or device, or after clearing that browser&rsquo;s data, a change means creating a new link.
+        information you want to keep private. Each link name is first come, first served; once created, a link&rsquo;s content cannot be edited, so
+        create a new link if something needs to change.
       </p>
 
       <h2>6. Premium plan and payment</h2>
       <ul>
         <li>
-          Premium is paid once per invitation link: {PRICE_RANGE} for every link created from 23 November 2026, whatever the design. A link created
-          before then keeps the price its design had when the link was made. The price is shown on your invitation before you pay. That is the full
-          price: we are not registered for GST, so no GST is added. There is no subscription and nothing renews automatically. The price may change for
-          future purchases.
+          Premium costs ₹{LINK_PRICE_INR} per invitation link, paid once. That is the full price: we are not registered for GST, so no GST is
+          added. There is no subscription and nothing renews automatically. The price is shown before you pay and may change for future purchases.
         </li>
         <li>
           Payments are processed by Razorpay, using cards, UPI, net banking or wallets. Razorpay&rsquo;s terms also apply to the payment. We never see your
@@ -86,15 +81,6 @@ export default function Terms() {
         </li>
         <li>
           The watermark is removed from that link as soon as the payment is confirmed, usually within seconds. One payment applies to one link only.
-        </li>
-        <li>
-          <b>Wedding pack</b> (no longer sold since 23 November 2026): a pack bought before then still removes the watermark from every invitation link
-          made on the same device for the same couple&rsquo;s names, including ones made later, each covered up to ₹{PACK_COVERS}. It does not carry
-          over to another device or to another couple.
-        </li>
-        <li>
-          After a paid invitation has finished playing, its last screen (with the date, directions and RSVP buttons) shows a small &ldquo;Made with{" "}
-          {BRAND}&rdquo; link. The invitation itself carries no watermark or branding.
         </li>
         <li>
           Cancellations and refunds are covered by our <Link href="/refunds">Refund &amp; Cancellation Policy</Link>.
@@ -118,7 +104,7 @@ export default function Terms() {
       <p>
         To the extent the law allows, we are not liable for indirect or consequential losses, such as loss of data, a missed event or a guest not seeing
         an invitation. Our total liability for any claim about the service is limited to the amount you paid us for the invitation concerned, or ₹
-        {PRICE_MIN} if you paid nothing. Nothing in these terms limits rights you have under the Consumer Protection Act, 2019.
+        {LINK_PRICE_INR} if you paid nothing. Nothing in these terms limits rights you have under the Consumer Protection Act, 2019.
       </p>
 
       <h2>10. Indemnity</h2>

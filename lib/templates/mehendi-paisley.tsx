@@ -2,7 +2,7 @@ import React from "react";
 import type { Scene, TemplateDef } from "../types";
 import { fade, rise } from "../anim";
 import { DiamondRule, Layer, Particles } from "@/components/primitives";
-import { DateBlock, Headline, Kicker, Names, PhotoCircle, VenueBlock, fitSize } from "@/components/blocks";
+import { DateBlock, Headline, Kicker, Names, PhotoCircle, VenueBlock } from "@/components/blocks";
 import { HennaRing, Paisley } from "@/components/indian";
 
 /* Mehendi — henna green & gold, paisleys that draw themselves, handwritten Hindi. */
@@ -23,13 +23,12 @@ export const mehendiPaisley: TemplateDef = {
     { id: "mint", name: "Mint & Henna", ink: "#2F4A3A", soft: "#557562", accent: "#A2541A", bg: "#EAF5EC", bg2: "#D3EBD8", line: "#7BA889" },
     { id: "fuchsia", name: "Fuchsia", ink: "#FFF0F6", soft: "#F7C6DA", accent: "#FFD166", bg: "#9C1C5B", bg2: "#5E0B35", line: "#FFC2D9" },
   ],
-  thumb: (p, label) => (
-    <div style={{ width: "100%", height: "100%", background: "radial-gradient(circle at 50% 40%," + p.bg + "," + p.bg2 + ")", display: "grid", placeItems: "center", position: "relative" }}>
+  thumb: (p) => (
+    <div style={{ width: "100%", height: "100%", background: "radial-gradient(circle at 50% 40%," + p.bg + "," + p.bg2 + ")", display: "grid", placeItems: "center" }}>
       <svg width="40" height="40" viewBox="0 0 100 100">
         <path d="M50 94 C 22 94 8 72 13 50 C 18 28 40 14 61 17 C 82 20 90 40 77 49 C 68 55 59 47 64 40" fill="none" stroke={p.accent} strokeWidth="5" />
         <circle cx="42" cy="62" r="8" fill="none" stroke={p.accent} strokeWidth="4" />
       </svg>
-      {label ? <span style={{ position: "absolute", bottom: 8, left: 0, right: 0, textAlign: "center", fontFamily: label.font, color: p.accent, fontSize: 12, lineHeight: 1.3 }}>{label.text}</span> : null}
     </div>
   ),
   groups: [
@@ -139,7 +138,7 @@ export const mehendiPaisley: TemplateDef = {
                 <Kicker t={t} theme={theme} v={v} start={800} size={34}>
                   {data.kicker}
                 </Kicker>
-                <Headline t={t} theme={theme} v={v} start={1100} size={fitSize(theme, data.title, S(220, 210), S(820, 1200))} font={theme.fontScript} color={theme.accent} lineHeight={1.3} dur={1600}>
+                <Headline t={t} theme={theme} v={v} start={1100} size={S(220, 210)} font={theme.fontScript} color={theme.accent} lineHeight={1.3} dur={1600}>
                   {data.title}
                 </Headline>
                 {data.localTitle ? (

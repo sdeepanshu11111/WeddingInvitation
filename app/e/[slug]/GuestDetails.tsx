@@ -3,11 +3,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import type { Project } from "@/lib/types";
 import { countdownText, daysUntil, googleCalendarUrl, inviteDetails, mapsUrl, type InviteEvent } from "@/lib/inviteDetails";
 import { track } from "@/lib/analytics";
-import { replyByText, rsvpSetup } from "@/lib/rsvp";
-import { RsvpButtons } from "./Rsvp";
+import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 
 /* The card a guest sees when the invite ends: each function with "Add to calendar" and "Directions", an
-   RSVP (lib/rsvp.ts: WhatsApp buttons or the RSVP form, as the couple chose), a countdown, and "Watch again".
+   "RSVP on WhatsApp" button when the family put a number on the invite, a countdown, and "Watch again".
    Everything comes from the invite's own fields (lib/inviteDetails.ts). */
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -36,11 +35,8 @@ const PinIcon = () => (
   </svg>
 );
 
-export function GuestDetails({ project, title, name, onReplay, onRsvp }: { project: Project; title: string; name?: string; onReplay: () => void; onRsvp: () => void }) {
-  const { events } = useMemo(() => inviteDetails(project.templateId, project.data, project.sample), [project]);
-  const rsvp = useMemo(() => rsvpSetup(project), [project]);
-  const [byText, setByText] = useState("");
-  useEffect(() => setByText(replyByText(rsvp?.by)), [rsvp]);
+export function GuestDetails({ project, title, name, onReplay }: { project: Project; title: string; name?: string; onReplay: () => void }) {
+  const { events, rsvp } = useMemo(() => inviteDetails(project.templateId, project.data), [project]);
   const [ios, setIos] = useState(false);
   const [link, setLink] = useState("");
   const [small, setSmall] = useState(false); // tucked away, so the last scene can be read
@@ -53,19 +49,15 @@ export function GuestDetails({ project, title, name, onReplay, onRsvp }: { proje
   const next = events.find((e) => daysUntil(e.date) >= 0);
   const countdown = next ? countdownText(daysUntil(next.date)) : "";
   const calHref = (i: number) => (ios && name ? "/e/" + name + "/calendar.ics" : googleCalendarUrl(events[i], title, link));
+  const rsvpHref = rsvp
+    ? "https://wa.me/" + rsvp.phone + "?text=" + encodeURIComponent("Namaste! 🙏 Thank you for the invitation" + (next ? " for " + next.name + " on " + when(next).split(" · ")[0] : "") + ". We'll be there!")
+    : "";
 
-  // Tucked away: the details pill, and Watch again beside it (owner, 2026-11-23: with the card closed there was no
-  // way to replay the invite).
   if (small)
     return (
-      <div className="gd-mini" onClick={(e) => e.stopPropagation()}>
-        <button className="gd-pill" onClick={() => setSmall(false)}>
-          <CalIcon /> Event details{rsvp ? " & RSVP" : ""}
-        </button>
-        <button className="gd-pill" onClick={onReplay}>
-          ↻ Watch again
-        </button>
-      </div>
+      <button className="gd-pill" onClick={() => setSmall(false)}>
+        <CalIcon /> Event details{rsvp ? " & RSVP" : ""}
+      </button>
     );
   return (
     <div className="gd" onClick={(e) => e.stopPropagation()}>
@@ -101,9 +93,12 @@ export function GuestDetails({ project, title, name, onReplay, onRsvp }: { proje
           ))}
         </div>
       ) : null}
-      {byText ? <div className="gd-by">{byText}</div> : null}
       <div className="gd-foot">
-        {rsvp ? <RsvpButtons setup={rsvp} name={name} next={next} when={next ? when(next).split(" · ")[0] : undefined} onForm={onRsvp} /> : null}
+        {rsvp ? (
+          <a className="btn wa gd-rsvp" href={rsvpHref} target="_blank" rel="noopener" onClick={() => track("guest_action_clicked", { action: "rsvp" })}>
+            <WhatsAppIcon size={18} /> RSVP{rsvp.who ? " to " + rsvp.who : " on WhatsApp"}
+          </a>
+        ) : null}
         <button className="btn gd-replay" onClick={onReplay}>
           ↻ Watch again
         </button>

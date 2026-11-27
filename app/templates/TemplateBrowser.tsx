@@ -1,74 +1,40 @@
 "use client";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
-import { StatePicker, useRegion } from "@/components/site/StatePicker";
 import { TemplateCard } from "@/components/site/TemplateCard";
 import { CATEGORIES, COMMUNITIES, countIn, filterTemplates, type Filter } from "@/lib/catalog";
-import { PAYMENTS } from "@/lib/features";
-import { functionPath, statePath } from "@/lib/landing";
-import { forRegion, regionById } from "@/lib/regions";
-import { DESIGNS, TEMPLATES } from "@/lib/templates";
-import { ritualList } from "@/lib/templates/languages";
+import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
+import { TEMPLATES } from "@/lib/templates";
 import type { Orientation } from "@/lib/types";
 
-/** /templates: breadcrumb + title for the chosen function or state, the state picker, a "Refine" sidebar (chips on
-    phones), live cards. A picked state lists its own designs first under their language, then the rest. */
-/** landing: on a function's or a state's own page (app/invitations, app/wedding-invitations): the page's state wins
-    over this device's earlier pick, and the address stays the page's own (no ?category= / ?state= written into it). */
-export function TemplateBrowser({ initial, initialState = null, landing = false }: { initial: Partial<Filter>; initialState?: string | null; landing?: boolean }) {
+/** /templates: breadcrumb + title for the chosen function, a "Refine" sidebar (chips on phones), live cards. */
+export function TemplateBrowser({ initial }: { initial: Partial<Filter> }) {
   const [f, setF] = useState<Filter>({ category: "all", community: "all", q: "", ...initial });
   const [o, setO] = useState<Orientation>("vertical");
-  const st = useRegion(regionById(initialState), landing);
-  const { own, rest } = forRegion(filterTemplates(TEMPLATES, f), st.region, st.picked, !!f.q.trim());
-  const count = own.length + rest.length;
+  const list = filterTemplates(TEMPLATES, f);
   const cat = CATEGORIES.find((c) => c.id === f.category);
-  const state = st.picked ? st.region : null; // a guessed state only reorders: no title, no headings
 
-  // Keep the function and a picked state in the URL so the page can be shared and Back works as expected.
+  // Keep the function in the URL so the page can be shared and Back works as expected.
   useEffect(() => {
-    if (landing) return;
     const u = new URL(window.location.href);
     if (f.category === "all") u.searchParams.delete("category");
     else u.searchParams.set("category", f.category);
-    if (state) u.searchParams.set("state", state.id);
-    else u.searchParams.delete("state");
     window.history.replaceState(null, "", u.pathname + u.search);
-  }, [f.category, state, landing]);
+  }, [f.category]);
 
   const set = (patch: Partial<Filter>) => setF((x) => ({ ...x, ...patch }));
-  const cards = (list: typeof rest) => (
-    <div className={"t-grid" + (o === "horizontal" ? " wide" : "")}>
-      {list.map((t) => (
-        <TemplateCard key={t.id + o} t={t} orientation={o} />
-      ))}
-    </div>
-  );
 
   return (
     <main className="browse-page">
       <section className="page-head">
         <nav className="crumbs mono-label" aria-label="Breadcrumb">
           <Link href="/">Home</Link> / <Link href="/templates">Designs</Link>
-          {cat ? (
-            <>
-              {" "}
-              / <Link href={functionPath(cat.id)}>{cat.label}</Link>
-            </>
-          ) : state ? (
-            <>
-              {" "}
-              / <Link href={statePath(state.id)}>{state.label}</Link>
-            </>
-          ) : null}
+          {cat ? <> / {cat.label}</> : null}
         </nav>
         <h1>
           {cat ? (
             <>
               {cat.label} <em>invitations</em>
-            </>
-          ) : state ? (
-            <>
-              {state.language} <em>wedding invitations</em>
             </>
           ) : (
             <>
@@ -79,17 +45,14 @@ export function TemplateBrowser({ initial, initialState = null, landing = false 
         <p className="lead">
           {cat
             ? cat.blurb + ". Tap a design to watch it with your names."
-            : state
-              ? state.language + " invitations for " + ritualList(state.designs) + ", written in " + state.language + " for families in " + state.label + ". Tap a design to watch it with your names."
-              : "Animated invitations for the wedding and every function around it. Tap a design to watch it with your names."}
+            : "Animated invitations for the wedding and every function around it. Tap a design to watch it with your names."}
         </p>
         <div className="facts">
           <span>✓ Preview free</span>
           <span>✓ Phone and TV</span>
           <span>✓ Ready in minutes</span>
-          {PAYMENTS ? <span>✓ Watch it before you pay</span> : null}
+          {PAYMENTS ? <span>₹{LINK_PRICE_INR} one time to remove the watermark</span> : null}
         </div>
-        <StatePicker region={st.region} picked={st.picked} lead={st.lead} onPick={st.pick} />
       </section>
 
       <section className="browse-grid">
@@ -107,7 +70,7 @@ export function TemplateBrowser({ initial, initialState = null, landing = false 
           <div className="r-list">
             {(["all", ...CATEGORIES.map((c) => c.id)] as Filter["category"][]).map((id) => {
               const c = CATEGORIES.find((x) => x.id === id);
-              const n = countIn(DESIGNS, id);
+              const n = countIn(TEMPLATES, id);
               return (
                 <button key={id} className={"r-item" + (f.category === id ? " on" : "")} onClick={() => set({ category: id })} disabled={!n}>
                   <span>
@@ -143,7 +106,7 @@ export function TemplateBrowser({ initial, initialState = null, landing = false 
         <div className="results">
           <div className="m-filters">
             {(["all", ...CATEGORIES.map((c) => c.id)] as Filter["category"][])
-              .filter((id) => countIn(DESIGNS, id) > 0)
+              .filter((id) => countIn(TEMPLATES, id) > 0)
               .map((id) => (
                 <button key={id} className={"chip-o" + (f.category === id ? " on" : "")} onClick={() => set({ category: id })}>
                   {id === "all" ? "All" : CATEGORIES.find((c) => c.id === id)!.label}
@@ -152,7 +115,7 @@ export function TemplateBrowser({ initial, initialState = null, landing = false 
           </div>
           <div className="results-bar">
             <span className="mono-label">
-              {count} {count === 1 ? "design" : "designs"}
+              {list.length} {list.length === 1 ? "design" : "designs"}
             </span>
             {f.q || f.community !== "all" ? (
               <button className="text-link" onClick={() => set({ q: "", community: "all" })}>
@@ -160,21 +123,12 @@ export function TemplateBrowser({ initial, initialState = null, landing = false 
               </button>
             ) : null}
           </div>
-          {state && own.length ? (
-            <>
-              <h2 className="group-h mono-label">In {state.language}</h2>
-              {cards(own)}
-              {rest.length ? <h2 className="group-h mono-label">More designs</h2> : null}
-              {cards(rest)}
-            </>
-          ) : (
-            cards([...own, ...rest])
-          )}
-          {!count ? (
-            <div className="t-grid">
-              <p className="empty">No designs match. Try another function or state, or clear the search.</p>
-            </div>
-          ) : null}
+          <div className={"t-grid" + (o === "horizontal" ? " wide" : "")}>
+            {list.map((t) => (
+              <TemplateCard key={t.id + o} t={t} orientation={o} />
+            ))}
+            {!list.length ? <p className="empty">No designs match. Try another function or clear the search.</p> : null}
+          </div>
         </div>
       </section>
     </main>

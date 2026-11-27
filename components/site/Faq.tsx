@@ -1,28 +1,15 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { LEADS, PAYMENTS, VIDEO_EXPORT } from "@/lib/features";
+import { LEADS, LINK_PRICE_INR, PAYMENTS, VIDEO_EXPORT } from "@/lib/features";
 
-/** text: the answer as plain words, for search engines (FAQ structured data, faqJsonLd). Needed when `a` is not a string. */
-export type QA = { q: string; a: ReactNode; text?: string };
-
-/** schema.org FAQPage for a list of questions: search engines and AI assistants read the answers from it. */
-export function faqJsonLd(items: QA[]) {
-  return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: items
-      .map((x) => ({ q: x.q, text: x.text ?? (typeof x.a === "string" ? x.a : "") }))
-      .filter((x) => x.text)
-      .map((x) => ({ "@type": "Question", name: x.q, acceptedAnswer: { "@type": "Answer", text: x.text } })),
-  };
-}
+export type QA = { q: string; a: ReactNode };
 
 /** Answers describe what the app really does today (flags included), so they stay true as features switch on. */
 export function faqItems(): QA[] {
   const items: QA[] = [
     {
       q: "How long does it take?",
-      a: "About two minutes. Choose a design, type the names, date and venue, and the preview updates as you type. Your link is ready the moment you press Get wedding link.",
+      a: "About two minutes. Choose a design, type the names, date and venue, and the preview updates as you type. Your link is ready the moment you press Get link.",
     },
     {
       q: "Do guests need an app?",
@@ -30,15 +17,7 @@ export function faqItems(): QA[] {
     },
     {
       q: "Can I change it after sharing?",
-      a: "Yes. Edit it in the studio on the same phone or computer you made it on and press Get wedding link again: the same link updates for everyone who has it, and a paid invite stays paid. From another device, the change goes on a new link.",
-    },
-    {
-      q: "What can guests do on the invitation?",
-      a: "More than watch it. They tap to shower you with flowers, answer a question about the two of you and send blessings. When it ends they can add every function to their calendar and open directions to the venue. You can switch each of these off.",
-    },
-    {
-      q: "Can guests RSVP?",
-      a: "Yes. Choose a WhatsApp button, or a short RSVP form where guests say if they are coming, how many and for which functions (food preference too, if you ask). The reply goes straight to your WhatsApp or a family member's, and with the form your invite shows you how many have said yes. We don't keep their names or answers.",
+      a: "Each link is a snapshot of your invitation. To change something, edit it in the studio and create a new link. Check the free preview first, so you only upgrade the final version.",
     },
     {
       q: "Which communities and languages?",
@@ -47,21 +26,18 @@ export function faqItems(): QA[] {
   ];
   if (VIDEO_EXPORT)
     items.push({ q: "Can I download an MP4?", a: "Yes. Export a real MP4 in 9:16 for Reels and WhatsApp Status or 16:9 for YouTube and TV, at 720p, 1080p or 4K." });
-  if (LEADS || PAYMENTS)
+  if (LEADS)
     items.push({
-      q: "Why do you ask for my mobile number?",
-      a: "Your wedding link is made with it, so we can help you with your invitation if something goes wrong and remind you about it. We never sell or share it, and we stop as soon as you reply STOP.",
+      q: "Do I have to give my WhatsApp number or email?",
+      a: "It is optional: your link works without it. If you add one, we use it only to help you with your invitation and remind you about it. We never sell or share your details, and we stop as soon as you reply STOP.",
     });
   if (PAYMENTS)
     items.push({
-      q: "Is it free? And can I get a refund?",
-      text:
-        "Making your invitation and getting your wedding link is free. You watch it without the watermark first; after that the watermark comes on, and a one-time payment removes it from that link, instantly, at the same address your guests already have. If you pay and the watermark stays, we fix it or refund you.",
+      q: "What does Premium include, and can I get a refund?",
       a: (
         <>
-          Making your invitation and getting your wedding link is free. You watch it without the watermark first; after that the watermark comes on,
-          and a one-time payment removes it from that link, instantly, at the same address your guests already have. If you pay and the watermark
-          stays, we fix it or refund you. Details in our <Link href="/refunds">refund policy</Link>.
+          A one-time ₹{LINK_PRICE_INR} per invitation removes the watermark from that link, instantly, at the same address your guests already
+          have. If you pay and the watermark stays, we fix it or refund you. Details in our <Link href="/refunds">refund policy</Link>.
         </>
       ),
     });

@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-import { functionPath, statePath } from "@/lib/landing";
 import React, { useEffect, useRef, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { useDemoTimeline } from "@/components/LivePreview";
@@ -13,11 +12,9 @@ import { TemplateCard, templateKind } from "@/components/site/TemplateCard";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
 import { fmt } from "@/lib/anim";
 import { sceneForField } from "@/lib/fieldScene";
-import { PAYMENTS } from "@/lib/features";
+import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
 import { SIZES, type StartNames } from "@/lib/project";
-import { languageOptions, useChosenInView } from "@/components/LanguagePicker";
-import { REGIONS } from "@/lib/regions";
-import { DESIGNS, TEMPLATES, getTemplate } from "@/lib/templates";
+import { TEMPLATES, getTemplate } from "@/lib/templates";
 import type { Orientation, TemplateDef } from "@/lib/types";
 
 const HOLD_MS = 2600; // after a keystroke the preview stays on the names scene this long
@@ -34,17 +31,11 @@ export function TemplateDetail({ id }: { id: string }) {
   const cats = t.categories.map((c) => CATEGORIES.find((x) => x.id === c)?.label).filter(Boolean);
   const coms = t.communities.map((c) => COMMUNITIES.find((x) => x.id === c)?.label).filter(Boolean);
   const fields = t.groups.flatMap((g) => g.fields);
-  // A language version belongs to its state: more from that state, and the breadcrumb leads back to its page.
-  const region = t.variantOf ? REGIONS.find((r) => r.designs.includes(t.id)) : undefined;
-  const similar = region
-    ? region.designs.filter((x) => x !== t.id).map((x) => TEMPLATES.find((y) => y.id === x)!).filter(Boolean).slice(0, 4)
-    : DESIGNS.filter((x) => x.id !== t.id)
-        .map((x) => ({ x, score: x.categories.filter((c) => t.categories.includes(c)).length * 2 + x.communities.filter((c) => t.communities.includes(c)).length }))
-        .sort((a, b) => b.score - a.score)
-        .slice(0, 4)
-        .map((s) => s.x);
-  const languages = languageOptions(t.id);
-  const langRow = useChosenInView(t.id);
+  const similar = TEMPLATES.filter((x) => x.id !== t.id)
+    .map((x) => ({ x, score: x.categories.filter((c) => t.categories.includes(c)).length * 2 + x.communities.filter((c) => t.communities.includes(c)).length }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
+    .map((s) => s.x);
   const create = "/create?template=" + t.id + "&palette=" + pal + "&o=" + o;
   const p = t.palettes.find((x) => x.id === pal) ?? t.palettes[0];
 
@@ -53,7 +44,7 @@ export function TemplateDetail({ id }: { id: string }) {
       <nav className="crumbs" aria-label="Breadcrumb">
         <Link href="/templates">← All designs</Link>
         <span aria-hidden> / </span>
-        {region ? <Link href={statePath(region.id)}>{region.label}</Link> : <Link href={functionPath(t.categories[0])}>{cats[0]}</Link>}
+        <Link href={"/templates?category=" + t.categories[0]}>{cats[0]}</Link>
       </nav>
 
       <section className="detail">
@@ -84,18 +75,6 @@ export function TemplateDetail({ id }: { id: string }) {
             </div>
           </div>
           <PalettePicker palettes={t.palettes} value={pal} onChange={setPal} />
-          {languages.length ? (
-            <nav className="detail-langs" aria-label="This design in other languages">
-              <span className="opt-label">Language</span>
-              <div className="lang-opts" ref={langRow}>
-                {languages.map((x) => (
-                  <Link key={x.id} href={"/templates/" + x.id} prefetch={false} lang={x.lang} className={"lang-opt" + (x.id === t.id ? " on" : "")} aria-current={x.id === t.id ? "page" : undefined}>
-                    {x.label}
-                  </Link>
-                ))}
-              </div>
-            </nav>
-          ) : null}
         </div>
 
         <div className="detail-copy">
@@ -125,12 +104,11 @@ export function TemplateDetail({ id }: { id: string }) {
             </div>
             {PAYMENTS ? (
               <div>
-                <b>Watch it first</b>
-                <span>without the watermark, before you pay</span>
+                <b>₹{LINK_PRICE_INR}</b>
+                <span>one time, removes the watermark</span>
               </div>
             ) : null}
           </div>
-
 
           <div className="editable">
             <span className="opt-label">What you can change</span>
@@ -180,7 +158,7 @@ export function TemplateDetail({ id }: { id: string }) {
             <span className="step-n">3</span>
             <h3>Send</h3>
             <p>
-              Post the link on WhatsApp.{PAYMENTS ? " Watch it without the watermark first; remove it once, on the same link, when you love it." : ""}
+              Post the link on WhatsApp.{PAYMENTS ? " Remove the watermark for ₹" + LINK_PRICE_INR + " whenever you're ready, on the same link." : ""}
             </p>
           </article>
         </div>

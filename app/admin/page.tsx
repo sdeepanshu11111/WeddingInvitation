@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** /admin → every invite link (/admin/links); contact details are on /admin/leads. */
+/** /admin → the leads list (the only admin page so far). */
 export default function Admin() {
-  redirect("/admin/links");
+  redirect("/admin/leads");
 }

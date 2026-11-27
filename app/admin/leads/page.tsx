@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { BRAND } from "@/lib/brand";
-import { LEADS, PAYMENTS } from "@/lib/features";
-import { CONTACT_NOTICE, CONTACT_NOTICE_LINK, formatPhone } from "@/lib/contact";
+import { LEADS, LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
+import { formatPhone } from "@/lib/contact";
 import { type Lead, listLeads } from "@/lib/server/leads";
 import { SITE_URL } from "@/lib/site";
 import { LeadActions } from "./LeadActions";
@@ -17,28 +17,16 @@ export const metadata: Metadata = { title: "Leads · " + BRAND, robots: { index:
 const when = (iso: string) =>
   new Date(iso).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
-/** Where the details came from: the required number at Get wedding link (since 2026-11-23), the optional box on the
-    couple's invite, or only the payment form. */
-const origin = (l: Lead) =>
-  l.consent === CONTACT_NOTICE_LINK ? "Given at Get wedding link" : l.consent === CONTACT_NOTICE ? "Left on their invite" : l.pay_phone || l.pay_email ? "From the payment" : l.consent ? "Given at Get link (before Oct 21)" : null;
-
 /** The message the WhatsApp and Email buttons start with. */
 function message(l: Lead, url: string) {
   const invite = l.title ? `invitation "${l.title}"` : "invitation";
   if (l.paid_inr != null)
-    return (
-      `Hi! This is ${BRAND} 🙏 Thank you for going Premium. Your ${invite} is live without the watermark: ${url}\n\n` +
-      `Inviting for your other functions too (Haldi, Mehendi, Sangeet, Reception)? Open your invite on the phone you made it on and tap Share: ` +
-      `each one is ready in a minute with your names already in, on a link of its own.\n\n` +
-      `If your family liked it, a quick rating would help other couples: open your invite on that phone, tap your bar at the bottom ` +
-      `and choose the stars.\n\nIf anything isn't working, just reply here.`
-    );
+    return `Hi! This is ${BRAND} 🙏 Thank you for going Premium. Your ${invite} is live without the watermark: ${url}\n\nIf anything isn't working, just reply here.`;
   if (!PAYMENTS) return `Hi! This is ${BRAND} 🙏 Thanks for making your ${invite}: ${url}\n\nNeed any help with it? Just reply here.`;
   return (
     `Hi! This is ${BRAND} 🙏 Thanks for making your ${invite}: ${url}\n\n` +
-    `Right now your guests will see a "Preview" watermark on it. To remove it, open your link and tap "Remove watermark" at the bottom. ` +
-    `Same link, nothing to resend.\n\nHow did it turn out? You can rate it in the same place, it helps other couples.\n\n` +
-    `Any questions? Just reply. (Reply STOP and we won't message you again.)`
+    `Right now your guests will see a "Preview" watermark on it. To remove it, open your link and tap "Pay ₹${LINK_PRICE_INR}" at the bottom. ` +
+    `Same link, nothing to resend.\n\nAny questions? Just reply. (Reply STOP and we won't message you again.)`
   );
 }
 
@@ -96,7 +84,6 @@ export default async function Leads({ searchParams }: { searchParams: { show?: s
                   {num ? <span>{formatPhone(num)}</span> : null}
                   {mail ? <span>{mail}</span> : null}
                   {!num && !mail ? <span className="dim">No contact details</span> : null}
-                  {origin(l) ? <span className="dim">{origin(l)}</span> : null}
                   {l.phone && l.pay_phone && l.pay_phone !== l.phone ? <span>Paid from {formatPhone(l.pay_phone)}</span> : null}
                   {l.email && l.pay_email && l.pay_email !== l.email ? <span>Paid as {l.pay_email}</span> : null}
                   <span className="dim">Created {when(l.created_at)}</span>

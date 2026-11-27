@@ -16,12 +16,9 @@ export const metadata: Metadata = { title: "Links · " + BRAND, robots: { index:
 const when = (iso: string) =>
   new Date(iso).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 
-type Show = "all" | "paid" | "tried" | "saw" | "unpaid";
-/** Paid = something was paid; tried = Checkout was opened and nothing was paid (an abandoned or failed payment); saw = the
-    couple saw the pay sheet (or their 30 s preview ended) and did not open Checkout; unpaid = not even that. */
-const state = (l: LinkRecord): "paid" | "tried" | "saw" | "free" | "unpaid" =>
-  l.paid_inr > 0 ? "paid" : l.checkout_count > 0 ? "tried" : l.price_inr === 0 ? "free" : l.paysheet_opens > 0 || l.preview_ended_at ? "saw" : "unpaid";
-const CHIP = { paid: "Paid", tried: "Tried to pay", saw: "Saw price", free: "Free design", unpaid: "Not paid" } as const;
+type Show = "all" | "paid" | "tried" | "unpaid";
+/** Paid = something was paid; tried = Checkout was opened and nothing was paid (an abandoned or failed payment). */
+const state = (l: LinkRecord): "paid" | "tried" | "free" | "unpaid" => (l.paid_inr > 0 ? "paid" : l.checkout_count > 0 ? "tried" : l.price_inr === 0 ? "free" : "unpaid");
 
 export default async function Links({ searchParams }: { searchParams: { show?: string; q?: string; tests?: string } }) {
   if (!LEADS)
@@ -36,7 +33,7 @@ export default async function Links({ searchParams }: { searchParams: { show?: s
   const tests = searchParams.tests === "1";
   const all = every.filter((l) => tests || !l.internal);
   const q = (searchParams.q ?? "").trim().toLowerCase();
-  const show: Show = searchParams.show === "paid" || searchParams.show === "tried" || searchParams.show === "saw" || searchParams.show === "unpaid" ? searchParams.show : "all";
+  const show: Show = searchParams.show === "paid" || searchParams.show === "tried" || searchParams.show === "unpaid" ? searchParams.show : "all";
   const found = q ? all.filter((l) => [l.link, l.title, l.invite_id, l.template_id, l.source, l.visit_source].some((v) => (v ?? "").toLowerCase().includes(q))) : all;
   const links = found.filter((l) => show === "all" || (show === "unpaid" ? state(l) === "unpaid" || state(l) === "free" : state(l) === show));
   const n = (s: Show) => (s === "all" ? found.length : found.filter((l) => (s === "unpaid" ? state(l) === "unpaid" || state(l) === "free" : state(l) === s)).length);
@@ -47,7 +44,6 @@ export default async function Links({ searchParams }: { searchParams: { show?: s
     </a>
   );
   const rupees = all.reduce((sum, l) => sum + l.paid_inr, 0);
-  const flat = all.filter((l) => l.flat);
   const opens = all.reduce((sum, l) => sum + l.opens, 0);
   const hidden = every.length - every.filter((l) => !l.internal).length;
   // The same view with test links (made on the owner's devices) shown or hidden.
@@ -61,21 +57,11 @@ export default async function Links({ searchParams }: { searchParams: { show?: s
           {tab("all", "All")}
           {PAYMENTS ? tab("paid", "Paid") : null}
           {PAYMENTS ? tab("tried", "Tried to pay") : null}
-          {PAYMENTS ? tab("saw", "Saw price") : null}
           {PAYMENTS ? tab("unpaid", "Not paid") : null}
         </nav>
       </header>
       <p className="admin-sum">
         <b>{all.length}</b> links · <b>{all.filter((l) => l.paid_inr > 0).length}</b> paid · <b>₹{rupees}</b> · <b>{opens}</b> guest opens
-        {PAYMENTS ? (
-          <>
-            <br />
-            {/* The couple's funnel since the flat-price release (flat links): link → number → preview ended → pay sheet → checkout → paid. */}
-            Since ₹99 flat: <b>{flat.length}</b> links · <b>{flat.filter((l) => l.has_phone).length}</b> gave a number · <b>{flat.filter((l) => l.preview_ended_at).length}</b>{" "}
-            finished the preview · <b>{flat.filter((l) => l.paysheet_opens > 0).length}</b> saw the pay sheet · <b>{flat.filter((l) => l.checkout_count > 0).length}</b> opened
-            checkout · <b>{flat.filter((l) => l.paid_inr > 0).length}</b> paid
-          </>
-        ) : null}
         {hidden ? (
           <>
             {" "}
@@ -103,8 +89,8 @@ export default async function Links({ searchParams }: { searchParams: { show?: s
               <li key={l.link} className={"lead" + (l.internal ? " out" : "")}>
                 <div className="lead-top">
                   <b>{l.title || l.link}</b>
-                  <span className={"lead-chip" + (s === "paid" ? " paid" : s === "tried" || s === "saw" ? " tried" : "")}>
-                    {s === "paid" ? "Paid ₹" + l.paid_inr : s === "tried" ? "Tried to pay ×" + l.checkout_count : CHIP[s]}
+                  <span className={"lead-chip" + (s === "paid" ? " paid" : s === "tried" ? " tried" : "")}>
+                    {s === "paid" ? "Paid ₹" + l.paid_inr : s === "tried" ? "Tried to pay ×" + l.checkout_count : s === "free" ? "Free design" : "Not paid"}
                   </span>
                 </div>
                 <a className="lead-link" href={l.url} target="_blank" rel="noopener">
@@ -113,7 +99,7 @@ export default async function Links({ searchParams }: { searchParams: { show?: s
                 <div className="lead-meta">
                   <span>
                     {l.template_id || "unknown design"}
-                    {l.price_inr ? " · ₹" + l.price_inr + (l.flat ? " flat" : " (old price)") : " · free"}
+                    {l.price_inr ? " · ₹" + l.price_inr : " · free"}
                   </span>
                   <span className="dim">Created {when(l.created_at)}</span>
                   {l.updated_at ? (
@@ -141,36 +127,13 @@ export default async function Links({ searchParams }: { searchParams: { show?: s
                     </span>
                   ) : null}
                   {l.sample_fields ? <span className="stop">Sample date or venue left in</span> : null}
-                  {l.has_phone ? (
-                    <span>
-                      <a href="/admin/leads">Number given at Get link</a>
-                    </span>
-                  ) : null}
-                  {l.owner_visits ? (
-                    <span className="dim">
-                      Couple opened it ×{l.owner_visits}
-                      {l.last_owner_visit_at ? ", last " + when(l.last_owner_visit_at) : ""}
-                    </span>
-                  ) : null}
-                  {l.preview_ended_at ? (
-                    <span>
-                      Preview {l.preview_end_reason === "end" ? "watched to the end" : "ran its 30 s"} {when(l.preview_ended_at)}
-                    </span>
-                  ) : null}
-                  {l.paysheet_opens ? (
-                    <span className={s === "saw" ? "stop" : undefined}>
-                      Pay sheet ×{l.paysheet_opens}
-                      {l.last_paysheet_at ? ", last " + when(l.last_paysheet_at) : ""}
-                      {l.pay_later ? " · “Not now” ×" + l.pay_later : ""}
-                    </span>
-                  ) : null}
                   {l.payments.map((p) => (
                     <span key={p.payment_id}>
                       ₹{p.amount_inr} on {when(p.at)} ({p.via}) <span className="mono">{p.payment_id}</span>
                     </span>
                   ))}
                   {s === "tried" && l.last_checkout_at ? <span className="stop">Checkout opened {when(l.last_checkout_at)}, no payment recorded</span> : null}
-                  {withContact.has(l.link) && !l.has_phone ? (
+                  {withContact.has(l.link) ? (
                     <span>
                       <a href="/admin/leads">Contact saved</a>
                     </span>

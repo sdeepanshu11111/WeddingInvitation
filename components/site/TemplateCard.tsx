@@ -3,7 +3,6 @@ import Link from "next/link";
 import React, { useEffect, useRef, useState } from "react";
 import { LazyPreview } from "@/components/LivePreview";
 import { CATEGORIES, COMMUNITIES } from "@/lib/catalog";
-import { PAYMENTS } from "@/lib/features";
 import type { Orientation, TemplateDef } from "@/lib/types";
 
 /** "Wedding · Hindu / North Indian": the card's subtitle. */

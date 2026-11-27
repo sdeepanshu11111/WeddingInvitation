@@ -3,22 +3,14 @@
    (weddingDate, venueName, receptionDate, walimaDate, events...), so this needs no template code and runs on the
    server too (app/e/[slug]/calendar.ics). Invites are in India: times are IST (UTC+5:30, no daylight saving). */
 
-import { baseOf } from "./variants";
-
 export type InviteEvent = { name: string; date: string; time?: string; endTime?: string; venue?: string; address?: string };
-export type RsvpContactFound = { phone: string; who?: string };
-/** rsvp: the first number on the invite; contacts: up to two (Shaadi Utsav lists both families' numbers). */
-export type InviteDetails = { events: InviteEvent[]; rsvp: RsvpContactFound | null; contacts: RsvpContactFound[] };
+export type InviteDetails = { events: InviteEvent[]; rsvp: { phone: string; who?: string } | null };
 
 /** The main function's name when it isn't a "Wedding". New templates add theirs here. */
 const MAIN: Record<string, string> = {
   "nikah-mubarak": "Nikah",
   "anand-karaj": "Anand Karaj",
   "south-kalyanam": "Muhurtham",
-  "tamil-thirumanam": "Muhurtham",
-  "telugu-pelli": "Muhurtham",
-  "kerala-vivaham": "Muhurtham",
-  "kannada-maduve": "Muhurtham",
   "sagai-rings": "Engagement",
   "haldi-marigold": "Haldi",
   "mehendi-paisley": "Mehendi",
@@ -42,52 +34,23 @@ export function parseClock(s?: string): string | undefined {
   return h < 24 && +m[2] < 60 ? String(h).padStart(2, "0") + ":" + m[2] : undefined;
 }
 
-/* The made-up numbers the templates once shipped as sample RSVP lines (until 2026-11-14). Drafts saved before then
-   and links made from them still carry these; they belong to strangers, so they never become a WhatsApp button and
-   are cleared from a project when a link is made (withoutSamplePhones). */
-const SAMPLE_PHONES = new Set(["9814012345", "9876543210", "9820045678", "9820011223", "9848012345", "9829012345", "9810054321", "9822033445", "9811022334", "9831022445"]);
-const PHONE = /(?:\+?\s?91[\s-]*)?([6-9]\d{4})[\s-]?(\d{5})(?!\d)/;
-const hasSamplePhone = (text: string) => text.split("\n").some((line) => { const m = PHONE.exec(line); return !!m && SAMPLE_PHONES.has(m[1] + m[2]); });
-
-/** A copy of the invite's fields with every text that still holds a sample RSVP number emptied. */
-export function withoutSamplePhones<T extends Record<string, any>>(d: T): T {
-  const out: Record<string, any> = { ...d };
-  for (const [k, v] of Object.entries(d)) if (typeof v === "string" && hasSamplePhone(v)) out[k] = "";
-  return out as T;
-}
-
-/**
- * The fields the couple left exactly as the template's sample (date, venue, functions): the invite shows them, but
- * a guest must not get "Add to calendar" or "Directions" for a made-up wedding. Stored with the project when a link
- * is made (Project.sample), so the server never needs the templates.
- */
-const SAMPLE_KEYS = /date$|^venue|venue$|address$|^events$/i;
-export function sampleKeys(d: Record<string, any>, defaults: Record<string, any>): string[] {
-  return Object.keys(d).filter((k) => SAMPLE_KEYS.test(k) && d[k] != null && d[k] !== "" && JSON.stringify(d[k]) === JSON.stringify(defaults[k]));
-}
-
-/** The Indian mobile numbers in the text (the families already put them in their RSVP line), as 91XXXXXXXXXX, each
-    with the name written before it on its line. */
-function findPhones(text: string): RsvpContactFound[] {
-  const out: RsvpContactFound[] = [];
+/** First Indian mobile number in the text (the families already put one in their RSVP line), as 91XXXXXXXXXX. */
+function findPhone(text: string): { phone: string; who?: string } | null {
   for (const line of text.split("\n")) {
-    const m = PHONE.exec(line);
-    if (!m || SAMPLE_PHONES.has(m[1] + m[2])) continue;
+    const m = /(?:\+?\s?91[\s-]*)?([6-9]\d{4})[\s-]?(\d{5})(?!\d)/.exec(line);
+    if (!m) continue;
     const who = line
       .slice(0, m.index)
       .replace(/\brsvp\b(\s+(by|before)\s+[^·|:,-]*)?/i, "")
       .replace(/[·|:,–—-]+/g, " ")
       .replace(/\s+/g, " ")
       .trim();
-    out.push({ phone: "91" + m[1] + m[2], who: who && who.length <= 40 ? who : undefined });
+    return { phone: "91" + m[1] + m[2], who: who && who.length <= 40 ? who : undefined };
   }
-  return out;
+  return null;
 }
 
-export function inviteDetails(id: string, data: Record<string, any>, sample?: string[]): InviteDetails {
-  const templateId = baseOf(id); // a language version (haldi-marigold-tamil) has its design's fields and main function
-  // Fields still holding the template's sample date or venue are treated as empty (see sampleKeys).
-  const d: Record<string, any> = Array.isArray(sample) && sample.length ? Object.fromEntries(Object.entries(data).filter(([k]) => !sample.includes(k))) : data;
+export function inviteDetails(templateId: string, d: Record<string, any>): InviteDetails {
   const events: InviteEvent[] = [];
   if (Array.isArray(d.events)) {
     for (const e of d.events) if (e && str(e.name) && isDate(e.date)) events.push({ name: str(e.name)!, date: e.date, time: parseClock(e.time), venue: str(e.venue) });
@@ -97,8 +60,7 @@ export function inviteDetails(id: string, data: Record<string, any>, sample?: st
       ?.split("\n")
       .find((l) => /anand karaj|ceremony|laavan/i.test(l) && parseClock(l));
     events.push({
-      // Floral Rangoli is for any function: its title field says which (Haldi Ceremony, Griha Pravesh...).
-      name: (templateId === "floral-rangoli" ? str(d.title) : undefined) ?? MAIN[templateId] ?? "Wedding",
+      name: MAIN[templateId] ?? "Wedding",
       date: d.weddingDate,
       time: parseClock(d.weddingTime) ?? parseClock(d.muhurthamStart) ?? parseClock(fromSchedule),
       endTime: parseClock(d.muhurthamEnd),
@@ -113,13 +75,13 @@ export function inviteDetails(id: string, data: Record<string, any>, sample?: st
 
   // RSVP: the fields meant for it first, then any other text the family wrote.
   const keys = Object.keys(d).sort((a, b) => Number(!/rsvp/i.test(a)) - Number(!/rsvp/i.test(b)));
-  const contacts: RsvpContactFound[] = [];
+  let rsvp: InviteDetails["rsvp"] = null;
   for (const k of keys) {
     if (typeof d[k] !== "string") continue;
-    for (const c of findPhones(d[k])) if (contacts.length < 2 && !contacts.some((x) => x.phone === c.phone)) contacts.push(c);
-    if (contacts.length >= 2) break;
+    rsvp = findPhone(d[k]);
+    if (rsvp) break;
   }
-  return { events, rsvp: contacts[0] ?? null, contacts };
+  return { events, rsvp };
 }
 
 /* ---- calendar ---- */

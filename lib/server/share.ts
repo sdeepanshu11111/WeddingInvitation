@@ -20,8 +20,7 @@ import { EXPORT_DIR } from "./paths";
  *   blob  - Vercel Blob, same layout under shares/<name>/. In this mode the
  *           editor uploads media straight to Blob first (Vercel limits request
  *           bodies to 4.5 MB), so the project arrives with Blob URLs.
- * A share changes only when its owner republishes it from the studio (updateLiveShare, since 2026-11-14): the
- * watch page is cached forever and re-rendered by revalidatePath after an update or a payment.
+ * Shares never change after creation: the watch page is cached forever.
  * A name is claimed by writing project.json with no-overwrite, so two couples
  * can never end up on one link. Live shares get readable names (chosen in the
  * editor); MP4 shares keep random tokens, as export file names are guessable.
@@ -33,10 +32,7 @@ export type Card = { bg: string; bg2: string; ink: string; soft: string; accent:
 export type Share =
   /** origin: the site the share was created on (e.g. https://x.vercel.app), for the absolute preview-card URL. */
   /** ownerHash: sha256 of the key only the creator's browser got back (see ownerKey below); missing on older links. */
-  /** updatedAt: set when the owner republished the invite to this same link; versions the preview card. */
-  /** flat: made by the "Get wedding link" release (2026-11-23) or later, so it costs FLAT_PRICE_INR (lib/pricing.ts, priceForLink);
-      a link without it keeps the per-design price it was made with. A republish keeps whatever the link had. */
-  | { token: string; kind: "live"; title: string; createdAt: number; updatedAt?: number; card: Card; origin?: string; ownerHash?: string; flat?: true }
+  | { token: string; kind: "live"; title: string; createdAt: number; card: Card; origin?: string; ownerHash?: string }
   | { token: string; kind: "video"; title: string; createdAt: number; file: string; vertical: boolean };
 
 export const SHARE_DIR = path.join(EXPORT_DIR, "shares");
@@ -53,12 +49,6 @@ function blobStoreId() {
 /** Public URL prefix of this project's Blob store. */
 export const blobBase = () => "https://" + blobStoreId() + ".public.blob.vercel-storage.com/";
 
-/* "Not there" and "could not ask" are different answers. A timeout, a rate limit or a paused store must never be
-   read as "no such invite" (the page would cache a 404 for a real, maybe paid, link) or "no such order" (a paid
-   customer would be told the payment is for another link, and Razorpay's webhook would stop retrying). So readJSON
-   and exists return null / false only when the file is really missing, and throw on anything else. */
-const missing = (e: any) => e instanceof BlobNotFoundError || e?.code === "ENOENT" || e?.code === "ENOTDIR";
-
 const store = {
   async readJSON<T>(key: string): Promise<T | null> {
     try {
@@ -71,32 +61,23 @@ const store = {
         return r?.statusCode === 200 ? ((await new Response(r.stream).json()) as T) : null;
       }
       return JSON.parse(await fs.readFile(path.join(SHARE_DIR, key), "utf8")) as T;
-    } catch (e) {
-      if (missing(e)) return null;
-      throw e;
+    } catch {
+      return null;
     }
   },
-  /** Never overwrites unless asked: fails if the file exists (Blob's default, "wx" on disk). That is what claims a
-      name. `overwrite` is only for an owner republishing their own invite (readJSON's ?fresh= query gets past the
-      CDN copy of the old file). */
-  async writeJSON(key: string, value: unknown, overwrite = false) {
+  /** Never overwrites: fails if the file exists (Blob's default, "wx" on disk). That is what claims a name. */
+  async writeJSON(key: string, value: unknown) {
     const body = JSON.stringify(value);
     if (SHARE_STORE === "blob") {
-      await put("shares/" + key, body, { access: "public", contentType: "application/json", addRandomSuffix: false, allowOverwrite: overwrite, cacheControlMaxAge: 31536000 });
+      await put("shares/" + key, body, { access: "public", contentType: "application/json", addRandomSuffix: false, cacheControlMaxAge: 31536000 });
       return;
     }
     await fs.mkdir(path.dirname(path.join(SHARE_DIR, key)), { recursive: true });
-    await fs.writeFile(path.join(SHARE_DIR, key), body, { flag: overwrite ? "w" : "wx" });
+    await fs.writeFile(path.join(SHARE_DIR, key), body, { flag: "wx" });
   },
   async exists(key: string): Promise<boolean> {
-    try {
-      if (SHARE_STORE === "blob") await head("shares/" + key);
-      else await fs.access(path.join(SHARE_DIR, key));
-      return true;
-    } catch (e) {
-      if (missing(e)) return false;
-      throw e;
-    }
+    if (SHARE_STORE === "blob") return head("shares/" + key).then(() => true, () => false);
+    return fs.access(path.join(SHARE_DIR, key)).then(() => true, () => false);
   },
   /** Stores one media file of a share and returns the URL the watch page loads it from. */
   async writeMedia(token: string, buf: Buffer, mime: string): Promise<string> {
@@ -221,7 +202,18 @@ export async function createLiveShare(project: Project, title: string, card: Par
   const hadDir = SHARE_STORE === "disk" && (await store.exists(name));
   let stored: Project;
   try {
-    stored = await storeMedia(project, token);
+    stored = await mapDataUrls(project, async (src) => {
+      const mime = mimeOfDataUrl(src);
+      if (!MEDIA_TYPES[mime]) throw new Error("Unsupported media type " + (mime || "unknown"));
+      const comma = src.indexOf(",");
+      const meta = src.slice(0, comma);
+      const body = src.slice(comma + 1);
+      const buf = meta.endsWith(";base64") ? Buffer.from(body, "base64") : Buffer.from(decodeURIComponent(body));
+      return store.writeMedia(token, buf, mime);
+    });
+    const ours = (SHARE_STORE === "blob" ? blobBase() : "/api/share/" + token + "/media/").toLowerCase(); // host names ignore case
+    const foreign = allSrcs(stored).find((s) => !s.toLowerCase().startsWith(ours));
+    if (foreign) throw new Error("Media must be uploaded to this app, not linked from " + foreign.slice(0, 60));
     try {
       await store.writeJSON(token + "/project.json", stored); // claims the name
     } catch (e) {
@@ -235,39 +227,6 @@ export async function createLiveShare(project: Project, title: string, card: Par
     throw e;
   }
 
-  const share: Share = {
-    token,
-    kind: "live",
-    title: title.slice(0, 120),
-    createdAt: Date.now(),
-    origin: origin && /^https?:\/\/[\w.-]+(:\d+)?$/.test(origin) ? origin : undefined,
-    ownerHash,
-    card: cardOf(card, stored),
-    flat: true,
-  };
-  await store.writeJSON(token + "/share.json", share);
-  return share;
-}
-
-/** Data URLs become stored files of this share; every other media URL must already be in this app's storage. */
-async function storeMedia(project: Project, token: string): Promise<Project> {
-  const stored = await mapDataUrls(project, async (src) => {
-    const mime = mimeOfDataUrl(src);
-    if (!MEDIA_TYPES[mime]) throw new Error("Unsupported media type " + (mime || "unknown"));
-    const comma = src.indexOf(",");
-    const meta = src.slice(0, comma);
-    const body = src.slice(comma + 1);
-    const buf = meta.endsWith(";base64") ? Buffer.from(body, "base64") : Buffer.from(decodeURIComponent(body));
-    return store.writeMedia(token, buf, mime);
-  });
-  const ours = (SHARE_STORE === "blob" ? blobBase() : "/api/share/" + token + "/media/").toLowerCase(); // host names ignore case
-  const foreign = allSrcs(stored).find((s) => !s.toLowerCase().startsWith(ours));
-  if (foreign) throw new Error("Media must be uploaded to this app, not linked from " + foreign.slice(0, 60));
-  return stored;
-}
-
-/** The preview card's colours, date and first photo, with safe fallbacks for anything the editor did not send. */
-function cardOf(card: Partial<Card>, stored: Project): Card {
   const firstImage = (v: any): string | undefined => {
     if (Array.isArray(v)) return v.map(firstImage).find(Boolean);
     if (!v || typeof v !== "object") return undefined;
@@ -275,87 +234,33 @@ function cardOf(card: Partial<Card>, stored: Project): Card {
     return Object.values(v).map(firstImage).find(Boolean);
   };
   const pick = (k: keyof Card, fallback: string) => (typeof card[k] === "string" && COLOR.test(card[k] as string) ? (card[k] as string) : fallback);
-  return {
-    bg: pick("bg", "#4a0d1c"), bg2: pick("bg2", "#22050d"), ink: pick("ink", "#fff4e6"),
-    soft: pick("soft", "#e8cfc0"), accent: pick("accent", "#e9c46a"), line: pick("line", "#c9a24a"),
-    date: typeof card.date === "string" ? card.date.slice(0, 60) : undefined,
-    photo: firstImage(stored.data),
+  const share: Share = {
+    token,
+    kind: "live",
+    title: title.slice(0, 120),
+    createdAt: Date.now(),
+    origin: origin && /^https?:\/\/[\w.-]+(:\d+)?$/.test(origin) ? origin : undefined,
+    ownerHash,
+    card: {
+      bg: pick("bg", "#4a0d1c"), bg2: pick("bg2", "#22050d"), ink: pick("ink", "#fff4e6"),
+      soft: pick("soft", "#e8cfc0"), accent: pick("accent", "#e9c46a"), line: pick("line", "#c9a24a"),
+      date: typeof card.date === "string" ? card.date.slice(0, 60) : undefined,
+      photo: firstImage(stored.data),
+    },
   };
-}
-
-/**
- * The owner republishes their invite to the SAME link (a corrected time, a new photo): guests who already have the
- * link see the new version, and a paid link stays paid (paid.json is untouched). Only the browser that made the
- * link holds its owner key; anyone else gets 403. The caller revalidates /e/<name>.
- */
-export async function updateLiveShare(name: string, key: unknown, project: Project, title: string, card: Partial<Card>): Promise<Share> {
-  assertWritable();
-  const found = await getShare(name);
-  if (!found || found.kind !== "live" || !isOwnerKey(found, key)) throw new ShareError(403, "Only the person who made this invite can change it");
-  const stored = await storeMedia(project, found.token);
-  const { path: _path, ...old } = found;
-  const share: Share = { ...old, title: title.slice(0, 120), updatedAt: Date.now(), card: cardOf(card, stored) };
-  await store.writeJSON(found.token + "/project.json", stored, true);
-  await store.writeJSON(found.token + "/share.json", share, true);
+  await store.writeJSON(token + "/share.json", share);
   return share;
 }
 
 /* ---------------- paid links (watermark removed) ---------------- */
 
-/** paymentId / orderId / amount (paise) / paidAt: the first payment. covers: rupees paid on this link in all
-    (payments lists every confirmed payment id). A record without `covers` is from before per-design prices
-    (2026-11-14) and counts as paid in full, whatever its design costs today. */
-export type Paid = { orderId: string; paymentId: string; amount: number; paidAt: number; covers?: number; payments?: string[]; pack?: string };
+export type Paid = { orderId: string; paymentId: string; amount: number; paidAt: number };
 const ORDER_ID = /^order_\w{6,40}$/;
 
-/** Remembers which share a Razorpay order was made for, so one payment unlocks exactly one link. `pack`: the order is
-    for the wedding pack (lib/pricing.ts), so its payment also makes this link the couple's pack (markPack). */
-export async function recordOrder(name: string, orderId: string, pack = false) {
+/** Remembers which share a Razorpay order was made for, so one payment unlocks exactly one link. */
+export async function recordOrder(name: string, orderId: string) {
   if (!ID.test(name) || !ORDER_ID.test(orderId)) throw new Error("Bad order");
-  await store.writeJSON(name + "/order-" + orderId + ".json", { orderId, createdAt: Date.now(), ...(pack ? { pack: true } : null) });
-}
-
-/** Whether an order recorded on this link was for the wedding pack. */
-export async function orderIsPack(name: string, orderId: string) {
-  if (!ID.test(name) || !ORDER_ID.test(orderId)) return false;
-  return (await store.readJSON<{ pack?: boolean }>(name + "/order-" + orderId + ".json"))?.pack === true;
-}
-
-/* ---- Wedding pack: one link holds it (pack.json, written once its payment is confirmed); every other link of the
-   same couple made on the same device is cleared from it (app/api/pay/pack, coverByPack). ---- */
-
-/** Makes this link the holder of a paid wedding pack. Idempotent (verify and webhook both call it). */
-export async function markPack(name: string, p: { orderId: string; paymentId: string }) {
-  try {
-    await store.writeJSON(name + "/pack.json", { ...p, paidAt: Date.now() });
-  } catch (e) {
-    if (!(await store.exists(name + "/pack.json"))) throw e;
-  }
-}
-
-/** Asked from the Blob API like isPaid: the pack is checked right after it was bought. */
-export async function hasPack(name: string): Promise<boolean> {
-  return ID.test(name) && store.exists(name + "/pack.json");
-}
-
-/**
- * Clears a link from the couple's pack: paid.json with `covers` (the pack covers each invite up to that) and no money
- * of its own. A link already covered as much or more (paid itself, or before covers existed) is left alone.
- * Returns true when the link changed.
- */
-export async function coverByPack(name: string, packLink: string, covers: number): Promise<boolean> {
-  const id = "pack:" + packLink;
-  const rec: Paid = { orderId: "pack", paymentId: id, amount: 0, paidAt: Date.now(), covers, payments: [id], pack: packLink };
-  try {
-    await store.writeJSON(name + "/paid.json", rec);
-    return true;
-  } catch (e) {
-    if (!(await store.exists(name + "/paid.json"))) throw e;
-  }
-  const first = await store.readJSON<Paid>(name + "/paid.json");
-  if (!first || typeof first.covers !== "number" || first.covers >= covers) return false;
-  await store.writeJSON(name + "/paid.json", { ...first, covers, payments: [...(first.payments ?? [first.paymentId]), id], pack: packLink }, true);
-  return true;
+  await store.writeJSON(name + "/order-" + orderId + ".json", { orderId, createdAt: Date.now() });
 }
 
 export async function orderBelongsTo(name: string, orderId: string) {
@@ -368,50 +273,24 @@ export async function orderBelongsTo(name: string, orderId: string) {
  * the watermark for good (it is cached forever). Throws if the check itself fails, for the same reason.
  */
 export async function isPaid(name: string): Promise<boolean> {
-  return ID.test(name) && store.exists(name + "/paid.json");
-}
-
-/**
- * Rupees still to pay before this link loses its watermark, for a design that costs `price` (lib/pricing.ts).
- * 0 = clear: a free design, paid in full, or paid before per-design prices existed. After moving a paid link to a
- * dearer design it is the difference.
- */
-export async function amountDue(name: string, price: number): Promise<number> {
-  if (price <= 0 || !ID.test(name)) return 0;
-  if (!(await isPaid(name))) return price; // the API answer first: readJSON below goes through the CDN
-  const paid = await store.readJSON<Paid>(name + "/paid.json");
-  if (!paid) return price;
-  if (typeof paid.covers !== "number") return 0;
-  return Math.max(0, price - paid.covers);
-}
-
-/**
- * Records a confirmed payment (checkout callback or webhook; the same payment twice is a no-op). The first one
- * creates paid.json with no-overwrite; a later, different payment (the difference after moving to a dearer design)
- * adds to `covers`. `price` is what the link's design costs now: money beyond it is a double payment to give back,
- * and is logged as REFUND NEEDED.
- * Returns true when this payment was not recorded before: the checkout callback and the webhook both report every
- * payment, and whoever comes first gets true (that is what sends the one `payment_confirmed` event).
- */
-export async function markPaid(name: string, paid: Paid, price: number): Promise<boolean> {
-  const rupees = Math.round(paid.amount / 100);
+  if (!ID.test(name)) return false;
+  if (SHARE_STORE !== "blob") return store.exists(name + "/paid.json");
   try {
-    await store.writeJSON(name + "/paid.json", { ...paid, covers: rupees, payments: [paid.paymentId] });
+    await head("shares/" + name + "/paid.json");
     return true;
+  } catch (e) {
+    if (e instanceof BlobNotFoundError) return false;
+    throw e;
+  }
+}
+
+/** Written once (no-overwrite): the first confirmed payment wins, a repeat (checkout + webhook) is a no-op. */
+export async function markPaid(name: string, paid: Paid) {
+  try {
+    await store.writeJSON(name + "/paid.json", paid);
   } catch (e) {
     if (!(await store.exists(name + "/paid.json"))) throw e;
   }
-  const first = await store.readJSON<Paid>(name + "/paid.json");
-  if (!first || !paid.paymentId) return false;
-  const seen = first.payments ?? [first.paymentId];
-  if (seen.includes(paid.paymentId)) return false;
-  const legacy = typeof first.covers !== "number"; // paid in full under the old single price
-  const before = legacy ? price : first.covers!;
-  if (before + rupees > price) console.error("REFUND NEEDED: payment " + paid.paymentId + " (Rs " + rupees + ") on link " + name + " which had Rs " + before + " of Rs " + price + " covered");
-  const next: Paid = { ...first, payments: [...seen, paid.paymentId] };
-  if (!legacy) next.covers = before + rupees;
-  await store.writeJSON(name + "/paid.json", next, true);
-  return true;
 }
 
 /** The payment record of a link, or null when it is not paid (for the import into the link records). */

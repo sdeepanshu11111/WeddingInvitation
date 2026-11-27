@@ -1,162 +1,63 @@
 "use client";
 import Link from "next/link";
-import { functionPath, statePath } from "@/lib/landing";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { useDemoTimeline, useNearViewport } from "@/components/LivePreview";
 import { CATEGORIES, countIn } from "@/lib/catalog";
-import { PAYMENTS } from "@/lib/features";
-import { PayIcons } from "@/components/PayIcons";
-import { momentGlyphs, momentKind } from "@/app/e/[slug]/Interactive";
+import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
 import { sceneForField } from "@/lib/fieldScene";
 import { SIZES, type StartNames } from "@/lib/project";
-import { REGIONS, forRegion } from "@/lib/regions";
-import { DESIGNS, TEMPLATES } from "@/lib/templates";
+import { TEMPLATES } from "@/lib/templates";
 import type { CategoryId, TemplateDef } from "@/lib/types";
-import type { ReviewSummary } from "@/lib/server/reviews";
-import { HeroReviews, SHOW_AVERAGE_FROM } from "./HeroReviews";
 import { MobileCta } from "./MobileCta";
 import { NamesForm, useStartNames } from "./NamesForm";
-import { useRegion } from "./StatePicker";
 import { TemplateCard } from "./TemplateCard";
-import { track, type Events } from "@/lib/analytics";
 
-/** The hero's wedding designs, one per tradition, in the order they play. When the visitor's state is known
-    (lib/regions.ts: ?state= from an ad, their earlier pick, the phone's language or the connection), that state's own
-    design leads. The other functions list their own designs, the state's first (forRegion). */
-const HERO_IDS = ["royal-mandala", "south-kalyanam", "nikah-mubarak", "anand-karaj", "rajwada-palace", "holy-matrimony"];
-const HERO_FNS: CategoryId[] = ["wedding", "haldi", "mehendi", "sangeet", "engagement", "reception"];
+/** The hero's designs, one per tradition, in the order they play. */
+const HERO_IDS = ["royal-mandala", "south-kalyanam", "nikah-mubarak", "anand-karaj", "haldi-marigold", "sangeet-night"];
 const HOLD_MS = 2600; // after a keystroke the preview stays on the names scene this long, then plays on
 
-/** Below this, "N invitations made" is not shown: a small number reads as a warning, not as proof. */
-const SHOW_MADE_FROM = 20;
-
 /**
- * Home hero (redesigned 2026-11-17 for conversion). Phones see, on the first screen: the promise ("Wedding invites
- * your guests can play with"), "What are you inviting for?" chips, a real playing invite next to two name boxes,
- * and the button. Search visitors usually come for one function (a haldi invite, a sangeet invite), so the chips
- * switch the playing phone and the design row to that function. Typing names puts them into the playing design and
- * carries them to the studio; tapping the phone showers flowers over it (the guest page's tap moment, in miniature).
- * Every step is measured: hero_function_picked, hero_names_typed, hero_design_picked, hero_phone_tapped and
- * home_cta_clicked {section: "hero"}.
+ * Home hero: the visitor types their names and watches them appear in a real, playing invitation, then carries them
+ * (and the design) into the studio. Until they pick a design or type, the designs play one after another.
  */
-export function Hero({ reviews, made = 0 }: { reviews?: ReviewSummary; made?: number }) {
-  const { region, picked } = useRegion();
-  const fns = useMemo(() => HERO_FNS.filter((c) => countIn(DESIGNS, c) > 0), []);
-  const [fn, setFn] = useState<CategoryId>("wedding");
-  const [fnPicked, setFnPicked] = useState(false);
-  const list = useMemo(() => {
-    if (fn === "wedding") {
-      const first = region?.designs[0];
-      const ids = first ? [first, ...HERO_IDS.filter((id) => id !== first)].slice(0, HERO_IDS.length) : HERO_IDS;
-      return ids.map((id) => TEMPLATES.find((t) => t.id === id)).filter(Boolean) as TemplateDef[];
-    }
-    const { own, rest } = forRegion(
-      TEMPLATES.filter((t) => t.categories.includes(fn)),
-      region,
-      picked,
-    );
-    return [...own, ...rest].slice(0, 6);
-  }, [region, picked, fn]);
+export function Hero() {
+  const list = useMemo(() => HERO_IDS.map((id) => TEMPLATES.find((t) => t.id === id)).filter(Boolean) as TemplateDef[], []);
   const [i, setI] = useState(0);
   const [chosen, setChosen] = useState(false); // picked a design or typed: stop cycling through designs
-  // The live invite starts once the page has loaded and the phone is idle, or at once on any interaction. Until then
-  // the design's poster (public/posters, the same names scene it opens on) is the picture: the page's largest image
-  // arrives in ~10 KB instead of after the script, the template and its fonts (owner, 2026-11-18: home was slow).
-  const [live, setLive] = useState(false);
-  const [posterBroken, setPosterBroken] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { names, set, edited } = useStartNames();
-  const typedOnce = useRef(false);
-  useEffect(() => {
-    let done = false;
-    const go = () => !done && ((done = true), setLive(true));
-    const idle = () => {
-      const ric = (window as any).requestIdleCallback as undefined | ((cb: () => void, o: { timeout: number }) => void);
-      if (ric) ric(go, { timeout: 2500 });
-      else setTimeout(go, 1200);
-    };
-    if (document.readyState === "complete") setTimeout(idle, 500);
-    else window.addEventListener("load", () => setTimeout(idle, 500), { once: true });
-    return () => {
-      done = true;
-    };
-  }, []);
-  // Typing names, a function chip or a design card: the visitor wants to see it move now.
-  useEffect(() => {
-    if (edited || chosen || fnPicked) setLive(true);
-  }, [edited, chosen, fnPicked]);
+  useEffect(() => setMounted(true), []);
   const t = list[i % list.length];
   const p = t.palettes[0];
   const typed = !!(names.bride.trim() || names.groom.trim());
-  // The design travels to the studio only once the visitor chose it (picked a card, a function, or typed their names
-  // over it). While the hero is still cycling through weddings by itself, the button must not turn "whatever was
-  // playing" into a choice: that opened the studio on a design nobody picked and switched a returning visitor's saved
-  // draft to it. A function chip is a choice: the visitor said what they are inviting for.
-  const create = chosen || fnPicked ? "/create?template=" + t.id : "/create";
-  const fnLabel = (c: CategoryId) => CATEGORIES.find((x) => x.id === c)!.label;
-  const kicker = "Free preview · Send on WhatsApp"; // no price before the couple has their link (owner, 2026-11-23)
+  const create = "/create?template=" + t.id;
 
   // Grid areas, so phones and desktop can order the same parts differently (site.css, .hero):
-  // desktop = copy, function chips, names, button, designs on the left and the playing phone on the right;
-  // phones  = headline, chips, then the phone and the name boxes SIDE BY SIDE (both stay visible above the keyboard
-  //           while typing), then the button (pinned to the bottom once it scrolls away) and the design cards.
+  // desktop = copy, names, designs, button on the left and the playing phone on the right;
+  // phones  = headline, then the phone and the name boxes SIDE BY SIDE (both stay visible above the keyboard while
+  //           typing), then the design cards and the button (pinned to the bottom once it scrolls away).
   return (
     <section className="hero">
       <div className="hero-copy">
-        <span className="kicker">{kicker}</span>
+        <span className="kicker">Free preview · Send on WhatsApp</span>
         <h1>
-          Wedding invites your guests can <em>play with.</em>
+          Your wedding invite, <em>beautifully animated.</em>
         </h1>
-        {/* The real average (lib/server/reviews.ts), only from 5 rated reviews; the quotes are under the button. */}
-        {reviews?.average && reviews.count >= SHOW_AVERAGE_FROM ? (
-          <p className="hero-rating">
-            <span className="hr-stars" aria-hidden>
-              {"★".repeat(Math.round(reviews.average))}
-              <i>{"★".repeat(5 - Math.round(reviews.average))}</i>
-            </span>{" "}
-            <b>{reviews.average.toFixed(1)}</b> from {reviews.count} couples who made their invite here
-          </p>
-        ) : null}
         <p className="lead">
-          Animated with your names, photos and music. Guests open one link, tap through it and RSVP on WhatsApp<span className="desk-txt">. No app, no printing</span>.
+          Your names, dates, photos and music on a page of its own that plays like a film. Send one link; it opens on any phone, no app needed.
         </p>
-      </div>
-
-      <div className="hero-fns" role="tablist" aria-label="What are you inviting for?">
-        <span className="hero-fns-q">What are you inviting for?</span>
-        <div className="hero-fns-row">
-          {fns.map((c) => (
-            <button
-              key={c}
-              role="tab"
-              aria-selected={fn === c}
-              className={"fn-chip" + (fn === c ? " on" : "")}
-              onClick={() => {
-                if (c === fn) return;
-                setFn(c);
-                setI(0);
-                setFnPicked(true);
-                track("hero_function_picked", { function: c });
-              }}
-            >
-              {fnLabel(c)}
-            </button>
-          ))}
-        </div>
       </div>
 
       <div className="hero-stage">
         <div className="phone-frame hero-phone">
           <div className="phone-screen" style={{ background: "linear-gradient(160deg, " + p.bg + ", " + p.bg2 + ")" }}>
-            {/* The poster first (server-rendered, high priority), the live invite over it once it starts; the design's own
-                art if a poster is missing. */}
-            {posterBroken ? (
-              <div className="hero-still">{t.thumb(p)}</div>
+            {/* Until the script arrives (seconds on a slow phone), the design's own art instead of an empty screen. */}
+            {mounted ? (
+              <HeroPlayer key={t.id} t={t} names={names} edited={edited} onEnd={chosen ? undefined : () => setI((n) => n + 1)} />
             ) : (
-              <img className="hero-poster" src={"/posters/" + t.id + ".webp"} alt="" decoding="async" draggable={false} onError={() => setPosterBroken(true)} {...{ fetchpriority: "high" }} />
+              <div className="hero-still">{t.thumb(p)}</div>
             )}
-            {live ? <HeroPlayer key={t.id} t={t} names={names} edited={edited} onEnd={chosen ? undefined : () => setI((n) => n + 1)} /> : null}
-            {live ? <PhoneTap t={t} fn={fn} /> : null}
             <div className="phone-island" aria-hidden />
           </div>
         </div>
@@ -172,17 +73,13 @@ export function Hero({ reviews, made = 0 }: { reviews?: ReviewSummary; made?: nu
           set={(x) => {
             set(x);
             setChosen(true);
-            if (!typedOnce.current) {
-              typedOnce.current = true;
-              track("hero_names_typed");
-            }
           }}
           id="hero"
         />
       </div>
 
       <div className="hero-go">
-        <Link href={create} className="cta-btn lg block hero-cta" onClick={() => track("home_cta_clicked", { section: "hero" })}>
+        <Link href={create} className="cta-btn lg block hero-cta">
           {typed ? "Continue with my invite" : "Make my invitation"} <Arrow />
         </Link>
         <ul className="ticks-row">
@@ -191,46 +88,32 @@ export function Hero({ reviews, made = 0 }: { reviews?: ReviewSummary; made?: nu
           <li>Ready in 2 minutes</li>
         </ul>
         {PAYMENTS ? (
-          <div className="hero-trust">
-            <p className="hero-price">
-              Free to make. <b>Watch your invite before you pay.</b>
-            </p>
-            <PayIcons size={15} />
-          </div>
-        ) : null}
-        {/* Real numbers only: invitations made in the last 30 days (link records, test links left out), from 20 up. */}
-        {made >= SHOW_MADE_FROM ? (
-          <p className="hero-made">
-            <b>{made}</b> invitations made here in the last 30 days
+          <p className="hero-price">
+            Like it? Remove the watermark for <b>₹{LINK_PRICE_INR}</b>, one time. No subscription.
           </p>
         ) : null}
-        {/* Real reviews only (app/admin/reviews); renders nothing until one is approved. */}
-        {reviews ? <HeroReviews data={reviews} /> : null}
       </div>
 
-      {/* The function's designs as real cards (each template's own thumbnail art), the playing one marked. */}
+      {/* The designs as real cards (each template's own thumbnail art), the playing one marked, and a way to all of them. */}
       <div className="hero-picks">
         <div className="picks-head">
-          <b>{fn === "wedding" ? "Pick a design" : fnLabel(fn) + " designs"}</b>
-          <Link href={fn === "wedding" ? "/templates" : functionPath(fn)}>
-            See all {fn === "wedding" ? DESIGNS.length : countIn(DESIGNS, fn)} <Arrow />
+          <b>Pick a design</b>
+          <Link href="/templates">
+            See all {TEMPLATES.length} <Arrow />
           </Link>
         </div>
         <div className="picks-row" role="radiogroup" aria-label="Design">
           {list.map((x, n) => {
             const on = n === i % list.length;
-            // Keyed by position: when the visitor's state reorders the list after mounting, moving the buttons would
-            // make the browser re-snap this scroll-snap row to the card it was on and hide the new first card.
             return (
               <button
-                key={n}
+                key={x.id}
                 role="radio"
                 aria-checked={on}
                 className={"pick" + (on ? " on" : "")}
                 onClick={() => {
                   setI(n);
                   setChosen(true);
-                  track("hero_design_picked", { template_id: x.id, function: fn });
                 }}
               >
                 <span className="pick-thumb">
@@ -241,68 +124,16 @@ export function Hero({ reviews, made = 0 }: { reviews?: ReviewSummary; made?: nu
               </button>
             );
           })}
-          <Link href={fn === "wedding" ? "/templates" : functionPath(fn)} className="pick more">
-            <span className="pick-thumb">+</span>
+          <Link href="/templates" className="pick more">
+            <span className="pick-thumb">+{TEMPLATES.length - list.length}</span>
             <span className="pick-name">More designs</span>
           </Link>
         </div>
       </div>
 
       {/* Phones: "Make my invitation" stays in thumb reach once the hero's own button scrolls away. */}
-      <MobileCta
-        href={create}
-        label={typed ? "Continue with my invite →" : "Make my invitation →"}
-        note="Free preview"
-        watch=".hero-cta, .final .cta-btn, .price-card .cta-btn, .price-card .ghost-btn, .sec-cta .cta-btn"
-        spacer={false}
-        onClick={() => track("home_cta_clicked", { section: "hero" })}
-      />
+      <MobileCta href={create} label={typed ? "Continue with my invite →" : "Make my invitation →"} note="Free preview" watch=".hero-cta, .final .cta-btn, .price-card .cta-btn, .price-card .ghost-btn, .sec-cta .cta-btn" spacer={false} />
     </section>
-  );
-}
-
-/** Tap the hero's playing invite: flowers (haldi, confetti… by function) burst where the finger lands, over the
-    invite, which keeps playing. A hint shows until the first tap. CSS from the guest page's tap moment (.tm-burst). */
-function PhoneTap({ t, fn }: { t: TemplateDef; fn: CategoryId }) {
-  type Burst = { id: number; x: number; y: number; bits: { dx: number; dy: number; rot: number; size: number; glyph: string; delay: number }[] };
-  const [bursts, setBursts] = useState<Burst[]>([]);
-  const [tapped, setTapped] = useState(false);
-  const [hint, setHint] = useState(false);
-  useEffect(() => {
-    const id = setTimeout(() => setHint(true), 2600);
-    return () => clearTimeout(id);
-  }, []);
-  const glyphs = momentGlyphs(momentKind(fn === "wedding" ? "" : fn, fn === "wedding" ? t.categories : [fn], t.communities));
-  const tap = (e: React.PointerEvent<HTMLDivElement>) => {
-    const r = e.currentTarget.getBoundingClientRect();
-    const bits = Array.from({ length: 10 }, (_, k) => {
-      const a = (k / 10) * Math.PI * 2 + Math.random() * 0.5;
-      const d = 40 + Math.random() * 60;
-      return { dx: Math.cos(a) * d, dy: Math.sin(a) * d + 30, rot: (Math.random() - 0.5) * 540, size: 14 + Math.random() * 12, glyph: glyphs[k % glyphs.length], delay: Math.random() * 0.08 };
-    });
-    setBursts((b) => [...b.slice(-5), { id: Date.now() + Math.random(), x: e.clientX - r.left, y: e.clientY - r.top, bits }]);
-    if (!tapped) {
-      setTapped(true);
-      track("hero_phone_tapped", { template_id: t.id });
-    }
-  };
-  return (
-    <div className="phone-tap" onPointerDown={tap} aria-label="Tap to shower flowers on the invite">
-      {bursts.map((b) => (
-        <div key={b.id} className="tm-burst" style={{ left: b.x, top: b.y }} aria-hidden>
-          {b.bits.map((x, k) => (
-            <span key={k} style={{ fontSize: x.size, animationDelay: x.delay + "s", ["--dx" as any]: x.dx + "px", ["--dy" as any]: x.dy + "px", ["--rot" as any]: x.rot + "deg" }}>
-              {x.glyph}
-            </span>
-          ))}
-        </div>
-      ))}
-      {hint && !tapped ? (
-        <span className="phone-tap-hint" aria-hidden>
-          <span className="tm-hand">👆</span> Tap it
-        </span>
-      ) : null}
-    </div>
   );
 }
 
@@ -357,19 +188,12 @@ function HeroPlayer({ t, names, edited, onEnd }: { t: TemplateDef; names: StartN
   );
 }
 
-/** Home "Which function?" section: function tabs + the first eight matching cards (six on phones, see site.css),
-    the visitor's state's designs first when it is known. Cards open the design's own page, with the visitor's names.
-    Below: one link per state's language (/wedding-invitations/<state>), for visitors and for search engines. */
+/** Home "Which function?" section: function tabs + the first eight matching cards (six on phones, see site.css).
+    Cards open the design's own page, with the visitor's names. */
 export function Showcase() {
-  const tabs = (["all", ...CATEGORIES.map((c) => c.id)] as (CategoryId | "all")[]).filter((id) => countIn(DESIGNS, id) > 0);
+  const tabs = (["all", ...CATEGORIES.map((c) => c.id)] as (CategoryId | "all")[]).filter((id) => countIn(TEMPLATES, id) > 0);
   const [cat, setCat] = useState<CategoryId | "all">("all");
-  const { region, picked } = useRegion();
-  const { own, rest } = forRegion(
-    TEMPLATES.filter((t) => cat === "all" || t.categories.includes(cat)),
-    region,
-    picked,
-  );
-  const list = [...own, ...rest].slice(0, 8);
+  const list = TEMPLATES.filter((t) => cat === "all" || t.categories.includes(cat)).slice(0, 8);
   return (
     <>
       <div className="tabs" role="tablist">
@@ -385,22 +209,10 @@ export function Showcase() {
         ))}
       </div>
       <div className="showcase-foot">
-        <Link href={cat === "all" ? "/templates" : functionPath(cat)} className="ghost-btn" onClick={() => track("home_cta_clicked", { section: "designs" })}>
-          See all {countIn(DESIGNS, cat)} {cat === "all" ? "designs" : CATEGORIES.find((c) => c.id === cat)!.label.toLowerCase() + " designs"} <Arrow />
+        <Link href={cat === "all" ? "/templates" : "/templates?category=" + cat} className="ghost-btn">
+          See all {countIn(TEMPLATES, cat)} {cat === "all" ? "designs" : CATEGORIES.find((c) => c.id === cat)!.label.toLowerCase() + " designs"} <Arrow />
         </Link>
       </div>
-      {/* prefetch off: eight dynamic pages would each cost a server call the moment this row scrolls into view. */}
-      <nav className="lang-links" aria-label="Wedding invitations by language">
-        <span className="mono-label">Wedding invitations in your language</span>
-        <div className="lang-row">
-          {(region ? [region, ...REGIONS.filter((r) => r.id !== region.id)] : REGIONS).map((r) => (
-            <Link key={r.id} href={statePath(r.id)} prefetch={false} className="chip-o">
-              {r.language}
-              <small lang={r.lang}>{r.native}</small>
-            </Link>
-          ))}
-        </div>
-      </nav>
     </>
   );
 }
@@ -412,9 +224,9 @@ export function DesignStack() {
     <div ref={ref} className={"mini-stack" + (seen ? " in" : "")}>
       <div className="mini-head">
         <span>Designs</span>
-        <b>{DESIGNS.length}</b>
+        <b>{TEMPLATES.length}</b>
       </div>
-      {DESIGNS.slice(0, 5).map((t, n) => (
+      {TEMPLATES.slice(0, 5).map((t, n) => (
         <div key={t.id} className="mini-row" style={{ transitionDelay: n * 70 + "ms" }}>
           <i style={{ background: "linear-gradient(135deg, " + t.palettes[0].bg + ", " + t.palettes[0].accent + ")" }} />
           {t.name}
@@ -432,12 +244,3 @@ export function Arrow() {
   );
 }
 
-
-/** A home page call to action that reports which section it was in (`home_cta_clicked`), for the server-rendered page. */
-export function CtaLink({ href, section, className, children }: { href: string; section: Events["home_cta_clicked"]["section"]; className?: string; children: React.ReactNode }) {
-  return (
-    <Link href={href} className={className} onClick={() => track("home_cta_clicked", { section })}>
-      {children}
-    </Link>
-  );
-}

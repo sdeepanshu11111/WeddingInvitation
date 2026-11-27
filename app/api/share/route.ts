@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { LEADS, VIDEO_EXPORT, exportOff } from "@/lib/features";
-import { CONTACT_NOTICE, CONTACT_NOTICE_LINK, normalizeEmail, normalizePhone } from "@/lib/contact";
+import { CONTACT_NOTICE, normalizeEmail, normalizePhone } from "@/lib/contact";
 import { slugify } from "@/lib/slug";
 import { saveShareLead } from "@/lib/server/leads";
-import { linkFacts, linkOrigin, recordLinkCreated, recordLinkUpdated } from "@/lib/server/links";
-import { SITE_URL } from "@/lib/site";
-import { ShareError, createLiveShare, createVideoShare, lanOrigin, newOwnerKey, nextNumberedName, numberedBase, ownerKeyHash, updateLiveShare } from "@/lib/server/share";
+import { ShareError, createLiveShare, createVideoShare, lanOrigin, newOwnerKey, nextNumberedName, numberedBase, ownerKeyHash } from "@/lib/server/share";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,12 +12,7 @@ export const dynamic = "force-dynamic";
 /**
  * POST { project, title, card, name?, auto?, phone?, email? } -> live invitation at /e/<name> (default: 1-<first names>,
  *      the first free number for that couple; auto: true = name is that automatic one, so a clash takes the next number).
- *      phone, email: how to reach the couple (lead capture), stored privately, never in the published project. The studio
- *      asks for the mobile number before every link (required there since 2026-11-23); the server still accepts a post
- *      without one, so a studio tab opened before that release keeps working.
- *      meta: { source, visit_source, internal } = where the maker came from (lib/analytics.ts), kept with the link's record
- * POST { project, title, card, update: name, key }     -> the owner republishes their invite to the same link /e/<name>
- *      (key = the owner key that link's creator got back; 403 without it). Returns the same shape plus updated: true.
+ *      phone, email: how to reach the couple (lead capture), stored privately, never in the published project
  * POST { file, title }                                 -> link to a finished MP4 in ./exports
  * Both return { token, url, lanUrl }; a live share also { card, ownerKey } (the creator keeps the key: it unlocks the
  * owner tools on the invite page). A taken name gives 409 { error, suggestion }.
@@ -34,13 +27,10 @@ export async function POST(req: Request) {
   if (LEADS && body?.phone && !phone) return NextResponse.json({ error: "Please enter a valid WhatsApp number" }, { status: 400 });
   if (LEADS && body?.email && !email) return NextResponse.json({ error: "Please enter a valid email" }, { status: 400 });
   let share;
-  const updating = !!body?.project?.templateId && typeof body?.update === "string" && !!body.update;
   // Only the creating browser ever sees this key; the share keeps its hash (lib/server/share.ts, "Owner key").
   const ownerKey = newOwnerKey();
   try {
-    if (updating) {
-      share = await updateLiveShare(body.update, body.key, body.project, title, body.card ?? {});
-    } else if (body?.project?.templateId) {
+    if (body?.project?.templateId) {
       // auto: the dialog's numbered name (1-deepak-sonia). If someone claimed that number a moment ago, take the next
       // free one here instead of asking the couple; a name they typed themselves still gets a 409 + suggestion.
       const auto = body.auto === true;
@@ -65,29 +55,17 @@ export async function POST(req: Request) {
   }
   // Losing a lead must never cost the couple their link, so a database error is only logged (without their details).
   if ((phone || email) && share.kind === "live")
-    await saveShareLead(share.token, title, { phone, email }, phone ? CONTACT_NOTICE_LINK : CONTACT_NOTICE).catch((e) => console.error("Lead not saved:", e?.message));
-  // The link's record (lib/server/links.ts): every link, with its address, design and where its maker came from.
-  // Like the lead, best effort: a database error is logged and the couple still gets their link.
-  if (share.kind === "live") {
-    // has_phone only ever goes on (an edit without the number step must not erase it); the number itself is in leads only.
-    const facts = { ...linkFacts(body.project, share.title, (process.env.SITE_URL ? SITE_URL : origin) + "/e/" + share.token, share), ...(phone ? { has_phone: true } : null) };
-    await (updating
-      ? recordLinkUpdated(share.token, facts, share.createdAt)
-      : recordLinkCreated(share.token, facts, linkOrigin(body.meta, req.headers.get("user-agent")), share.createdAt)
-    ).catch((e) => console.error("Link record not saved:", e?.message));
-  }
+    await saveShareLead(share.token, title, { phone, email }, CONTACT_NOTICE).catch((e) => console.error("Lead not saved:", e?.message));
   // Names are guessable, so someone may have opened this one before it existed: drop any cached "not found".
   revalidatePath("/e/" + share.token);
   const lan = lanOrigin(origin);
   // card: the WhatsApp preview image, so the dialog can show how the link will look in a chat.
-  const card = share.kind === "live" ? "/e/" + share.token + "/card?v=" + (share.updatedAt ?? share.createdAt) : null;
+  const card = share.kind === "live" ? "/e/" + share.token + "/card?v=" + share.createdAt : null;
   return NextResponse.json({
     token: share.token,
     url: origin + "/e/" + share.token,
     lanUrl: lan ? lan + "/e/" + share.token : null,
     card,
-    // An update keeps the key the browser already has.
-    ownerKey: share.kind === "live" && !updating ? ownerKey : undefined,
-    updated: updating || undefined,
+    ownerKey: share.kind === "live" ? ownerKey : undefined,
   });
 }

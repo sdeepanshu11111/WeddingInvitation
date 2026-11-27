@@ -7,13 +7,7 @@
    queued in order. Off unless MIXPANEL_TOKEN is set (production deploys, see next.config.mjs).
 
    Nobody signs in, so everyone is an anonymous device: no identify(), and no names, emails or phone
-   numbers. Guest pages also drop the URL and page title, which carry the couple's names. A link is known here
-   only by its invite_id (a hash, lib/inviteId.ts); the address itself is in the private link record
-   (lib/server/links.ts, /admin/links), which stores the same invite_id so the two can be matched.
-
-   Every event carries `source` (where this visit came from: google, chatgpt, whatsapp, invite, direct...) and
-   `first_source` (where the device first came from), see trafficSource(). Devices that have opened /admin carry
-   is_internal: true, and automated browsers send nothing.
+   numbers. Guest pages also drop the URL and page title, which carry the couple's names.
 
    Ad measurement (Meta Pixel) rides on the same events: track() also sends the few that matter to Meta
    (see META below). The pixel runs on the site pages only (startPixel, from <MetaPixel> in the root
@@ -22,32 +16,12 @@
 
 import type { Mixpanel } from "mixpanel-browser";
 import type { Orientation } from "./types";
-import { GA_ID, META_PIXEL_ID, MIXPANEL_API_HOST, MIXPANEL_TOKEN } from "./features";
-import { priceOf } from "./pricing";
+import { GA_ID, LINK_PRICE_INR, META_PIXEL_ID, MIXPANEL_API_HOST, MIXPANEL_TOKEN, PAYMENTS } from "./features";
 
 /** The tracking plan. Names are snake_case and fixed: never build an event or property name at runtime. */
-export type Events = {
-  /** A visitor tapped a state on /templates ("Wedding in which state?"): a region id from lib/regions.ts, or "all". */
-  state_selected: { state: string };
-  /** The couple rated their invite in the owner sheet (app/api/review). The stars only: never the words or names. */
-  review_submitted: { rating: number; has_text: boolean; is_public: boolean };
-  /** The mobile-number step of "Get wedding link" (components/editor/ShareDialog.tsx). shown: asked; skipped: this device
-      already gave a number, so it was not asked; invalid: they pressed the button with a number that isn't valid;
-      submitted: a valid number, the link is being made; cancelled: back to editing. Never the number. */
-  link_phone_step: { template_id: string; action: "shown" | "skipped" | "invalid" | "submitted" | "cancelled" };
-  /** The couple tapped one of their other functions in the owner sheet (lib/nextInvites.ts): a second purchase starting. */
-  next_invite_clicked: { template_id: string; from_template_id: string };
-  /** The studio (/create) finished loading a project. has_design_param: arrived with a chosen design
-      (?template=); has_draft: this browser had a saved invite; has_names: names typed on the site came along. */
-  studio_opened: { template_id: string; has_design_param: boolean; has_draft: boolean; has_names: boolean };
-  /** The first field the couple changed in this studio visit (the field's key, never its content). */
-  invite_edit_started: { template_id: string; field: string };
-  /** language: the studio's Language row switched the design to another language version (lib/variants.ts). */
-  template_selected: { template_id: string; source: "sidebar" | "gallery" | "template_page" | "language" };
-  /** "Get wedding link" tapped. from: which button (header, the 01-02-03 steps, the end of the form, the phone tab bar). */
-  share_dialog_opened: { template_id: string; from?: "header" | "steps" | "form" | "tab" };
-  /** Get link did not produce a link: media upload or link creation failed (stage). */
-  invite_link_failed: { template_id: string; stage: "upload" | "create" };
+type Events = {
+  template_selected: { template_id: string; source: "sidebar" | "gallery" | "template_page" };
+  share_dialog_opened: { template_id: string };
   /** The value moment: the couple has a link guests can open. */
   invite_link_created: {
     invite_id: string;
@@ -60,18 +34,10 @@ export type Events = {
     photo_count: number;
     has_video: boolean;
     duration_seconds: number;
-    price_inr: number; // what removing the watermark costs for this design (0 = free design)
-    is_free: boolean;
-    sample_field_count: number; // date / venue fields still holding the template's sample
-    has_phone?: boolean; // the couple gave their mobile number at Get wedding link (never the number itself)
   };
-  /** The couple changed their invite and published it again to the link they already had (no new link). */
-  invite_link_updated: { invite_id: string; template_id: string };
   /** "Export MP4" (only where export is on: the hosted site hides it and doesn't mention video). */
   video_export_clicked: { is_available: boolean };
   payment_started: { invite_id: string; amount_inr: number };
-  /** Razorpay Checkout is on screen (the order exists). Started without opened = the order or Checkout failed. */
-  checkout_opened: { invite_id: string; amount_inr: number };
   payment_completed: { invite_id: string; amount_inr: number };
   payment_cancelled: { invite_id: string };
   payment_failed: { invite_id: string };
@@ -80,43 +46,9 @@ export type Events = {
   /** A guest watched to the end (once per visit). */
   invite_watched: {};
   invite_shared: { channel: "whatsapp" | "native_share" | "copy"; invite_id?: string };
-  /** A guest used the card at the end of an invite (app/e/[slug]/GuestDetails.tsx), or "Make your own invitation". */
-  guest_action_clicked: { action: "calendar" | "directions" | "rsvp" | "call" | "make_own" | "blessing"; where?: "scene" };
-  /** A guest sent an RSVP from the form (lib/rsvp.ts). people: 0 unless attending. No name, no answers beyond these. */
-  rsvp_sent: { response: "yes" | "maybe" | "no"; people: number; changed: boolean };
-  /** The tap moment on the names scene ended: how many times the guest tapped (0 = it went on by itself). */
-  tap_moment: { kind: string; taps: number };
-  /** A guest answered the couple's quiz. */
-  quiz_answered: { correct: boolean };
-  /** Home page: a call to action was tapped; `section` says which part of the page it was in. */
-  home_cta_clicked: { section: "hero" | "designs" | "guest_demo" | "link" | "how" | "pricing" | "pricing_pack" | "final" };
-  /** Home hero: the visitor started typing their names (once per page view; the names are never sent). */
-  hero_names_typed: {};
-  /** Home hero: a design card was picked, or a function chip ("What are you inviting for?"). */
-  hero_design_picked: { template_id: string; function: string };
-  hero_function_picked: { function: string };
-  /** Home hero: the playing invite was tapped (flowers shower over it), once per page view. */
-  hero_phone_tapped: { template_id: string };
-  /** Home page: the visitor tried a step of the "What your guests will do" demo (components/site/GuestDemo.tsx). */
-  home_demo_step: { step: "open" | "scratch" | "shower" | "quiz" | "rsvp" };
-  /** The scratch-to-reveal date card on a guest's invite was cleared by the guest (completed) or dissolved by itself. */
-  date_scratched: { completed: boolean };
-  /** The couple made a personal link for one guest (?to=<name>). The name is never sent. */
-  invite_personalised: { invite_id: string; channel: "whatsapp" | "copy" };
-  /** The couple's sheet (remove watermark, share) came up: by itself on the cover or at the end, or from their bar. */
-  owner_sheet_opened: { trigger: "cover" | "end" | "bar" | "preview_end" };
-  /** The couple's 30-second watermark-free preview of their own new invite ended: the watermark came on and the pay sheet opened. */
-  free_preview_ended: { reason: "timer" | "end"; watched_seconds: number };
-  /** The couple's watermark-free preview started playing on their invite (once per visit). seconds_left: 30 the first time. */
-  free_preview_started: { seconds_left: number };
-  /** "Not now" on the pay sheet (they go on with the watermark). amount_inr: the price they were shown. */
-  pay_later_clicked: { amount_inr: number };
-  /** The couple closed their sheet. is_watermarked: still unpaid; paid_now: they paid in this sheet. */
-  owner_sheet_closed: { how: "x" | "backdrop"; is_watermarked: boolean; paid_now: boolean };
-  /** A wedding guide's "Browse designs" box was tapped (app/guides/[slug]): which guide sent them. */
-  guide_cta_clicked: { slug: string };
+  /** A guest used the card at the end of an invite (app/e/[slug]/GuestDetails.tsx). */
+  guest_action_clicked: { action: "calendar" | "directions" | "rsvp" };
 };
-/* `payment_confirmed` is NOT here: the server sends it, once per payment (lib/server/mixpanel.ts). */
 
 type Surface = "site" | "editor" | "guest_page";
 /** Registered on every event of the page: which page it came from and, on a guest page, which invite and whether
@@ -130,105 +62,12 @@ const blacklist = (surface: Surface) => (surface === "guest_page" ? ["$current_u
 
 let sdk: Promise<Mixpanel | null> | null = null;
 
-/* ---- where the visitor came from ---- */
-
-const SRC_VISIT = "fp.src"; // sessionStorage: this visit
-const SRC_FIRST = "fp.src1"; // localStorage: the first visit ever on this device
-const INTERNAL = "fp.internal"; // localStorage: this device has opened /admin
-const store = (kind: "local" | "session") => {
-  try {
-    return kind === "local" ? localStorage : sessionStorage;
-  } catch {
-    return null; // private mode or blocked storage
-  }
-};
-
-/**
- * One readable word for where a visit came from: the link's utm_source if it has one (ChatGPT adds
- * utm_source=chatgpt.com to the links it gives; our guest pages add utm_source=invite), else the site that linked
- * here. Known names are folded together (google.co.in and google.com are "google"); anything else is the tag or the
- * domain itself; no tag and no other site = "direct" (typed, a bookmark, or an app that hides where it came from,
- * as WhatsApp does).
- */
-export function trafficSource(search: string, referrer: string, host: string): string {
-  const utm = (new URLSearchParams(search).get("utm_source") || "").trim().toLowerCase();
-  let ref = "";
-  try {
-    ref = referrer ? new URL(referrer).hostname.toLowerCase() : "";
-  } catch {}
-  const s = utm || (ref && ref !== host.toLowerCase() ? ref : "");
-  if (!s) return "direct";
-  const known: [RegExp, string][] = [
-    [/chatgpt|openai/, "chatgpt"],
-    [/perplexity/, "perplexity"],
-    [/gemini|bard\./, "gemini"],
-    [/copilot/, "copilot"],
-    [/claude\.ai|anthropic/, "claude"],
-    [/(^|\.)google\.|^google$/, "google"],
-    [/(^|\.)bing\.|^bing$/, "bing"],
-    [/duckduckgo/, "duckduckgo"],
-    [/yahoo/, "yahoo"],
-    [/whatsapp|^wa\.me$/, "whatsapp"],
-    [/instagram/, "instagram"],
-    [/facebook|^fb\.|(^|\.)fb\.com$|^meta$/, "facebook"],
-    [/youtube|youtu\.be/, "youtube"],
-    [/^t\.co$|twitter|(^|\.)x\.com$/, "x"],
-    [/linkedin|lnkd\.in/, "linkedin"],
-    [/telegram|^t\.me$/, "telegram"],
-  ];
-  return (known.find(([re]) => re.test(s))?.[1] ?? s.replace(/[^\w.:-]/g, "").slice(0, 40)) || "other";
-}
-
-/** This visit's source and the device's first one, remembered so later pages of the visit (and the link record
-    made at the end of it) keep them. A page that arrives with its own utm_source starts a new visit source. */
-function sources(): { visit: string; first: string } {
-  if (typeof window === "undefined") return { visit: "direct", first: "direct" };
-  const session = store("session");
-  const local = store("local");
-  const tagged = new URLSearchParams(location.search).has("utm_source");
-  let visit = tagged ? null : session?.getItem(SRC_VISIT) ?? null;
-  if (!visit) {
-    visit = trafficSource(location.search, document.referrer, location.hostname);
-    try {
-      session?.setItem(SRC_VISIT, visit);
-    } catch {}
-  }
-  let first = local?.getItem(SRC_FIRST) ?? null;
-  if (!first) {
-    first = visit;
-    try {
-      local?.setItem(SRC_FIRST, first);
-    } catch {}
-  }
-  return { visit, first };
-}
-
-/** True on a device that has opened /admin (components/MarkInternal.tsx): the owner's own testing. */
-export const isInternal = () => store("local")?.getItem(INTERNAL) === "1";
-export function markInternal() {
-  try {
-    store("local")?.setItem(INTERNAL, "1");
-  } catch {}
-}
-
-/** What POST /api/share stores with a new link's record: where its maker came from, and whether it is a test. */
-export const visitorOrigin = () => {
-  const { visit, first } = sources();
-  return { source: first, visit_source: visit, internal: isInternal() };
-};
-
-/** An automated browser (crawlers that run scripts, screenshot and monitoring services): not a visitor. */
-const automated = () => typeof navigator !== "undefined" && navigator.webdriver === true;
-
 /**
  * Loads Mixpanel once and records a page view. Called again after a client-side navigation to another kind
  * of page (site → editor), it switches the super properties over to the new page.
  */
 export function startAnalytics(surface: Surface, props: Super = {}) {
-  // Before anything else: the editor strips its query string right after this call, and the link record wants the
-  // source even where Mixpanel is off.
-  const src = sources();
-  if (!MIXPANEL_TOKEN || automated()) return;
+  if (!MIXPANEL_TOKEN) return;
   // Read now: the editor strips its query string right after this call (its effect runs first).
   const q = new URLSearchParams(location.search);
   sdk ??= import("mixpanel-browser/src/loaders/loader-module-core")
@@ -249,23 +88,9 @@ export function startAnalytics(surface: Surface, props: Super = {}) {
     for (const k of PAGE_KEYS) if (props[k] === undefined) mp.unregister(k);
     // An ad's tags stay on every later event (editor, payment) and visit, until a link with other tags arrives.
     if (UTM.some((k) => q.get(k))) for (const k of UTM) q.get(k) ? mp.register({ [k]: q.get(k) }) : mp.unregister(k);
-    mp.register(present({ surface, source: src.visit, is_internal: isInternal() || undefined, ...props }));
-    mp.register_once({ first_source: src.first });
+    mp.register(present({ surface, ...props }));
     mp.track_pageview(); // after register, so the page view carries the super properties too
   });
-}
-
-/** More about the page for every later event, once it is known (the editor learns its design after loading). */
-export function setPageProps(props: Super) {
-  sdk?.then((mp) => mp?.register(present(props)));
-}
-
-/** This browser's anonymous Mixpanel id, for the server's `payment_confirmed` (lib/server/mixpanel.ts). Null when
-    Mixpanel is off, blocked or still loading after a moment: Checkout must never wait on analytics. */
-export function deviceId(): Promise<string | null> {
-  if (!sdk) return Promise.resolve(null);
-  const id = sdk.then((mp) => (mp?.get_distinct_id?.() as string | undefined) ?? null).catch(() => null);
-  return Promise.race([id, new Promise<null>((r) => setTimeout(() => r(null), 700))]);
 }
 
 /** The public site pages: not the editor, a guest's invite, the headless export pages or /admin. */
@@ -283,12 +108,12 @@ export function track<E extends keyof Events>(event: E, ...props: {} extends Eve
     send the same event without Meta counting it twice, so it must be computable on the server too. */
 type MetaEvent = [string, Record<string, unknown>, string?];
 const product = (template_id: string) => ({ content_ids: [template_id], content_type: "product" });
-const price = (template_id: string) => (priceOf(template_id) ? { value: priceOf(template_id), currency: "INR" } : {});
+const price = () => (PAYMENTS ? { value: LINK_PRICE_INR, currency: "INR" } : {});
 
 /** Which tracking-plan events also go to Meta. No names or link names: only template ids and amounts. */
 const META: { [E in keyof Events]?: (p: Events[E]) => MetaEvent | null } = {
   template_selected: (p) => ["ViewContent", product(p.template_id)],
-  share_dialog_opened: (p) => ["AddToCart", { ...product(p.template_id), ...price(p.template_id) }],
+  share_dialog_opened: (p) => ["AddToCart", { ...product(p.template_id), ...price() }],
   payment_started: (p) => ["InitiateCheckout", { value: p.amount_inr, currency: "INR" }],
   // One payment per invite (paid.json is write-once), so the invite id is a stable dedup key.
   payment_completed: (p) => ["Purchase", { value: p.amount_inr, currency: "INR" }, "purchase-" + p.invite_id],
@@ -301,8 +126,6 @@ const fbq = () => (typeof window === "undefined" ? undefined : ((window as any).
 
 /** Pages no ad or Google tool may see: a guest's invite (names in the URL), the headless export pages, /admin. */
 const PRIVATE_PATH = /^\/(e|v|render|client-render|admin)(\/|$)/;
-/** True for a guest's invite, the export pages and /admin: no ad, Google or Vercel tool may report these. */
-export const privatePath = (path: string) => PRIVATE_PATH.test(path);
 const herePath = () => (typeof location === "undefined" ? "" : location.pathname);
 
 /** Pages the pixel may see: not a guest's invite (names in the URL), not the headless export pages, not /admin. */
@@ -370,5 +193,19 @@ export function gaPageView() {
 /** Mixpanel wants a missing property left out, not sent as null or "". */
 const present = (o: Record<string, unknown>) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null && v !== ""));
 
-/** The invite's id in Mixpanel (a hash of its link name): lib/inviteId.ts. */
-export { inviteId } from "./inviteId";
+/**
+ * A stable id for an invite that does not show the couple's names (its link name does), so reports can
+ * join a link's creation, its guests' views and its payment. cyrb53, base 36.
+ */
+export function inviteId(name: string) {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < name.length; i++) {
+    const c = name.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 2654435761);
+    h2 = Math.imul(h2 ^ c, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
+}

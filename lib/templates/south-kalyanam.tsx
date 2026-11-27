@@ -29,8 +29,8 @@ export const southKalyanam: TemplateDef = {
   poster: "names",
   fonts: { display: "var(--f-playfair)", script: "var(--f-vibes)", body: "var(--f-cormorant)" },
   palettes: [
-    { id: "kasavu", name: "Kerala Kasavu", ink: "#3E2A12", soft: "#6E5230", accent: "#A0740A", bg: "#FBF5E6", bg2: "#F1E4C4", line: "#C9A227" },
     { id: "temple", name: "Temple Maroon", ink: "#FFF3D6", soft: "#E8C99A", accent: "#F2B705", bg: "#6E0F1A", bg2: "#3D0710", line: "#D4A017" },
+    { id: "kasavu", name: "Kerala Kasavu", ink: "#3E2A12", soft: "#6E5230", accent: "#A0740A", bg: "#FBF5E6", bg2: "#F1E4C4", line: "#C9A227" },
     { id: "banana", name: "Banana Leaf", ink: "#FFF8E1", soft: "#D7E8C0", accent: "#FFD54F", bg: "#1E4D2B", bg2: "#0E2A17", line: "#E2B33C" },
     { id: "peacock", name: "Peacock Silk", ink: "#F1FBFA", soft: "#A7D8D3", accent: "#F2C14E", bg: "#0D4D57", bg2: "#3A0C33", line: "#E8B94A" },
   ],

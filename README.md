@@ -11,7 +11,7 @@ npm run dev        # http://localhost:4321
 
 | | |
 |---|---|
-| **23 templates** | Built for the Indian market, every function covered (see the table below) |
+| **17 templates** | Built for the Indian market, every function covered (see the table below) |
 | **Categories** | Wedding · All Functions · Engagement · Haldi · Mehendi · Sangeet · Reception · Save the Date, plus community filters (Hindu / North Indian, South Indian, Muslim, Sikh, Christian, Modern). The gallery plays each template live on hover |
 | **Scripts** | Devanagari, Gurmukhi (ੴ), Arabic (Bismillah, wedding dua), Tamil, Telugu, Malayalam, Kannada |
 | **4 palettes each** | One click recolours the whole video |
@@ -108,10 +108,10 @@ On Vercel you get the editor, **Share** links (the invitation plays in the guest
 | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET` | you (Razorpay → Account & Settings → API Keys) | Turns on paid links: free links get a "Preview" watermark, removing it costs `LINK_PRICE_INR` |
 | `RAZORPAY_WEBHOOK_SECRET` | you (Razorpay → Webhooks) | Backup confirmation if the buyer closes the tab mid-payment. Webhook URL `<site>/api/pay/webhook`, event **order.paid**, same secret |
 | `LINK_PRICE_INR` | you (optional) | Price of a link without watermark, default `99` |
-| `MONGODB_URI` | you (MongoDB Atlas → Connect → Drivers) | Turns on the private database. Collection `links`: a record of every invite link (address, design, source, checkouts, payments, guest opens), listed on `/admin/links`. Collection `leads`, lead capture: WhatsApp number or email in the Share step, payers' contacts, `/admin/leads` |
+| `MONGODB_URI` | you (MongoDB Atlas → Connect → Drivers) | Turns on lead capture in MongoDB: WhatsApp number or email in the Share step, payers' contacts, `/admin/leads` |
 | `MONGODB_DB` | you (optional) | Database name for leads, default `invite_studio` |
-| `ADMIN_PASSWORD` | you | Password for `/admin` (every link, and the leads with phone numbers). Use a long random one (20+ characters). Without it `/admin` is a 404 everywhere except `npm run dev` |
-| `ADMIN_USER` | you (optional) | User name for `/admin`, default `admin`: set your own, a guessable name leaves only the password to find |
+| `ADMIN_PASSWORD` | you | Password for `/admin/leads`. Without it `/admin` is a 404 on Vercel |
+| `ADMIN_USER` | you (optional) | User name for `/admin/leads`, default `admin` |
 | `LEADS` | you (optional) | `0` turns lead capture off even with a database |
 
 Paid links: the Share dialog offers **Free preview link** (watermarked) and **Without watermark · ₹99** (Razorpay Checkout: UPI, cards, netbanking). The server checks the Checkout signature, that the order was made for that link, and with Razorpay that the payment was captured, then writes `paid.json` and revalidates `/e/<name>`. Keys only ever live in Vercel env vars; changing them or the price needs a redeploy.

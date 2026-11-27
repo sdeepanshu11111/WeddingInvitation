@@ -1,11 +1,10 @@
 "use client";
-import React, { useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { clamp, transitionStyle } from "@/lib/anim";
 import type { Slot } from "@/lib/anim";
 import type { Project, Scene, TemplateDef, Theme } from "@/lib/types";
 import { SIZES } from "@/lib/project";
-import { MonogramContext, monogramOf } from "./primitives";
 
 /**
  * Draws ONE frame of the invitation at internal time T.
@@ -21,7 +20,6 @@ export function Frame({
   T,
   deterministic = false,
   playing = false,
-  height,
 }: {
   project: Project;
   template: TemplateDef;
@@ -32,17 +30,12 @@ export function Frame({
   T: number;
   deterministic?: boolean;
   playing?: boolean;
-  /** A taller canvas than the standard 1920 (the guest page on a tall phone, so the invite fills the screen). Scenes
-      are centred in it and backdrops draw to it, so the extra height is more background. Studio and MP4 never pass it. */
-  height?: number;
 }) {
-  const { W } = SIZES[project.orientation];
-  const H = height ?? SIZES[project.orientation].H;
+  const { W, H } = SIZES[project.orientation];
   const vertical = project.orientation === "vertical";
   const base = { W, H, vertical, data: project.data, theme, deterministic, playing };
 
   return (
-    <MonogramContext.Provider value={monogramOf(project.data)}>
     <div
       style={{
         position: "relative",
@@ -84,45 +77,34 @@ export function Frame({
         );
       })}
     </div>
-    </MonogramContext.Provider>
   );
 }
-
-/** useLayoutEffect in the browser; a plain effect on the server, where layout effects only log a warning. */
-const useIsoLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 /** Scales a W×H design surface to fit whatever box it is placed in. */
 export function Stage({ W, H, children, pad = 0 }: { W: number; H: number; children: ReactNode; pad?: number }) {
   const box = useRef<HTMLDivElement | null>(null);
-  // null until the box has been measured. The surface stays hidden until then: it used to be drawn at a guessed
-  // 0.3 first and jump to the real scale a frame later, which showed as a flicker every time a player mounted
-  // (each design change in the home hero, every card scrolling in, the studio, the invite).
-  const [k, setK] = useState<number | null>(null);
+  const [k, setK] = useState(0.3);
 
-  // Layout effect: measured before the browser paints, so the first visible frame already has the right scale.
-  useIsoLayoutEffect(() => {
+  useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const fit = () => {
+    const ro = new ResizeObserver(() => {
       const r = el.getBoundingClientRect();
-      if (r.width > 0 && r.height > 0) setK(Math.max(0.05, Math.min((r.width - pad * 2) / W, (r.height - pad * 2) / H)));
-    };
-    fit();
-    const ro = new ResizeObserver(fit);
+      setK(Math.max(0.05, Math.min((r.width - pad * 2) / W, (r.height - pad * 2) / H)));
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, [W, H, pad]);
-  const scale = k ?? 0.3;
 
   return (
     <div ref={box} style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", overflow: "hidden" }}>
-      <div style={{ width: W * scale, height: H * scale, position: "relative", visibility: k === null ? "hidden" : "visible" }}>
+      <div style={{ width: W * k, height: H * k, position: "relative" }}>
         <div
           className="stage-surface"
           style={{
             width: W,
             height: H,
-            transform: "scale(" + scale + ")",
+            transform: "scale(" + k + ")",
             transformOrigin: "0 0",
             position: "absolute",
             left: 0,

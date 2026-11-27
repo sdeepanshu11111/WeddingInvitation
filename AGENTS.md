@@ -1,9 +1,8 @@
 # Analytics Tracking — Mixpanel
 
 This project uses **Mixpanel** for all product analytics, plus the **Meta Pixel** for ad measurement only (see
-"Meta Pixel" below; the owner asked for it on 2026-10-11), and **Google Analytics** page views and the **Google AdSense**
-loader (see "Google Analytics and AdSense" below; the owner asked for both on 2026-11-13). Do not add another analytics
-tool, SDK or tracking library unless the owner asks for it. Project context and architecture are in `CLAUDE.md`.
+"Meta Pixel" below; the owner asked for it on 2026-10-11). Do not add another analytics tool, SDK or tracking
+library unless the owner asks for it. Project context and architecture are in `CLAUDE.md`.
 
 ---
 
@@ -24,7 +23,7 @@ tool, SDK or tracking library unless the owner asks for it. Project context and 
 | **Platform** | Next.js 14 (App Router), React 18, TypeScript strict, hosted on Vercel |
 | **Mixpanel SDK** | `mixpanel-browser`, core build only (`mixpanel-browser/src/loaders/loader-module-core`, no session replay) |
 | **SDK version** | 2.84.0 (pinned) |
-| **Tracking method** | client-side, plus ONE server-side event: `payment_confirmed` (`lib/server/mixpanel.ts`, HTTP `/track`) |
+| **Tracking method** | client-side only |
 | **CDP (if any)** | none |
 | **Consent required** | no (India only) |
 | **Data residency** | US (project 4072400) via `MIXPANEL_API_HOST` (default `https://api-js.mixpanel.com`). To move to an India project set `MIXPANEL_TOKEN` + `MIXPANEL_API_HOST=https://api-in.mixpanel.com` in Vercel and redeploy. A host that does not match the residency returns status 1 but drops the events. |
@@ -67,10 +66,6 @@ on sign-up, login and session restore, `reset()` on logout, and track a `sign_up
 Invites are joined across events by `invite_id` = `inviteId(<link name>)` (a cyrb53 hash, so the names don't show).
 Use the helper; never send the link name, couple names, dates, venue, phone or email.
 
-**From an event to its link:** the private link record (`lib/server/links.ts`, MongoDB collection `links`) stores the
-same `invite_id` next to the link's address. Paste an `invite_id` from a Mixpanel event into the search box on
-`/admin/links` to find the invite (owner's decision, 2026-11-16: Mixpanel stays name-free, the address lives in MongoDB).
-
 ---
 
 ## Mixpanel Tracking Plan
@@ -91,9 +86,6 @@ wrong property, so update that type first.
 | `surface` | all | `site`, `editor`, `guest_page` |
 | `invite_id`, `template_id`, `is_watermarked` | guest page | which invite the guest is looking at |
 | `is_owner` | guest page | `true` when the viewer is the couple who made the link (its owner key is in this browser, `lib/owner.ts`). Filter it out to count real guests; since 2026-10-21 the couple lands on their own invite right after "Get link" |
-| `source` | all | where this visit came from, one word: `google`, `chatgpt`, `perplexity`, `gemini`, `bing`, `whatsapp`, `instagram`, `facebook`, `youtube`, `invite` (a guest tapped "Make your own invitation"), `direct`, or the raw `utm_source` / referring domain. `trafficSource()` in `lib/analytics.ts`: the link's `utm_source` first (ChatGPT adds `utm_source=chatgpt.com`), else the referring site. Kept for the visit in sessionStorage (`fp.src`); a page arriving with its own `utm_source` starts a new one |
-| `first_source` | all | the `source` of the device's first visit ever (`register_once`, also `fp.src1` in localStorage). Use this one to ask "which channel brings people who end up making a link or paying" |
-| `is_internal` | devices that have opened `/admin` | `true`. Opening `/admin` (password) marks the browser (`fp.internal`, `components/AdminNav.tsx`): the owner's and testers' devices. Filter `is_internal != true` in every report |
 | `utm_source`, `utm_medium`, `utm_campaign`, `utm_content`, `utm_term` | after a visit from a tagged link (an ad) | the link's tags; kept on later events and visits until a link with other tags arrives (last touch) |
 
 ### Current Mixpanel events
@@ -101,111 +93,22 @@ wrong property, so update that type first.
 | Event | Trigger | Key properties | File |
 |---|---|---|---|
 | `$mp_web_page_view` | A site page (each route), the editor or a guest page loaded | (super properties) | `lib/analytics.ts` |
-| `sample_warning` | **Retired 2026-11-23** (the check was removed: no stoppers before the link). Was: Get link found the date / venue still the design's example | `template_id`, `field_count`, `choice` | (none) |
-| `link_phone_step` | The mobile-number step of "Get wedding link" (required since 2026-11-23). The number is never sent | `template_id`, `action` (`shown` = asked / `skipped` = this device already gave a number, not asked / `invalid` = pressed the button with a number that isn't valid / `submitted` = valid, the link is being made / `cancelled` = went back to editing) | `components/editor/ShareDialog.tsx` (`GetLink`) |
-| `free_preview_started` | The couple's watermark-free preview of their own unpaid invite started playing (once per visit) | `seconds_left` (30 the first time; less when a reload carries on) | `app/e/[slug]/LiveInvite.tsx` |
-| `free_preview_ended` | The couple's 30-second watermark-free preview of their own unpaid invite ended: the watermark came on, the invite paused and the pay sheet opened | `reason` (`timer` = 30 s of playing time / `end` = the invite ended first), `watched_seconds` | `app/e/[slug]/LiveInvite.tsx` |
-| `pay_later_clicked` | "Not now, share it with the watermark" on the couple's pay sheet | `amount_inr` (the price they were shown) | `app/e/[slug]/LiveInvite.tsx` (`OwnerSheet`) |
-| `owner_sheet_closed` | The couple closed their sheet | `how` (`x` / `backdrop`), `is_watermarked` (still unpaid), `paid_now` (paid in this sheet) | `app/e/[slug]/LiveInvite.tsx` (`OwnerSheet`) |
-| `guide_cta_clicked` | "Browse designs" at the end of a wedding guide (`/guides/<slug>`, since 2026-11-23) | `slug` (which guide) | `components/site/GuideCta.tsx` |
-| `next_invite_clicked` | The couple tapped one of their other functions in their owner sheet (once their invite is clean): a second purchase starting | `template_id` (the design it opens), `from_template_id` (the invite they were on) | `app/e/[slug]/LiveInvite.tsx` (`OwnerNext`) |
-| `review_submitted` | The couple rated their invite in their owner sheet (once it has no watermark) | `rating` (1-5), `has_text`, `is_public` (they allowed it on the site). Never the words or names | `app/e/[slug]/LiveInvite.tsx` (`OwnerReview`) |
-| `state_selected` | A visitor tapped a state in "Wedding in which state?" on `/templates` (arriving with `?state=` from an ad shows in the page view's URL instead) | `state` (a region id from `lib/regions.ts`, e.g. `tamil-nadu`, or `all`) | `components/site/StatePicker.tsx` |
-| `studio_opened` | The studio (`/create`) finished loading a project: the step between the site and Get link | `template_id`, `has_design_param` (arrived with a chosen design), `has_draft` (a saved invite was in this browser), `has_names` (names typed on the site) | `app/create/page.tsx` |
-| `invite_edit_started` | The first field changed in a studio visit (once per visit): this visitor is making an invite, not only looking | `template_id`, `field` (the field's key, never its content) | `app/create/page.tsx` (`setField`) |
-| `template_selected` | Couple picks a template (in the editor, or arrives from "Customize" on a template page with a different one) | `template_id` (a language version is `<design>-<language>`, e.g. `haldi-marigold-tamil`), `source` (`sidebar`/`gallery`/`template_page`/`language` = the studio's Language row) | `app/create/page.tsx` |
-| `share_dialog_opened` | Couple taps Get wedding link (the mobile-number step, if this device has no number yet, then the link is created) | `template_id`, `from` (`header` / `steps` = the 01-02-03 row / `form` = the end of the form / `tab` = the phone tab bar) | `app/create/page.tsx` |
-| `invite_link_failed` | Get link did not produce a link | `template_id`, `stage` (`upload` = sending photos/music, `create` = making the link) | `ShareDialog.tsx` (`GetLink`) |
-| `invite_link_created` ★ | Share link saved (value moment) | `invite_id`, `template_id`, `palette_id`, `orientation`, `plan` (`free`/`premium`, only with payments on), `is_custom_name`, `has_music`, `photo_count`, `has_video`, `duration_seconds`, `price_inr` (what removing the watermark will cost: ₹99 for every new link since 2026-11-23), `is_free`, `sample_field_count` (date / venue fields still holding the template's sample), `has_phone` (the mobile number was given; never the number) | `components/editor/ShareDialog.tsx` |
-| `invite_link_updated` | The couple edited their invite and Get link published it to the link they already had (same address, stays paid) | `invite_id`, `template_id` | `ShareDialog.tsx` (`GetLink`) |
+| `template_selected` | Couple picks a template (in the editor, or arrives from "Customize" on a template page with a different one) | `template_id`, `source` (`sidebar`/`gallery`/`template_page`) | `app/create/page.tsx` |
+| `share_dialog_opened` | Couple taps Get link (the link is created right away, no dialog to fill in since 2026-10-21) | `template_id` | `app/create/page.tsx` |
+| `invite_link_created` ★ | Share link saved (value moment) | `invite_id`, `template_id`, `palette_id`, `orientation`, `plan` (`free`/`premium`, only with payments on), `is_custom_name`, `has_music`, `photo_count`, `has_video`, `duration_seconds` | `components/editor/ShareDialog.tsx` |
 | `video_export_clicked` | "Export MP4" clicked (only where export is on; the hosted site hides the button) | `is_available` | `app/create/page.tsx` |
 | `payment_started` | Pay ₹ clicked: the couple's owner sheet on their invite (since 2026-10-21) or a guest's "Remove · ₹" | `invite_id`, `amount_inr` | `lib/pay.ts` |
-| `checkout_opened` | Razorpay Checkout is on screen (the order was created). `payment_started` without it = the order or Checkout failed to load | `invite_id`, `amount_inr` (what the server will charge) | `lib/pay.ts` |
-| `payment_confirmed` ★ **(server)** | A payment was recorded, exactly once per payment, by whichever of `/api/pay/verify` and `/api/pay/webhook` came first. **The true count of sales**: `payment_completed` below is lost when the buyer's tab dies before Checkout's callback | `invite_id`, `template_id`, `amount_inr`, `via` (`checkout`/`webhook`), `has_device` (false = the buyer's device id was not known, the event sits under `invite:<invite_id>`), `surface: server` | `lib/server/mixpanel.ts`, `lib/server/afterPayment.ts` |
 | `payment_completed` | Server verified the Razorpay payment | `invite_id`, `amount_inr` (from the order, paise / 100) | `lib/pay.ts` |
 | `payment_cancelled` | Buyer closed Razorpay Checkout | `invite_id` | `lib/pay.ts` |
 | `payment_failed` | Order, Checkout load or verification failed | `invite_id` | `lib/pay.ts` |
 | `invite_opened` | Guest tapped "Open invitation" | `orientation` | `app/e/[slug]/LiveInvite.tsx` |
 | `invite_watched` | Guest reached the end (once per visit) | (super properties) | `app/e/[slug]/LiveInvite.tsx` |
 | `invite_shared` | Link sent on: WhatsApp, the phone's share sheet (after it succeeds), or copy | `channel` (`whatsapp`/`native_share`/`copy`), `invite_id` | `ShareDialog.tsx` (`GetLink` copy, `SharePanel`), `LiveInvite.tsx` (`GuestBar`, `OwnerBar`, `OwnerSheet`) |
-| `guest_action_clicked` | A guest used the card at the end of an invite, a button inside a scene, or tapped "Make your own invitation" | `action` (`calendar`/`directions`/`rsvp`/`call`/`make_own`/`blessing`), `where` (`scene` for the in-scene buttons) | `app/e/[slug]/GuestDetails.tsx`, `Rsvp.tsx`, `Interactive.tsx`, `LiveInvite.tsx` |
-| `rsvp_sent` | A guest sent an RSVP from the form (WhatsApp opened with it). No name, no answers beyond these | `response` (`yes`/`maybe`/`no`), `people` (0 unless yes), `changed` | `app/e/[slug]/Rsvp.tsx` |
-| `tap_moment` | The tap moment on the names scene ended | `kind` (`flowers`/`roses`/`haldi`/`henna`/`party`/`sparklers`/`rings`/`love`), `taps` (0 = it went on by itself) | `app/e/[slug]/LiveInvite.tsx` |
-| `quiz_answered` | A guest answered the couple's quiz | `correct` | `app/e/[slug]/Interactive.tsx` (`QuizAsk`) |
-| `home_cta_clicked` | A call to action on the home page was tapped | `section` (`hero`/`designs`/`guest_demo`/`link`/`how`/`pricing`/`pricing_pack`/`final`) | `components/site/Landing.tsx` (`CtaLink`), `GuestDemo.tsx` |
-| `home_demo_step` | The visitor tried a step of the home page's "Try it yourself" demo | `step` (`open`/`scratch`/`shower`/`quiz`/`rsvp`) | `components/site/GuestDemo.tsx` |
-| `hero_function_picked` | A "What are you inviting for?" chip in the home hero was tapped | `function` (category id) | `components/site/Landing.tsx` (`Hero`) |
-| `hero_names_typed` | The visitor started typing names in the home hero (once per page view; names never sent) | none | `components/site/Landing.tsx` |
-| `hero_design_picked` | A design card in the home hero was picked | `template_id`, `function` | `components/site/Landing.tsx` |
-| `hero_phone_tapped` | The playing invite in the home hero was tapped (flowers shower), once per page view | `template_id` | `components/site/Landing.tsx` (`PhoneTap`) |
-| `date_scratched` | The scratch-to-reveal date card on a guest's invite went away | `completed` (true = the guest scratched it, false = it dissolved by itself after 6 s untouched) | `app/e/[slug]/LiveInvite.tsx` |
-| `invite_personalised` | The couple made a link that greets one guest by name (`?to=`). The name is never sent | `invite_id`, `channel` (`whatsapp`/`copy`) | `app/e/[slug]/Interactive.tsx` (`PersonalLink`) |
-| `owner_sheet_opened` | The couple's sheet (remove watermark, share) came up on their invite: every payment starts from it | `trigger` (`cover` = by itself on a return visit, `end` = by itself when the invite ended, `bar` = they tapped their bar, `preview_end` = the 30-second watermark-free preview ended) | `app/e/[slug]/LiveInvite.tsx` |
+| `guest_action_clicked` | A guest used the card at the end of an invite | `action` (`calendar`/`directions`/`rsvp`) | `app/e/[slug]/GuestDetails.tsx` |
 
 ---
-
-## Google Analytics and AdSense
-
-Both were added on the owner's request (2026-11-13) from the snippets Google hands out. Neither gets events from `track()`:
-Mixpanel stays the product analytics tool.
-
-| Detail | Google Analytics (GA4) | Google AdSense |
-|---|---|---|
-| **ID** | Measurement ID `G-7S5DBM9NN2` | Publisher `ca-pub-3765220388345390` (also in `public/ads.txt`, without `ca-`) |
-| **Code** | `gaPageView`, `gaAllowed` in `lib/analytics.ts`; `components/GoogleAnalytics.tsx` in `app/layout.tsx` | `components/AdSense.tsx` (server component, the tag is in the page source for Google's site check) |
-| **When it is on** | Production deployment only. Force with `GA=1` / `0`; `GA_ID` points it at another property. | Production deployment only. Force with `ADSENSE=1` / `0`; `ADSENSE_CLIENT` for another publisher. |
-| **Pages** | Same as the pixel: site pages and `/create`. Never `/e/…`, `/v/…`, `/render`, `/client-render`, `/admin`. | Only the pages that render `<AdSense />`: `/`, `/templates`, `/templates/<id>` and the policy pages. Not `/create`, and never the root layout. |
-| **What is sent** | gtag's own page views: one on load, then one per history change (GA "enhanced measurement", a setting in the GA property). Nothing is sent by hand. | Nothing by us. Ads only appear once the site is approved and Auto ads (or ad units) are switched on in AdSense. |
-
-- **Guest invites stay clean.** `/privacy` promises no analytics-for-ads or ad tools on `/e/` pages, and their URL and title carry the
-  couple's names. Every way into `/e/` is a full page load today (`location.assign` and a plain `<a>` in `ShareDialog.tsx`), so
-  neither script exists there. Keep it that way: a `next/link` into `/e/` would carry both scripts along. As a second guard
-  `gaPageView()` sets `window["ga-disable-<id>"]` on private paths.
-- **AdSense stays in memory across client-side navigation**, so after `/` → `/create` Auto ads could still place ads in the
-  studio. If that shows up, exclude `/create` in AdSense (Auto ads → Page exclusions).
-- Adding either to a new page type, or sending events to GA, means updating `/privacy` (sections 2, 4, 5).
-
----
-
-## Funnels to build in Mixpanel (all with `is_internal != true`)
-
-- **Creator funnel:** `$mp_web_page_view` (surface `site`) → `studio_opened` → `invite_edit_started` → `share_dialog_opened` →
-  `invite_link_created`. Break down by `first_source` (google / chatgpt / invite / direct) and by `$os`.
-- **Get-link funnel (since 2026-11-23):** `share_dialog_opened` → `link_phone_step` (`shown` or `skipped`) → `link_phone_step` (`submitted`) →
-  `invite_link_created`. `invalid` counts show friction in the number field; `cancelled` is people who backed out at the number.
-- **Sales funnel:** `invite_link_created` → `free_preview_started` → `free_preview_ended` → `owner_sheet_opened` (`preview_end`) → `payment_started` →
-  `checkout_opened` → `payment_confirmed`. `pay_later_clicked` / `owner_sheet_closed` with `is_watermarked` = who left the pay sheet.
-- **Guides:** `$mp_web_page_view` on `/guides/*` → `guide_cta_clicked` → `studio_opened`. Break down by `slug`.
-  A gap between `checkout_opened` and `payment_confirmed` is an abandoned or failed payment; the link is on `/admin/links`
-  under "Tried to pay".
-- **Guests:** `invite_opened` → `invite_watched` → `guest_action_clicked`, filtered to `is_owner != true`.
-- **Bots:** automated browsers (`navigator.webdriver`) send nothing since 2026-11-16. Data-centre visits before that date are
-  still in the project (US / Sweden / Ireland page views with no other event).
-
-## Link records and guest counts (MongoDB, not Mixpanel)
-
-Every link is also written to the private database (`lib/server/links.ts`, collection `links`, list on `/admin/links`): address,
-design, price, created / edited times, `source` and `visit_source` (the same words as above, sent once in `meta` of
-`POST /api/share`), OS, every checkout attempt, every payment, and two counters (`opens`, `watched`) that the guest page
-increments through `POST /api/share/<name>/seen` (a count only; not the couple's own views, not internal devices). That is
-where to look for one specific invite; Mixpanel is where to look for behaviour across invites.
-
-Since 2026-11-23 a record also has `flat` (made by the ₹99 flat-price release; `price_inr` is what that link really costs,
-`priceForLink`), `has_phone` (a number was given at Get wedding link; the number itself is only in `leads`) and the couple's own
-side, sent with their owner key through `POST /api/share/<name>/owner` (`recordOwnerEvent`): `owner_visits`, `preview_ended_at`
-+ `preview_end_reason`, `paysheet_opens`, `pay_later`. `/admin/links` shows them on each link, a "Saw price" tab (saw the pay
-sheet or finished the preview, never opened Checkout: the people to follow up first) and the flat-price funnel at the top.
-
-## Vercel Web Analytics
-
-Added by Vercel's bot PRs on 2026-11-12. Mounted only through `components/VercelAnalytics.tsx`, whose `beforeSend` drops every
-event for `/e/…`, `/v/…`, `/render`, `/client-render` and `/admin` (`privatePath` in `lib/analytics.ts`). Cookieless page views for
-the site pages and the editor; disclosed on `/privacy` as "Visit counts".
 
 ## Meta Pixel (ad measurement)
-
-**OFF since 2026-11-14**: the owner runs no Meta ads (the only ad traffic in Mixpanel is a one-day test on 2026-10-13). The code
-stays; `META_PIXEL=1` turns it back on (`next.config.mjs`), and `/privacy` prints its Meta paragraphs only while it is on.
 
 Pixel "FutureProof Wedding Web", ID `1116330824214375`, in the Futureproof 2 business portfolio, linked to ad account
 `27943393368611288`. The portfolio-wide Conversions API gateway is off.

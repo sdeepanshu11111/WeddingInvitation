@@ -2,7 +2,7 @@ import React from "react";
 import type { Scene, TemplateDef } from "../types";
 import { fade, rise } from "../anim";
 import { DiamondRule, Layer, Particles } from "@/components/primitives";
-import { DateBlock, Headline, Kicker, Names, PhotoCircle, VenueBlock, fitSize } from "@/components/blocks";
+import { DateBlock, Headline, Kicker, Names, PhotoCircle, VenueBlock } from "@/components/blocks";
 import { Rings, Sparkles } from "@/components/indian";
 
 /* Sagai / Engagement / Roka — rose gold, rings that lock together, champagne bubbles. */
@@ -23,13 +23,12 @@ export const sagaiRings: TemplateDef = {
     { id: "ruby", name: "Ruby Night", ink: "#FFEFF2", soft: "#E8B3BF", accent: "#F3C38A", bg: "#5A0E24", bg2: "#2A0510", line: "#E7A9A0" },
     { id: "lavender", name: "Lavender", ink: "#3A2B4D", soft: "#6E5C85", accent: "#8A5DB3", bg: "#F3EEFA", bg2: "#E2D7F2", line: "#B79AD6" },
   ],
-  thumb: (p, label) => (
-    <div style={{ width: "100%", height: "100%", background: "linear-gradient(160deg," + p.bg + "," + p.bg2 + ")", display: "grid", placeItems: "center", position: "relative" }}>
+  thumb: (p) => (
+    <div style={{ width: "100%", height: "100%", background: "linear-gradient(160deg," + p.bg + "," + p.bg2 + ")", display: "grid", placeItems: "center" }}>
       <svg width="46" height="30" viewBox="-40 -22 80 44">
         <circle cx={-10} r={15} fill="none" stroke={p.accent} strokeWidth="4" />
         <circle cx={10} r={15} fill="none" stroke={p.line} strokeWidth="4" />
       </svg>
-      {label ? <span style={{ position: "absolute", bottom: 8, left: 0, right: 0, textAlign: "center", fontFamily: label.font, color: p.accent, fontSize: 12, lineHeight: 1.3 }}>{label.text}</span> : null}
     </div>
   ),
   groups: [
@@ -78,7 +77,7 @@ export const sagaiRings: TemplateDef = {
     venueName: "The Leela Ambience",
     venueAddress: "Gurugram",
     closingLine: "Join us as we exchange rings & promises",
-    rsvp: "", // no sample number: a mobile here becomes a live "RSVP on WhatsApp" button for guests
+    rsvp: "RSVP · Mehta family · +91 98110 22334",
   },
 
   backdrop: ({ T, theme, W, H }) => (
@@ -108,7 +107,7 @@ export const sagaiRings: TemplateDef = {
               <Kicker t={t} theme={theme} v={v} start={1800} size={32}>
                 {data.kicker}
               </Kicker>
-              <Headline t={t} theme={theme} v={v} start={2100} size={fitSize(theme, data.title, S(170, 160), S(900, 1400))} font={theme.fontScript} color={theme.accent} lineHeight={1.3}>
+              <Headline t={t} theme={theme} v={v} start={2100} size={S(170, 160)} font={theme.fontScript} color={theme.accent} lineHeight={1.3}>
                 {data.title}
               </Headline>
               {data.localTitle ? (

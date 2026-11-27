@@ -6,22 +6,19 @@ import { ExportDialog } from "@/components/editor/ExportDialog";
 import { GetLink } from "@/components/editor/ShareDialog";
 import { AgreeNote } from "@/components/PayTrust";
 import { FieldGroups, MusicPanel } from "@/components/editor/Fields";
-import { GuestExperience, QuizPanel, RsvpPanel } from "@/components/editor/GuestPanels";
 import { TemplateGallery } from "@/components/editor/TemplateGallery";
 import { CATEGORIES, countIn } from "@/lib/catalog";
 import { fmt } from "@/lib/anim";
 import { SIZES, buildTimeline, defaultProject, idbGet, idbSet, withNames } from "@/lib/project";
 import { takeStart } from "@/lib/start";
-import { DESIGNS, TEMPLATES, getTemplate } from "@/lib/templates";
+import { TEMPLATES, getTemplate } from "@/lib/templates";
 import { sceneForField } from "@/lib/fieldScene";
 import { VIDEO_EXPORT } from "@/lib/features";
 import { LegalLinks } from "@/components/LegalLinks";
-import { LanguagePicker, languageOptions } from "@/components/LanguagePicker";
 import { PalettePicker } from "@/components/PalettePicker";
-import { baseOf } from "@/lib/variants";
 import { Logo } from "@/components/site/SiteHeader";
-import { startAnalytics, track, setPageProps } from "@/lib/analytics";
-import { type CategoryId, type Orientation, type Project } from "@/lib/types";
+import { startAnalytics, track } from "@/lib/analytics";
+import type { CategoryId, Orientation, Project } from "@/lib/types";
 
 type View = Orientation | "both";
 
@@ -79,16 +76,8 @@ export default function Editor() {
         setProject(proj);
         setView(proj.orientation);
         setPlaying(true); // start on a moving invite, not a blank first frame
-        // The studio step of the funnel, and the design on every later studio event.
-        setPageProps({ template_id: proj.templateId });
-        track("studio_opened", { template_id: proj.templateId, has_design_param: !!want, has_draft: !!p, has_names: !!names });
       })
-      .catch(() => {
-        const proj = defaultProject(TEMPLATES[0].id); // no IndexedDB (private mode): a fresh invite
-        setProject(proj);
-        setPageProps({ template_id: proj.templateId });
-        track("studio_opened", { template_id: proj.templateId, has_design_param: false, has_draft: false, has_names: false });
-      });
+      .catch(() => setProject(defaultProject(TEMPLATES[0].id)));
   }, []);
 
   useEffect(() => {
@@ -188,40 +177,27 @@ export default function Editor() {
   }, [togglePlay, total]);
 
   const update = (patch: Partial<Project>) => setProject((p) => (p ? { ...p, ...patch } : p));
-  const edited = useRef(false);
-  const setField = (key: string, value: any) => {
-    // The first change of the visit: this visitor is making an invite, not only looking (the key, never the value).
-    if (!edited.current && project) {
-      edited.current = true;
-      track("invite_edit_started", { template_id: project.templateId, field: key });
-    }
-    setProject((p) => (p ? { ...p, data: { ...p.data, [key]: value } } : p));
-  };
+  const setField = (key: string, value: any) => setProject((p) => (p ? { ...p, data: { ...p.data, [key]: value } } : p));
 
   const chooseView = (v: View) => {
     setView(v);
     if (v !== "both") update({ orientation: v });
   };
 
-  const chooseTemplate = (id: string, source: "sidebar" | "gallery" | "language") => {
+  const chooseTemplate = (id: string, source: "sidebar" | "gallery") => {
     if (!project || id === project.templateId) return;
     track("template_selected", { template_id: id, source });
-    setPageProps({ template_id: id });
     setProject(defaultProject(id, project));
     setT(0);
     setPlaying(true);
   };
 
-  const getLink = (from: "header" | "steps" | "form" | "tab") => {
-    if (project) track("share_dialog_opened", { template_id: project.templateId, from });
+  const openShare = () => {
+    if (project) track("share_dialog_opened", { template_id: project.templateId });
     setMenu(false);
     setPlaying(false);
     setSharing(true);
   };
-
-  // One tap, no stoppers (owner, 2026-11-23: the "Is this your real date and venue?" check is gone). Sample details are
-  // still stored (project.sample at Get link), so guests get no calendar or directions for a made-up date or venue.
-  const openShare = getLink;
 
   /** "Export MP4": the dialog where video export runs. The button only exists while VIDEO_EXPORT is on: the hosted
       site promotes the free invitation page and link, so it doesn't mention video at all. */
@@ -259,9 +235,6 @@ export default function Editor() {
   // Colours sit right under the preview: on the canvas on desktop, at the top of the Design panel on phones.
   const palNow = tpl.palettes.find((p) => p.id === project.paletteId) ?? tpl.palettes[0];
   const colours = <PalettePicker palettes={tpl.palettes} value={palNow.id} onChange={(id) => update({ paletteId: id })} />;
-  // Haldi, Mehendi, Sangeet, Reception and Engagement come in every state language too (lib/variants.ts).
-  const hasLanguages = languageOptions(project.templateId).length > 0;
-  const languages = <LanguagePicker templateId={project.templateId} onChange={(id) => chooseTemplate(id, "language")} />;
   const showBoth = view === "both" && !narrow; // side by side needs a wide screen
   const activeScene = [...main.slots].reverse().find((s) => T >= s.start) ?? main.slots[0];
 
@@ -302,8 +275,8 @@ export default function Editor() {
             <b>02</b> Details
           </li>
           <li>
-            <button onClick={() => openShare("steps")}>
-              <b>03</b> Get wedding link
+            <button onClick={openShare}>
+              <b>03</b> Get link
             </button>
           </li>
         </ol>
@@ -326,16 +299,16 @@ export default function Editor() {
         </label>
         {VIDEO_EXPORT ? (
           <>
-            <button className="btn desk-only" onClick={() => openShare("header")} title="A link that plays the invitation in your guests' browser">
-              Get wedding link
+            <button className="btn desk-only" onClick={openShare} title="A link that plays the invitation in your guests' browser">
+              Get link
             </button>
             <button className="btn primary desk-only" onClick={openExport}>
               Export MP4
             </button>
           </>
         ) : (
-          <button className="btn primary desk-only" onClick={() => openShare("header")} title="A link that plays the invitation in your guests' browser">
-            Get wedding link
+          <button className="btn primary desk-only" onClick={openShare} title="A link that plays the invitation in your guests' browser">
+            Get invite link
           </button>
         )}
         <div className="more mob-only">
@@ -372,28 +345,22 @@ export default function Editor() {
             Colours
           </div>
           {colours}
-          {hasLanguages ? (
-            <>
-              <div className="section-title">Language</div>
-              {languages}
-            </>
-          ) : null}
         </div>
         <button className="btn browse" onClick={() => { setPlaying(false); setGallery(true); }}>
-          ▦ Browse all {DESIGNS.length} templates
+          ▦ Browse all {TEMPLATES.length} templates
         </button>
         <div className="section-title">Categories</div>
         <div className="side-cats">
           {(["all", ...CATEGORIES.map((c) => c.id)] as (CategoryId | "all")[]).map((id) => (
             <button key={id} className={"side-cat" + (cat === id ? " on" : "")} onClick={() => setCat(id)}>
               {id === "all" ? "All" : CATEGORIES.find((c) => c.id === id)!.label}
-              <em>{countIn(DESIGNS, id)}</em>
+              <em>{countIn(TEMPLATES, id)}</em>
             </button>
           ))}
         </div>
         <div className="tpl">
-          {DESIGNS.filter((t) => cat === "all" || t.categories.includes(cat)).map((t) => (
-            <button key={t.id} className={"tpl-card" + (t.id === baseOf(project.templateId) ? " on" : "")} onClick={() => chooseTemplate(t.id, "sidebar")}>
+          {TEMPLATES.filter((t) => cat === "all" || t.categories.includes(cat)).map((t) => (
+            <button key={t.id} className={"tpl-card" + (t.id === project.templateId ? " on" : "")} onClick={() => chooseTemplate(t.id, "sidebar")}>
               <div className="tpl-thumb">{t.thumb(t.palettes[0])}</div>
               <div>
                 <div className="tpl-name">
@@ -445,12 +412,6 @@ export default function Editor() {
               Colours
             </span>
             {colours}
-            {hasLanguages ? (
-              <>
-                <span className="looks-label">Language</span>
-                {languages}
-              </>
-            ) : null}
           </div>
         </div>
 
@@ -492,12 +453,6 @@ export default function Editor() {
           <MusicPanel music={project.music} setMusic={(m) => update({ music: m })} onError={say} />
         </details>
 
-        {/* Invite-level guest page settings (components/editor/GuestPanels.tsx): RSVP, the couple's quiz, and the
-            interactive extras (all on by default, off per invite). */}
-        <RsvpPanel project={project} update={update} />
-        <QuizPanel project={project} update={update} />
-        <GuestExperience project={project} update={update} />
-
         <details className="group">
           <summary>Pacing</summary>
           <div className="group-body">
@@ -531,8 +486,9 @@ export default function Editor() {
         </details>
         {/* The end of the form, on every screen: one tap makes the link (components/editor/ShareDialog.tsx, GetLink). */}
         <div className="next-cta get-cta">
-          <button className="btn primary" onClick={() => openShare("form")}>
-            Get wedding link →
+          <button className="btn primary" onClick={openShare}>
+            <span className="mob-only">Next: get your invite link →</span>
+            <span className="desk-only">Get my invite link →</span>
           </button>
           <AgreeNote creating />
         </div>
@@ -554,7 +510,7 @@ export default function Editor() {
             {label}
           </button>
         ))}
-        <button className="mtab share" onClick={() => openShare("tab")}>
+        <button className="mtab share" onClick={openShare}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
             <path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7" />
           </svg>

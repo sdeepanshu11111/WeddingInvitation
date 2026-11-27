@@ -2,7 +2,7 @@ import React from "react";
 import type { Scene, TemplateDef } from "../types";
 import { E, pop, rise, tw } from "../anim";
 import { DiamondRule, Layer } from "@/components/primitives";
-import { DateBlock, Headline, Kicker, Names, PhotoCircle, VenueBlock, fitSize, indic } from "@/components/blocks";
+import { DateBlock, Headline, Kicker, Names, PhotoCircle, VenueBlock } from "@/components/blocks";
 import { Diya, Garlands } from "@/components/indian";
 
 /* Haldi — turmeric yellow, swaying marigold laris, bold Rozha One type. */
@@ -25,7 +25,7 @@ export const haldiMarigold: TemplateDef = {
     { id: "mango", name: "Mango Leaf", ink: "#FFF8E1", soft: "#DCEDC8", accent: "#FFCA28", bg: "#2E7D32", bg2: "#1B5E20", line: "#FFD54F" },
     { id: "pastel", name: "Pastel Sun", ink: "#5D4037", soft: "#8D6E63", accent: "#E67E00", bg: "#FFF8E1", bg2: "#FFE7A8", line: "#E6A23C" },
   ],
-  thumb: (p, label) => (
+  thumb: (p) => (
     <div style={{ width: "100%", height: "100%", background: "linear-gradient(180deg," + p.bg + "," + p.bg2 + ")", position: "relative", display: "grid", placeItems: "center" }}>
       <div style={{ position: "absolute", top: 0, left: 0, right: 0, display: "flex", justifyContent: "space-around" }}>
         {[0, 1, 2, 3].map((i) => (
@@ -36,7 +36,7 @@ export const haldiMarigold: TemplateDef = {
           </div>
         ))}
       </div>
-      <span style={{ fontFamily: label?.font ?? "var(--f-rozha)", color: p.accent, fontSize: label ? 15 : 18, marginTop: 26, textAlign: "center", lineHeight: 1.3 }}>{label?.text ?? "हल्दी"}</span>
+      <span style={{ fontFamily: "var(--f-rozha)", color: p.accent, fontSize: 18, marginTop: 26 }}>हल्दी</span>
     </div>
   ),
   groups: [
@@ -137,7 +137,7 @@ export const haldiMarigold: TemplateDef = {
                 {data.kicker}
               </Kicker>
               <div style={{ ...pop(t, { start: 1400, dur: 1100 }) }}>
-                <div style={{ fontFamily: theme.fontDisplay, color: theme.accent, fontSize: fitSize(theme, data.title, S(250, 240), S(900, 1500)), lineHeight: indic(theme, data.title) ? 1.5 : 1.05, textShadow: "0 6px 0 " + theme.line + "33" }}>{data.title}</div>
+                <div style={{ fontFamily: theme.fontDisplay, color: theme.accent, fontSize: S(250, 240), lineHeight: 1.05, textShadow: "0 6px 0 " + theme.line + "33" }}>{data.title}</div>
               </div>
               {data.localTitle ? (
                 <Headline t={t} theme={theme} v={v} start={2000} size={84} color={theme.ink}>

@@ -1,9 +1,8 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
-import type { Collection } from "mongodb";
+import { type Collection, MongoClient } from "mongodb";
 import { LEADS } from "../features";
 import { normalizeEmail, normalizePhone } from "../contact";
-import { mongoDb } from "./db";
 import { EXPORT_DIR } from "./paths";
 
 /* =====================================================================
@@ -49,7 +48,8 @@ const g = globalThis as unknown as { __leadsMongo?: Promise<Collection<LeadDoc>>
 /** The leads collection, connected once per server instance. */
 async function mongo() {
   g.__leadsMongo ??= (async () => {
-    const col = (await mongoDb()).collection<LeadDoc>("leads"); // the shared connection (lib/server/db.ts)
+    const client = await new MongoClient(process.env.MONGODB_URI!, { serverSelectionTimeoutMS: 8000, maxPoolSize: 5 }).connect();
+    const col = client.db(process.env.MONGODB_DB || "invite_studio").collection<LeadDoc>("leads");
     await col.createIndex({ created_at: -1 });
     return col;
   })().catch((e) => {
@@ -161,15 +161,6 @@ export async function savePaymentLead(link: string, p: { contact?: string | null
       const l = all[link] ?? blank(link, now);
       all[link] = { ...l, pay_phone: payPhone ?? l.pay_phone, pay_email: payEmail ?? l.pay_email, paid_inr: inr, paid_at: l.paid_at ?? now };
     });
-}
-
-/** The number and email kept for one link (the Get-link number first, then what the payment form had), or nulls.
-    Only for the couple's own browser: the caller checks the owner key (app/api/pay/order, Checkout prefill). */
-export async function leadContact(link: string): Promise<{ phone: string | null; email: string | null }> {
-  let l: { phone?: string | null; email?: string | null; pay_phone?: string | null; pay_email?: string | null } | null | undefined = null;
-  if (LEADS === "mongo") l = await (await mongo()).findOne({ _id: link }, { projection: { phone: 1, email: 1, pay_phone: 1, pay_email: 1 } });
-  else if (LEADS === "disk") l = (await readFile())[link];
-  return { phone: l?.phone ?? l?.pay_phone ?? null, email: l?.email ?? l?.pay_email ?? null };
 }
 
 /** Newest first. */

@@ -15,7 +15,6 @@ export function sceneForField(key: string, scenes: SceneLike[]): number {
     return -1;
   };
   const last = scenes.length - 1;
-  if (k.startsWith("quiz")) return first(/^quiz$/);
   if (k.startsWith("reception")) return first(/reception/);
   if (k.startsWith("walima")) return first(/walima/);
   if (/event/.test(k)) return first(/^event-0/, /event/);

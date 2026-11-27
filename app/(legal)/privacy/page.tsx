@@ -1,17 +1,15 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { BRAND } from "@/lib/brand";
-import { pageMeta } from "@/lib/seo";
-import { LEADS, META_PIXEL_ID } from "@/lib/features";
+import { LEADS } from "@/lib/features";
 import { LEGAL, OPERATOR } from "@/lib/legal";
 
-export const metadata: Metadata = pageMeta("Privacy Policy · " + BRAND, `How ${BRAND} collects, uses and protects your information.`, "/privacy");
+export const metadata: Metadata = { title: "Privacy Policy · " + BRAND, description: `How ${BRAND} collects, uses and protects your information.` };
 
 /* Keep this in step with what the app really does: Blob storage for share links (lib/server/share.ts),
    Razorpay (lib/server/razorpay.ts), Mixpanel (lib/analytics.ts, AGENTS.md), local autosave (lib/project.ts).
-   Google Analytics (lib/analytics.ts, AGENTS.md), Google AdSense (components/AdSense.tsx, AGENTS.md), Vercel Web
-   Analytics (components/VercelAnalytics.tsx). The Meta Pixel paragraphs show only while the pixel is on
-   (META_PIXEL=1; off since 2026-11-14, no Meta ads run). WhatsApp numbers and payers' contacts (lib/server/leads.ts) only
+   Meta Pixel and Google Analytics (lib/analytics.ts, AGENTS.md), Google AdSense (components/AdSense.tsx,
+   AGENTS.md). WhatsApp numbers and payers' contacts (lib/server/leads.ts) only
    while LEADS is on. Adding a tracker or a new processor means updating sections 2, 4 and 5. */
 export default function Privacy() {
   const mail = <a href={"mailto:" + LEGAL.email}>{LEGAL.email}</a>;
@@ -34,17 +32,12 @@ export default function Privacy() {
           you are editing, this stays in your own browser (saved automatically on your device) and is not sent to us.
         </li>
         <li>
-          <b>Shared invitations</b>: when you tap &ldquo;Get wedding link&rdquo; and create a link, we upload that invitation&rsquo;s content and media to our
-          servers so your guests can open it. The link name (for example <i>/e/1-aarav-ananya</i>) is part of the web address.
-          {LEADS
-            ? " We also keep a private record of each link: its address, the design, when it was made and changed, the kind of device it was made on, the site that brought you to us (for example a search engine), and its payment status."
-            : ""}
+          <b>Shared invitations</b>: when you tap &ldquo;Get link&rdquo; and create a link, we upload that invitation&rsquo;s content and media to our
+          servers so your guests can open it. The link name you choose (for example <i>/e/aarav-ananya</i>) is part of the web address.
         </li>
         {LEADS ? (
           <li>
-            <b>Your mobile number, and optionally an email</b>: when you tap &ldquo;Get wedding link&rdquo; we ask for your mobile number, and the link is
-            made with it (a number you already gave on that device is used again). Your invitation page (on the device you made it on) also lets you leave
-            a WhatsApp number or an email address, which is optional. We keep them
+            <b>Your WhatsApp number or email</b>: after you create a link, your invitation page (on the device you made it on) lets you leave a WhatsApp number or an email address. It is optional: the link works without it. If you give one, we keep it
             privately with the name of that link (it is never part of the invitation your guests see) and use it only to contact you about that
             invitation, for example to help you or to remind you while it still has the watermark. We never sell it or share it for anyone else&rsquo;s
             use. Reply STOP at any time and we will not contact you again.
@@ -58,15 +51,6 @@ export default function Privacy() {
             : "We receive and keep only the order ID, payment ID, amount, time and the invitation the payment was for."}{" "}
           We never see or store your full card or bank details.
         </li>
-        {LEADS ? (
-          <li>
-            <b>Reviews</b>: your invitation page (on the device you made it on) lets you rate your invitation. It is optional. If you do, we keep
-            your rating, what you wrote, the name and city you typed and which invitation it is about. We show the rating, the words, that name
-            and city on our website only if you tick the box to allow it, and only after we have read it; never the invitation&rsquo;s link.
-            Ask us at any time and we will take it down or delete it. If a customer sends us feedback by message, we show it only with their
-            permission.
-          </li>
-        ) : null}
         <li>
           <b>Messages to us</b>: if you email us, we keep your email address and what you write so we can reply.
         </li>
@@ -78,22 +62,7 @@ export default function Privacy() {
           <b>Usage analytics</b>: we use Mixpanel to understand how the product is used, for example which templates are chosen and whether links are
           created. It records events with an anonymous device ID stored in your browser, your browser and device type, and an approximate location
           (city or region) derived from your IP address. We do not send names, photos, venues, link names or any other invitation content to Mixpanel,
-          and we do not record your screen. When a payment is confirmed, our server sends Mixpanel one event with the amount and the
-          anonymous device ID, so sales are counted correctly.
-        </li>
-        {LEADS ? (
-          <li>
-            <b>Invitation opens</b>: we count how many times each invitation is opened, watched to the end and blessed (the "Send blessings" button), to see how far it travelled.
-            It is a number only: nothing about the guest is stored with it.
-          </li>
-        ) : null}
-        <li>
-          <b>RSVPs and the couple&apos;s quiz</b>: a guest&apos;s RSVP (their name, how many are coming, which functions, food, a message) is written
-          into WhatsApp on their own phone and goes from there to the family; it never reaches our servers.
-          {LEADS
-            ? " We only add one to the invitation's counts (attending, maybe, can't come, and how many people), which the couple sees on their invite, and one to its quiz score (answered, answered right). Your device remembers that it replied, so a changed answer moves the count instead of adding one."
-            : ""}{" "}
-          The RSVP numbers on an invitation are the ones the couple chose to show their guests.
+          and we do not record your screen.
         </li>
         <li>
           <b>Website analytics</b>: we use Google Analytics on our website pages and in the editor to count visits and to see which pages are viewed
@@ -101,33 +70,20 @@ export default function Privacy() {
           derived from your IP address. It never receives the names, photos or other content of your invitation, and it is never used on your
           guests&rsquo; invitation pages.
         </li>
-        {META_PIXEL_ID ? (
-          <li>
-            <b>Advertising measurement</b>: we advertise on Meta platforms (Facebook and Instagram) and use the Meta Pixel on our website pages to
-            measure how well our ads work, for example whether someone who saw an ad later viewed a template, created an invitation or bought the
-            Premium plan. It receives the page address, the template chosen and the amount paid, never the names, photos or other content of your
-            invitation. We may also send the same events from our servers through Meta&rsquo;s Conversions API.
-            Meta and other third parties may use cookies, web beacons and similar technologies to collect or receive information from our website and
-            elsewhere on the internet, and use it to provide measurement services and to show ads. These tools are never used on your guests&rsquo;
-            invitation pages. See section 5 for how to opt out.
-          </li>
-        ) : null}
+        <li>
+          <b>Advertising measurement</b>: we advertise on Meta platforms (Facebook and Instagram) and use the Meta Pixel on our website pages to
+          measure how well our ads work, for example whether someone who saw an ad later viewed a template, created an invitation or bought the
+          Premium plan. It receives the page address, the template chosen and the amount paid, never the names, photos or other content of your
+          invitation. We may also send the same events from our servers through Meta&rsquo;s Conversions API.
+          Meta and other third parties may use cookies, web beacons and similar technologies to collect or receive information from our website and
+          elsewhere on the internet, and use it to provide measurement services and to show ads. These tools are never used on your guests&rsquo;
+          invitation pages. See section 5 for how to opt out.
+        </li>
         <li>
           <b>Advertisements on our website</b>: we use Google AdSense, which may show advertisements on our website pages (the home page, the
           template pages and these policy pages). Third-party vendors, including Google, use cookies and similar technologies to show ads based on
           your earlier visits to this and other websites, and to measure them. Advertisements are never shown on invitation pages, and Google never
           receives the content of your invitation. See section 5 for how to opt out.
-        </li>
-        <li>
-          <b>Visit counts</b>: our hosting provider&rsquo;s Web Analytics (Vercel) counts page views on our website pages and in the editor. It
-          sets no cookies and records the page address, the referring site, your browser and device type and your country. It is not used on
-          invitation pages.
-        </li>
-        <li>
-          <b>Designs for your state</b>: to show designs written in your language first, our website pages use the approximate Indian state your
-          connection comes from (our hosting provider, Vercel, works it out from your IP address) and your phone&rsquo;s language setting. Only the
-          state code is kept, in a cookie on your device for a week, and the state you pick on the designs page is remembered in your browser. We
-          do not store either on our side. The guessed state only changes which designs are shown first.
         </li>
         <li>
           <b>Server logs</b>: our hosting provider keeps standard technical logs (IP address, browser, pages requested, time) for security and to keep
@@ -144,7 +100,7 @@ export default function Privacy() {
           <li>To contact you on WhatsApp or by email about your invitation, using what you gave us (help, and a reminder while it has the watermark).</li>
         ) : null}
         <li>To understand usage, fix problems, prevent fraud and abuse, and improve the product.</li>
-        {META_PIXEL_ID ? <li>To measure and improve our advertising.</li> : null}
+        <li>To measure and improve our advertising.</li>
         <li>To show advertisements on our website pages.</li>
       </ul>
       <p>
@@ -162,10 +118,10 @@ export default function Privacy() {
           invitation that you would not want a stranger to see.
         </li>
         <li>
-          <b>Service providers</b> who process data for us under their own privacy and security terms: Vercel Inc. (website hosting, file storage and
-          visit counts, servers in the United States), Razorpay Software Pvt. Ltd. (payments, India), Mixpanel Inc. (analytics, United States)
-          {LEADS === "mongo" ? ", MongoDB, Inc. (the private database for link records and contact details, servers in India)" : ""}
-          {META_PIXEL_ID ? ", Meta Platforms, Inc. (advertising measurement)" : ""} and Google LLC (website analytics and the advertisements on our website, United States).
+          <b>Service providers</b> who process data for us under their own privacy and security terms: Vercel Inc. (website hosting and file storage,
+          servers in the United States), Razorpay Software Pvt. Ltd. (payments, India), Mixpanel Inc. (analytics, United States)
+          {LEADS === "mongo" ? ", MongoDB, Inc. (the private database for contact details, servers in India)" : ""}, Meta Platforms, Inc.
+          (advertising measurement) and Google LLC (website analytics and the advertisements on our website, United States).
           {LEADS ? " When we contact you, WhatsApp or our email provider (Google) carries the message." : ""}
         </li>
         <li>
@@ -178,22 +134,14 @@ export default function Privacy() {
       <h2>5. Cookies and your choices</h2>
       <p>
         We use your browser&rsquo;s storage to autosave the invitation you are editing, to remember the invitation links you made on that
-        device (a random key, so your invitation page shows you its owner options), to remember the state you picked for designs (and, in a
-        cookie, the approximate state your connection comes from; see section 2) and to keep the anonymous analytics ID
-        , the mobile number{LEADS ? " or email" : ""} you last entered, so you don't have to type it again (it also fills in the payment form), and how much of the
-        watermark-free preview of each of your links you have watched. Google Analytics, and
-        advertising tools such as {META_PIXEL_ID ? "the Meta Pixel and " : ""}Google AdSense, may set cookies. You can clear or block cookies and site data in your browser settings at any time; the editor still works, but
-        an unsaved draft on that device will be lost. You can control{" "}
-        {META_PIXEL_ID ? (
-          <>
-            how Meta uses information for ads in your{" "}
-            <a href="https://www.facebook.com/adpreferences" target="_blank" rel="noopener noreferrer">
-              Facebook ad preferences
-            </a>
-            ,{" "}
-          </>
-        ) : null}
-        how Google personalises ads in your{" "}
+        device (a random key, so your invitation page shows you its owner options) and to keep the anonymous analytics ID
+        {LEADS ? " and the WhatsApp number or email you last entered, so you don't have to type it again" : ""}. Google Analytics, and
+        advertising tools such as the Meta Pixel and Google AdSense, may set cookies. You can clear or block cookies and site data in your browser settings at any time; the editor still works, but
+        an unsaved draft on that device will be lost. You can control how Meta uses information for ads in your{" "}
+        <a href="https://www.facebook.com/adpreferences" target="_blank" rel="noopener noreferrer">
+          Facebook ad preferences
+        </a>
+        , how Google personalises ads in your{" "}
         <a href="https://adssettings.google.com" target="_blank" rel="noopener noreferrer">
           Google Ads Settings
         </a>{" "}

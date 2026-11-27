@@ -1,10 +1,9 @@
 "use client";
 import Link from "next/link";
-import { functionPath } from "@/lib/landing";
 import { usePathname } from "next/navigation";
 import React, { useEffect, useRef, useState } from "react";
 import { CATEGORIES } from "@/lib/catalog";
-import { PAYMENTS } from "@/lib/features";
+import { LINK_PRICE_INR, PAYMENTS } from "@/lib/features";
 
 /** The Mangalam lockup (public/brand/mangalam-logo.png, 546×290, transparent). Its height comes from CSS. */
 export function Logo() {
@@ -55,7 +54,7 @@ export function SiteHeader() {
         <span className="promo-long">
           {PAYMENTS ? (
             <>
-              Make your invitation free with your own names, and <b>watch it before you pay</b>.
+              Preview your invitation free with your own names. Remove the watermark for just <b>₹{LINK_PRICE_INR}</b>, one time.
             </>
           ) : (
             <>Create your invitation free and share it on WhatsApp in minutes.</>
@@ -64,7 +63,7 @@ export function SiteHeader() {
         <span className="promo-short">
           {PAYMENTS ? (
             <>
-              Make it free · <b>watch it before you pay</b>
+              Preview free · remove the watermark for <b>₹{LINK_PRICE_INR}</b>
             </>
           ) : (
             <>Create free · share on WhatsApp</>
@@ -90,7 +89,7 @@ export function SiteHeader() {
               <span className="mono-label">Browse by function</span>
               <div className="drop-grid">
                 {CATEGORIES.map((c) => (
-                  <Link key={c.id} href={functionPath(c.id)}>
+                  <Link key={c.id} href={"/templates?category=" + c.id}>
                     <b>{c.label}</b>
                     <small lang="hi">{c.local}</small>
                   </Link>
@@ -102,7 +101,7 @@ export function SiteHeader() {
             </div>
           </div>
           <Link href="/#how">How it works</Link>
-          <Link href="/guides">Guides</Link>
+          <Link href="/#pricing">Pricing</Link>
           <Link href="/#faq">FAQ</Link>
         </nav>
         <div className="head-end">
@@ -119,7 +118,7 @@ export function SiteHeader() {
         <div id="site-menu" className="m-menu" style={{ top: menuTop }} onClick={(e) => (e.target as HTMLElement).closest("a") && setOpen(false)}>
           <span className="mono-label">Designs by function</span>
           {CATEGORIES.map((c) => (
-            <Link key={c.id} href={functionPath(c.id)} className="m-cat">
+            <Link key={c.id} href={"/templates?category=" + c.id} className="m-cat">
               {c.label} <small lang="hi">{c.local}</small>
             </Link>
           ))}
@@ -128,11 +127,9 @@ export function SiteHeader() {
           </Link>
           <div className="m-sep" />
           <Link href="/#how">How it works</Link>
-          <Link href="/#pricing">Free preview</Link>
-          <Link href="/guides">Wedding guides</Link>
+          <Link href="/#pricing">Pricing</Link>
           <Link href="/#faq">FAQ</Link>
           <Link href="/create">Open studio</Link>
-          <Link href="/about">About us</Link>
           <Link href="/contact">Contact</Link>
           <Link href="/templates" className="cta-btn block">
             Make my invitation →

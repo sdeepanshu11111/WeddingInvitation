@@ -16,55 +16,18 @@ type Base = { t: number; theme: Theme; v: boolean; start?: number };
 const KICKER_MIN = 34;
 const pick = <T,>(v: boolean, a: T, b: T) => (v ? a : b);
 
-/* ----- Indian scripts in a language version (theme.lang is set only there, so the original designs are untouched) ----- */
-
-const INDIC = /[ऀ-ൿ]/; // Devanagari, Bengali, Gurmukhi, Gujarati, Odia, Tamil, Telugu, Kannada, Malayalam
-const textOf = (n: ReactNode): string => (typeof n === "string" || typeof n === "number" ? String(n) : Array.isArray(n) ? n.map(textOf).join("") : "");
-/** True when a language version draws this text in an Indian script. */
-export const indic = (theme: Theme, n: ReactNode) => !!theme.lang && INDIC.test(textOf(n));
-/** What an Indian script needs that Latin type does not: room above and below for vowel signs (the masks clip at the
-    line box), no wide tracking (it pulls conjuncts apart) and no synthetic slant. */
-export const indicStyle = (lineHeight: number): CSSProperties => ({ lineHeight: Math.max(lineHeight, 1.42), letterSpacing: "0.01em", fontStyle: "normal" });
-
-/** Rough advance width per character in em, by script (measured on the fonts we ship, rounded up so a guess errs
-    small). Tamil and Malayalam letters are about twice as wide as Latin lowercase. */
-const EM: [RegExp, number][] = [
-  [/[஀-௿ഀ-ൿ]/, 0.85], // Tamil, Malayalam
-  [/[ఀ-೿]/, 0.75], // Telugu, Kannada
-  [/[ঀ-৿]/, 0.68], // Bengali
-  [/[ऀ-ॿ]/, 0.66], // Devanagari
-  [/[਀-੿]/, 0.62], // Gurmukhi
-  [/[A-Z]/, 0.7],
-  [/[a-z0-9]/, 0.52],
-];
-const ems = (word: string) => [...word].reduce((w, ch) => (/\p{Mn}/u.test(ch) ? w : w + (EM.find(([re]) => re.test(ch))?.[1] ?? 0.35)), 0);
-
-/**
- * A title's font size, shrunk when its widest word would be wider than `width` design px (words wrap, letters don't).
- * Only for a language version (theme.lang), so the original designs keep their sizes; Indian words are often longer
- * and wider (நிச்சயதார்த்தம், വിവാഹ സൽക്കാരം). Marks that sit above or below a letter take no width of their own.
- */
-export function fitSize(theme: Theme, text: unknown, size: number, width: number) {
-  if (!theme.lang) return size;
-  const widest = Math.max(0.1, ...String(text ?? "").split(/\s+/).map(ems));
-  return Math.min(size, Math.floor(width / widest));
-}
-
 /** Small spaced caps label. */
 export function Kicker({ t, theme, v, start = 200, size = 30, color, children, spacing = "0.34em", font, style, upper = true }: Base & { size?: number; color?: string; children: ReactNode; spacing?: string; font?: string; style?: CSSProperties; upper?: boolean }) {
-  // An Indian script reads smaller than Latin caps at the same size and loses the caps' spacing: a little larger.
-  const k = indic(theme, children) ? 1.18 : 1;
   return (
     <div
       style={{
         fontFamily: font ?? theme.fontBody,
         color: color ?? theme.soft,
-        fontSize: pick(v, Math.max(size, KICKER_MIN), size * 1.12) * k,
+        fontSize: pick(v, Math.max(size, KICKER_MIN), size * 1.12),
         letterSpacing: spacing,
         textTransform: upper ? "uppercase" : "none",
         ...fade(t, { start, dur: 800 }),
         ...style,
-        ...(indic(theme, children) ? indicStyle(1.3) : null),
       }}
     >
       {children}
@@ -87,7 +50,6 @@ export function Headline({ t, theme, v, start = 400, size = 120, font, color, ch
           display: "block",
           ...maskUp(t, { start, dur }),
           ...style,
-          ...(indic(theme, children) ? indicStyle(lineHeight) : null),
         }}
       >
         {children}

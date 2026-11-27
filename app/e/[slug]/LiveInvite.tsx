@@ -2,25 +2,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Frame, Stage } from "@/components/Frame";
 import { SIZES, buildTimeline, inviteDate } from "@/lib/project";
-import { guestOn, type Orientation, type Project } from "@/lib/types";
-import { sceneForField } from "@/lib/fieldScene";
-import { LEADS } from "@/lib/features";
+import type { Orientation, Project } from "@/lib/types";
+import { LEADS, LINK_PRICE_INR } from "@/lib/features";
 import { payToRemoveWatermark } from "@/lib/pay";
-import { claimPack, packFor } from "@/lib/pack";
-import { inviteId, startAnalytics, track, isInternal } from "@/lib/analytics";
+import { inviteId, startAnalytics, track } from "@/lib/analytics";
 import { BRAND } from "@/lib/brand";
 import { WhatsAppIcon } from "@/components/WhatsAppIcon";
 import { Confetti } from "@/components/Celebrate";
 import { AgreeNote, LockIcon, TrustRow } from "@/components/PayTrust";
 import { normalizeEmail, normalizePhone, rememberContact, savedEmail, savedPhone, typingPhone } from "@/lib/contact";
 import { ownerKeyFor, takeJustCreated } from "@/lib/owner";
-import { countdownText, daysUntil, googleCalendarUrl, inviteDetails, mapsUrl } from "@/lib/inviteDetails";
-import { rsvpSetup, quickMessage, waLink } from "@/lib/rsvp";
-import { QUIZ_ASK, QUIZ_ID, QUIZ_REVEAL, quizOf } from "@/lib/quiz";
-import { nextInvites } from "@/lib/nextInvites";
+import { countdownText, daysUntil, inviteDetails } from "@/lib/inviteDetails";
 import { GuestDetails } from "./GuestDetails";
-import { Blessings, Envelope, OPEN_MS, PersonalLink, QuizAsk, SceneActions, ScratchCard, TapMoment, momentKind, useCountdown, useGreeting, type SceneAction } from "./Interactive";
-import { RsvpSheet, RsvpSummary } from "./Rsvp";
 
 /* The guest's view of a live share: the same <Frame/> as the editor, driven by
    a rAF clock. It opens on a "tap to open" cover, because browsers only allow
@@ -33,40 +26,6 @@ import { RsvpSheet, RsvpSummary } from "./Rsvp";
    this is decided in the browser. */
 
 type Phase = "cover" | "opening" | "playing" | "paused" | "ended";
-/** How long the cover shows before the invite opens by itself. */
-const AUTO_OPEN_MS = 3200;
-/* The couple's clean look at their new invite (owner, 2026-11-23): PREVIEW_S seconds of playing time without the
-   watermark, on their own device only (guests always get the watermark until it is paid), with a countdown at the top.
-   At 0, or when the invite reaches its end first, the watermark comes on, the invite pauses and the pay sheet opens.
-   Seconds left are kept per link on this device (fp.preview), so a reload doesn't start it over. */
-const PREVIEW_S = 30;
-const PREVIEW_KEY = "fp.preview";
-function previewLeftFor(name: string): number {
-  try {
-    const v = (JSON.parse(localStorage.getItem(PREVIEW_KEY) || "{}") || {})[name];
-    return typeof v === "number" ? Math.max(0, Math.min(PREVIEW_S, v)) : PREVIEW_S;
-  } catch {
-    return 0; // no storage (private mode): no preview, rather than a fresh one on every visit
-  }
-}
-/** The couple's own actions, onto their link's record for /admin/links (app/api/share/[token]/owner; owner key
-    required). Counts and times only; best effort, never in the way. */
-function ownerEvent(name: string, key: string, kind: "visit" | "preview_end" | "paysheet" | "pay_later", reason?: "timer" | "end") {
-  fetch("/api/share/" + name + "/owner", {
-    method: "POST",
-    headers: { "Content-Type": "application/json", "x-owner-key": key },
-    body: JSON.stringify(reason ? { kind, reason } : { kind }),
-    keepalive: true,
-  }).catch(() => {});
-}
-function savePreviewLeft(name: string, left: number) {
-  try {
-    const all = { ...(JSON.parse(localStorage.getItem(PREVIEW_KEY) || "{}") || {}), [name]: left };
-    localStorage.setItem(PREVIEW_KEY, JSON.stringify(Object.fromEntries(Object.entries(all).slice(-100))));
-  } catch {}
-}
-/** The scratch card is off for every invite (see scratchAt). */
-const SCRATCH_OFF: boolean = true;
 
 /** Photos decoded up front, so none appears half-loaded. */
 function decodeImages(project: Project): Promise<unknown> {
@@ -191,26 +150,11 @@ export function Watermark() {
   );
 }
 
-/** price: rupees still due to remove the watermark (the design's price, or the difference after an upgrade).
-    free: a free design (no watermark, nothing to pay): its guests get the "Make your own invitation" link. */
-export function LiveInvite({ project, title, name, watermark = false, price = 0, free = false }: { project: Project; title: string; name?: string; watermark?: boolean; price?: number; free?: boolean }) {
+export function LiveInvite({ project, title, name, watermark = false }: { project: Project; title: string; name?: string; watermark?: boolean }) {
   const [phase, setPhase] = useState<Phase>("cover");
-  const [leaving, setLeaving] = useState(false); // the cover is fading into the invite (after the envelope opened)
   const [o, setO] = useState<Orientation>(project.orientation);
   const [T, setT] = useState(0);
   const [muted, setMuted] = useState(false);
-  // Opened by itself (no tap), the music starts muted, which browsers allow, and in step with the story; the first touch
-  // anywhere (or "Tap for music") turns the sound on. Browsers refuse sound before the visitor has touched the page.
-  const [soundLocked, setSoundLocked] = useState(false);
-  const unlockSound = () => {
-    if (!soundLocked) return;
-    setSoundLocked(false);
-    const a = audio.current;
-    if (a) {
-      a.muted = muted;
-      a.play().catch(() => {});
-    }
-  };
   const audio = useRef<HTMLAudioElement | null>(null);
   const wantMusic = useRef(false);
   const images = useRef<Promise<unknown> | null>(null);
@@ -228,124 +172,30 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
   const music = project.music;
   const date = useMemo(() => inviteDate(project.data), [project]);
   const playing = phase === "playing";
-  // Scratch card (Interactive.tsx): the clock and the music wait while the date is still under the foil.
-  const [scratching, setScratching] = useState(false);
-  const scratched = useRef(false);
-  // The other moments that hold the story (Interactive.tsx, Rsvp.tsx): the tap moment on the names, the couple's quiz,
-  // and the RSVP form opened from a scene.
-  const [moment, setMoment] = useState(false);
-  const momented = useRef(false);
-  const [quizAsking, setQuizAsking] = useState(false);
-  const quizzed = useRef(false);
-  const [rsvpOpen, setRsvpOpen] = useState(false);
-  const held = scratching || moment || quizAsking || rsvpOpen;
-  const running = playing && !held;
-  const greeting = useGreeting(); // "Dear Sharma ji" from ?to= (browser only, never stored or tracked)
-  // The sealed envelope is off for every invite (owner, 2026-11-23: still felt old-fashioned; the invite now opens by
-  // itself, AUTO_OPEN_MS after the cover shows). The component stays in Interactive.tsx; the studio switch is gone.
-  const envelope = false && guestOn(project, "envelope");
   const watched = useRef(false);
   const [paidHere, setPaidHere] = useState(false); // paid on this page: drop the watermark now, no reload needed
+  const marked = watermark && !paidHere;
   const [ownerKey, setOwnerKey] = useState<string | null>(null); // set: the couple who made this link
-  const [previewLeft, setPreviewLeft] = useState(0); // seconds of the couple's watermark-free preview still to run (PREVIEW_S)
-  const previewing = previewLeft > 0;
-  const marked = watermark && !paidHere && !previewing;
   const [welcome, setWelcome] = useState(false); // they just came from "Get link"
   const [sheet, setSheet] = useState(false);
   const sheetShown = useRef(false);
 
-  // The couple's wedding pack (lib/pack.ts) covers this invite but it still has the watermark (made after the pack, or
-  // the clearing failed last time): clear it now, from this phone, which holds both owner keys.
-  useEffect(() => {
-    if (!name || !watermark || !ownerKeyFor(name) || !packFor(name)) return;
-    claimPack(name, [name]).then((c) => c.includes(name) && setPaidHere(true));
-  }, [name, watermark]);
-
   useEffect(() => {
     const key = ownerKeyFor(name);
-    const fresh = !!key && takeJustCreated(name);
     setOwnerKey(key);
-    setWelcome(fresh);
-    // The couple's own unpaid invite: first the watermark-free preview, if this device hasn't used it up.
-    const left = key && name && watermark && price > 0 ? previewLeftFor(name) : 0;
-    setPreviewLeft(left);
-    // The couple coming BACK to a link that still has the watermark, preview used: show their options on the cover,
-    // not only after the invite ends. (Every payment so far was started from this sheet, and half the couples never
-    // reach the end.)
-    const onCover = !!key && watermark && !fresh && left <= 0 && !sheetShown.current;
-    if (onCover) {
-      sheetShown.current = true;
-      setSheet(true);
-    }
+    setWelcome(!!key && takeJustCreated(name));
     startAnalytics("guest_page", { invite_id: name && inviteId(name), template_id: project.templateId, is_watermarked: watermark, is_owner: !!key });
-    if (onCover) track("owner_sheet_opened", { trigger: "cover" }); // after startAnalytics: it carries the invite's properties
-    if (key && name && !visited.current) {
-      visited.current = true;
-      ownerEvent(name, key, "visit");
-    }
-  }, [name, project, watermark, price]);
-  const visited = useRef(false);
-
-  // The pay sheet came up on the couple's unpaid invite (any trigger): one more on their link's record.
-  useEffect(() => {
-    if (sheet && marked && ownerKey && name) ownerEvent(name, ownerKey, "paysheet");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sheet]);
-
-  // The preview started playing (once per visit), for the funnel link created → preview started → ended → paid.
-  const previewStarted = useRef(false);
-  useEffect(() => {
-    if (!previewing || !playing || previewStarted.current) return;
-    previewStarted.current = true;
-    track("free_preview_started", { seconds_left: previewLeft });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewing, playing]);
-
-  // One more open / one more watch to the end on this link's record (/admin/links): a count, nothing about the
-  // visitor. Not the couple's own views, not the owner's test devices, not automated browsers.
-  const count = (kind: "open" | "watched") => {
-    if (!name || ownerKey || isInternal() || navigator.webdriver) return;
-    fetch("/api/share/" + name + "/seen", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind }), keepalive: true }).catch(() => {});
-  };
-  // The preview's clock runs while the invite plays (not on the cover, not while paused or behind a sheet).
-  const endPreview = (reason: "timer" | "end") => {
-    if (!name) return;
-    savePreviewLeft(name, 0);
-    setPreviewLeft(0);
-    // watched_seconds: of this visit's preview (a reload carries on where it stopped, fp.preview)
-    track("free_preview_ended", { reason, watched_seconds: reason === "timer" ? PREVIEW_S : PREVIEW_S - previewLeft });
-    if (ownerKey) ownerEvent(name, ownerKey, "preview_end", reason);
-    setPhase((p) => (p === "playing" ? "paused" : p)); // the pay sheet gets their full attention; ▶ carries on after
-    sheetShown.current = true;
-    setSheet(true);
-    track("owner_sheet_opened", { trigger: "preview_end" });
-  };
-  useEffect(() => {
-    if (!previewing || !playing || sheet || !name) return;
-    const id = setTimeout(() => {
-      const left = previewLeft - 1;
-      savePreviewLeft(name, left);
-      if (left <= 0) endPreview("timer");
-      else setPreviewLeft(left);
-    }, 1000);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [previewing, previewLeft, playing, sheet, name]);
-
+  }, [name, project, watermark]);
   useEffect(() => {
     if (phase !== "ended") return;
-    // The invite ended inside the preview: the watermark and the pay sheet now.
-    if (previewing) endPreview("end");
     // The couple has just watched their invite: now is the moment for the owner sheet (once per visit).
-    else if (ownerKey && !sheetShown.current) {
+    if (ownerKey && !sheetShown.current) {
       sheetShown.current = true;
       setSheet(true);
-      track("owner_sheet_opened", { trigger: "end" });
     }
     if (watched.current) return;
     watched.current = true; // "Watch again" doesn't count twice
     track("invite_watched");
-    count("watched");
   }, [phase, ownerKey]);
 
   // Both layouts are hand-tuned, so phones get 9:16 and laptops/TVs 16:9.
@@ -362,7 +212,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
 
   /* ---------- clock ---------- */
   useEffect(() => {
-    if (!running) return;
+    if (!playing) return;
     let raf = 0;
     let last = performance.now();
     const loop = (now: number) => {
@@ -380,7 +230,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     };
     raf = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(raf);
-  }, [running, speed, total]);
+  }, [playing, speed, total]);
 
   useEffect(() => {
     const hide = () => document.hidden && setPhase((p) => (p === "playing" ? "paused" : p));
@@ -388,18 +238,14 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     return () => document.removeEventListener("visibilitychange", hide);
   }, []);
 
-  /* ---------- music ----------
-     It follows `playing` (the guest's own pause: holding the screen, leaving the tab, the end), NOT `running`: while
-     a tap moment, the quiz or the RSVP sheet holds the story, the music plays on (owner, 2026-11-23: it used to stop
-     at every such moment and jump back when the story went on). It is put back in step with the story only when the
-     guest resumes after a pause or skips a scene (seek). */
+  /* ---------- music (synced on play/pause, like the editor) ---------- */
   useEffect(() => {
     const a = audio.current;
     if (!a || !music) return;
     wantMusic.current = playing;
     if (playing) {
       a.currentTime = (music.offset || 0) + T / speed / 1000;
-      a.muted = muted || soundLocked;
+      a.muted = muted;
       a.play().catch(() => {});
     } else a.pause();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -408,7 +254,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
   useEffect(() => {
     const a = audio.current;
     if (!a || !music) return;
-    a.muted = muted || soundLocked;
+    a.muted = muted;
     const fade = Math.min(1, (total - T) / speed / 2200, T / speed / 600 + 0.0001);
     a.volume = Math.max(0, Math.min(1, music.volume * fade));
   }, [T, total, speed, music, muted]);
@@ -421,33 +267,14 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     a.play().then(() => !wantMusic.current && a.pause()).catch(() => {});
   };
 
-  const open = async (auto = false) => {
-    if (auto && music) setSoundLocked(true);
+  const open = async () => {
     unlockAudio();
     track("invite_opened", { orientation: o });
-    count("open");
     setPhase("opening");
-    const ready = Promise.race([Promise.all([fonts.current!.promise, images.current]), new Promise((r) => setTimeout(r, 6000))]);
-    // The envelope opens (seal, flap, card), then the cover fades into the invite: the fade starts only once the
-    // invite is ready too, so a slow phone keeps the opened envelope on screen instead of a frozen first frame.
-    const FADE_MS = 700;
-    await Promise.all([ready, envelope ? new Promise((r) => setTimeout(r, OPEN_MS - FADE_MS)) : null]);
-    // The cover always dissolves into the invite (it used to cut straight to it without the envelope).
-    setLeaving(true);
-    await new Promise((r) => setTimeout(r, FADE_MS));
+    await Promise.race([Promise.all([fonts.current!.promise, images.current]), new Promise((r) => setTimeout(r, 6000))]);
     setT(0);
     setPhase("playing");
-    setLeaving(false);
   };
-
-  // The invite opens by itself a moment after the cover shows (owner, 2026-11-23: "it should be auto"). Not while the
-  // couple's sheet is open on the cover; it starts over when they close it.
-  useEffect(() => {
-    if (phase !== "cover" || sheet) return;
-    const id = setTimeout(() => open(true), AUTO_OPEN_MS);
-    return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [phase, sheet]);
 
   const toggle = useCallback(() => {
     if (phase === "playing") setPhase("paused");
@@ -488,7 +315,6 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     setPhase("playing");
   };
   const onDown = (e: React.PointerEvent) => {
-    unlockSound();
     if (phase !== "playing") return;
     const p = { x: e.clientX / window.innerWidth, held: false, timer: setTimeout(() => {
       p.held = true;
@@ -541,132 +367,14 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, toggle, T]);
 
-  // Scratch to reveal the date: once per visit, a moment into the scene that shows the date (lib/fieldScene.ts), on
-  // invites that have a real date (not the template's sample) and keep the extra on.
-  const scratchAt = useMemo(() => {
-    // Off for every invite (owner, 2026-11-23: a full-screen foil right after the date felt unprofessional and annoying).
-    // The component stays in Interactive.tsx; the studio no longer offers the switch.
-    if (SCRATCH_OFF) return null;
-    const i = sceneForField("weddingDate", tl.scenes);
-    if (i < 0) return null;
-    return { from: tl.slots[i].start + Math.min(1600, tl.scenes[i].duration * 0.35), to: tl.slots[i].start + tl.scenes[i].duration };
-  }, [project, tl]);
-  useEffect(() => {
-    if (!scratchAt || scratched.current || phase !== "playing" || moment || quizAsking) return;
-    if (T >= scratchAt.from && T < scratchAt.to) {
-      scratched.current = true;
-      setScratching(true);
-    }
-  }, [T, phase, scratchAt, moment, quizAsking]);
-
-  // The tap moment (Interactive.tsx): once per visit, a moment into the scene with the couple's names.
-  const details = useMemo(() => inviteDetails(project.templateId, project.data, project.sample), [project]);
-  const momentAt = useMemo(() => {
-    if (!guestOn(project, "moment")) return null;
-    const i = sceneForField("groomName", tl.scenes);
-    if (i < 0) return null;
-    const fn = details.events[0]?.name ?? "";
-    return { at: tl.slots[i].start + Math.min(2400, tl.scenes[i].duration * 0.45), end: tl.slots[i].start + tl.scenes[i].duration, kind: momentKind(fn, tl.template.categories, tl.template.communities) };
-  }, [project, tl, details]);
-  useEffect(() => {
-    if (!momentAt || momented.current || phase !== "playing" || scratching) return;
-    if (T >= momentAt.at && T < momentAt.end) {
-      momented.current = true;
-      setMoment(true);
-    }
-  }, [T, phase, momentAt, scratching]);
-
-  // The couple's quiz (lib/quiz.tsx): the story waits on the question until the guest answers (once per visit).
-  const quiz = useMemo(() => quizOf(project.quiz), [project]);
-  const quizAt = useMemo(() => {
-    const i = tl.scenes.findIndex((s) => s.id === QUIZ_ID);
-    return i < 0 ? null : { ask: tl.slots[i].start + QUIZ_ASK, reveal: tl.slots[i].start + QUIZ_REVEAL - 250, end: tl.slots[i].start + tl.scenes[i].duration };
-  }, [tl]);
-  useEffect(() => {
-    if (!quizAt || quizzed.current || phase !== "playing") return;
-    if (T >= quizAt.ask && T < quizAt.reveal) {
-      quizzed.current = true;
-      setQuizAsking(true);
-    }
-  }, [T, phase, quizAt]);
-
-  // Buttons inside the scenes (Interactive.tsx SceneActions): calendar on the date, directions on the venue, RSVP at
-  // the close. Built from the invite's own fields, skipping the template's sample date / venue (inviteDetails does).
-  const rsvp = useMemo(() => rsvpSetup(project), [project]);
-  const [ios, setIos] = useState(false);
-  const [here, setHere] = useState("");
-  useEffect(() => {
-    setIos(/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Macintosh") && navigator.maxTouchPoints > 1));
-    setHere(window.location.origin + "/e/" + (name ?? ""));
-  }, [name]);
-  const actionsByScene = useMemo(() => {
-    const map = new Map<number, { actions: SceneAction[]; countdownFor?: number }>();
-    if (!guestOn(project, "actions")) return map;
-    const add = (i: number, a: SceneAction, countdownFor?: number) => {
-      if (i < 0) return;
-      const m = map.get(i) ?? { actions: [] };
-      if (!m.actions.some((x) => x.key === a.key)) m.actions.push(a);
-      if (countdownFor !== undefined && m.countdownFor === undefined) m.countdownFor = countdownFor;
-      map.set(i, m);
-    };
-    const cal = (ei: number): SceneAction => ({
-      key: "cal" + ei,
-      label: "Add to calendar",
-      icon: "📅",
-      action: "calendar",
-      href: ios && name ? "/e/" + name + "/calendar.ics" : googleCalendarUrl(details.events[ei], title, here),
-    });
-    const dir = (ei: number): SceneAction => ({ key: "dir" + ei, label: "Directions", icon: "📍", action: "directions", href: mapsUrl(details.events[ei]) });
-    const evs = details.events;
-    // Shaadi Utsav: one scene per function ("event-0", "event-1"...), each with its own buttons.
-    const rows: any[] = Array.isArray(project.data.events) ? project.data.events : [];
-    tl.scenes.forEach((sc, i) => {
-      const m = /^event-(\d+)$/.exec(sc.id);
-      if (!m) return;
-      const ei = evs.findIndex((e) => e.name === String(rows[+m[1]]?.name ?? "").trim());
-      if (ei < 0) return;
-      add(i, cal(ei), ei);
-      if (evs[ei].venue || evs[ei].address) add(i, dir(ei));
-    });
-    if (evs.length && !rows.length) {
-      add(sceneForField("weddingDate", tl.scenes), cal(0), 0);
-      if (evs[0].venue || evs[0].address) add(sceneForField("venueName", tl.scenes), dir(0));
-      const r = evs.findIndex((e, k) => k > 0 && /reception|walima|bou bhat/i.test(e.name));
-      if (r > 0) {
-        add(sceneForField("receptionDate", tl.scenes), cal(r), r);
-        if (evs[r].venue || evs[r].address) add(sceneForField("receptionVenue", tl.scenes), dir(r));
-      }
-    }
-    if (rsvp) {
-      const close = sceneForField("rsvp", tl.scenes);
-      const first = rsvp.contacts[0];
-      add(
-        close,
-        rsvp.mode === "form"
-          ? { key: "rsvp", label: "RSVP", icon: "💌", action: "rsvp", onClick: () => setRsvpOpen(true) }
-          : { key: "rsvp", label: "RSVP" + (first.name && rsvp.contacts.length === 1 ? " to " + first.name.split(" ")[0] : ""), icon: "💌", action: "rsvp", href: waLink(first.phone, quickMessage(evs[0])) },
-      );
-    }
-    return map;
-  }, [project, tl, details, rsvp, ios, here, name, title]);
-  const sceneNow = sceneAt(Math.min(T, total));
-  const slotNow = tl.slots[sceneNow];
-  const showActs = !!slotNow && T >= slotNow.start + 1200 && T < slotNow.start + slotNow.duration - 400;
-  const here_ = actionsByScene.get(sceneNow);
-  const sceneActions = showActs ? (here_?.actions ?? []) : [];
-  const cdEvent = here_?.countdownFor !== undefined ? details.events[here_.countdownFor] : undefined;
-  const liveCountdown = useCountdown(cdEvent?.date, cdEvent?.time);
-  const sceneExtra = showActs && cdEvent ? liveCountdown : undefined;
-
   // "49 days to go" on the cover: worked out in the browser (the cover HTML is cached for everyone).
   const [countdown, setCountdown] = useState("");
   useEffect(() => {
-    const ev = inviteDetails(project.templateId, project.data, project.sample).events.find((e) => daysUntil(e.date) >= 0);
+    const ev = inviteDetails(project.templateId, project.data).events.find((e) => daysUntil(e.date) >= 0);
     setCountdown(ev ? countdownText(daysUntil(ev.date)) : "");
   }, [project]);
 
   const { W, H } = SIZES[o];
-  const fullH = useFullHeight(o === "vertical" ? W : 0);
   const ink = theme.ink;
   const round = (size: number): React.CSSProperties => ({
     width: size,
@@ -705,8 +413,8 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
           onContextMenu={(e) => e.preventDefault()}
           style={{ position: "absolute", inset: 0, cursor: "pointer", touchAction: "manipulation", WebkitTouchCallout: "none" } as React.CSSProperties}
         >
-          <Stage W={W} H={fullH ?? H}>
-            <Frame project={{ ...project, orientation: o }} template={tl.template} theme={theme} scenes={tl.scenes} slots={tl.slots} total={total} T={Math.min(T, total)} playing={playing} height={fullH ?? undefined} />
+          <Stage W={W} H={H}>
+            <Frame project={{ ...project, orientation: o }} template={tl.template} theme={theme} scenes={tl.scenes} slots={tl.slots} total={total} T={Math.min(T, total)} playing={playing} />
           </Stage>
         </div>
       ) : null}
@@ -725,57 +433,13 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
           })}
         </div>
       ) : null}
-      {scratching ? (
-        <ScratchCard
-          theme={theme}
-          onDone={(completed) => {
-            track("date_scratched", { completed });
-            setScratching(false);
-          }}
-        />
-      ) : null}
-      {moment && momentAt ? (
-        <TapMoment
-          kind={momentAt.kind}
-          onDone={(taps) => {
-            track("tap_moment", { kind: momentAt.kind, taps });
-            setMoment(false);
-          }}
-        />
-      ) : null}
-      {quizAsking && quiz && quizAt ? (
-        <QuizAsk
-          name={name}
-          options={quiz.options}
-          answer={quiz.answer}
-          counts={!ownerKey && !isInternal()}
-          onDone={() => {
-            setT(quizAt.reveal); // the story only: the music plays on through the quiz, it never jumps
-            setQuizAsking(false);
-          }}
-        />
-      ) : null}
-      {phase === "playing" || phase === "paused" ? <SceneActions actions={held ? [] : sceneActions} extra={held ? undefined : sceneExtra} /> : null}
-      {rsvpOpen && rsvp ? <RsvpSheet setup={rsvp} title={title} name={name} greeting={greeting} counts={!ownerKey && !isInternal()} onClose={() => setRsvpOpen(false)} /> : null}
-      {hint && phase === "playing" && !held ? <div className="tap-hint">Tap to skip ›&nbsp; · &nbsp;Hold to pause</div> : null}
+      {hint && phase === "playing" ? <div className="tap-hint">Tap to skip ›&nbsp; · &nbsp;Hold to pause</div> : null}
 
       {marked ? <Watermark /> : null}
-      {previewing && phase !== "cover" ? (
-        <div className="preview-pill" role="timer" aria-live="off">
-          <span className="pp-ring" style={{ ["--pp" as any]: previewLeft / PREVIEW_S }} aria-hidden />
-          No watermark for <b>{previewLeft}s</b>
-        </div>
-      ) : null}
 
       {music && (phase === "playing" || phase === "paused") ? (
-        <button aria-label={muted ? "Unmute" : "Mute"} onClick={() => (soundLocked ? unlockSound() : setMuted((m) => !m))} style={{ ...round(42), position: "absolute", top: 24, right: 14, fontSize: 18 }}>
-          {muted || soundLocked ? "🔇" : "🔊"}
-        </button>
-      ) : null}
-      {/* Opened by itself: the music is playing silently until the guest touches the page (browsers' rule). */}
-      {music && soundLocked && (phase === "playing" || phase === "paused") ? (
-        <button className="sound-pill" onClick={unlockSound}>
-          🔊 Tap for music
+        <button aria-label={muted ? "Unmute" : "Mute"} onClick={() => setMuted((m) => !m)} style={{ ...round(42), position: "absolute", top: 24, right: 14, fontSize: 18 }}>
+          {muted ? "🔇" : "🔊"}
         </button>
       ) : null}
 
@@ -787,22 +451,12 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
 
       {phase === "ended" ? (
         <div className="end-shade">
-          <GuestDetails project={project} title={title} name={name} onReplay={toggle} onRsvp={() => setRsvpOpen(true)} />
-          {name && guestOn(project, "blessings") ? <Blessings name={name} counts={!ownerKey} /> : null}
-          {/* Unpaid links (they already carry our name) and free designs: guests planning a function of their own
-              find the maker. Paid links stay clean. The utm tags attribute the visit (lib/analytics keeps them); no invite details go along. */}
-          {(marked || free) && !ownerKey ? (
-            <a className="end-make" href={"/templates/" + project.templateId + "?utm_source=invite&utm_medium=guest_page"} onClick={() => track("guest_action_clicked", { action: "make_own" })}>
-              <b>Make an invitation like this</b>
-              <span>Free preview · ready in 2 minutes</span>
-            </a>
-          ) : null}
-          {/* Paid links (owner, 2026-11-17): one quiet credit line after the invite has ended, never on the invite itself
-              (that is what the payment removes; the Terms say so). Shown to the couple too, so their page is exactly
-              what guests see. Every invite reaches hundreds of guests, some planning their own wedding. */}
-          {!marked && !free ? (
-            <a className="end-credit" href={"/templates/" + project.templateId + "?utm_source=invite&utm_medium=guest_credit"} onClick={() => track("guest_action_clicked", { action: "make_own" })}>
-              Made with {BRAND} · Make yours
+          <GuestDetails project={project} title={title} name={name} onReplay={toggle} />
+          {/* Free links only (they already carry our name): guests planning a function of their own find the maker.
+              Paid links stay clean. The utm tags attribute the visit (lib/analytics keeps them); no invite details go along. */}
+          {marked && !ownerKey ? (
+            <a className="end-make" href={"/templates/" + project.templateId + "?utm_source=invite&utm_medium=guest_page"}>
+              Make your own invitation →
             </a>
           ) : null}
         </div>
@@ -811,8 +465,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
       {/* cover: rendered on the server, so the page shows instantly */}
       {phase === "cover" || phase === "opening" ? (
         <div
-          onClick={phase === "cover" ? () => open() : undefined}
-          className={(envelope && phase === "opening" ? "cover-opening" : "") + (leaving ? " cover-leaving" : "") || undefined}
+          onClick={phase === "cover" ? open : undefined}
           style={{
             position: "absolute",
             inset: 0,
@@ -828,11 +481,6 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
             background: "radial-gradient(ellipse at 50% 35%, " + theme.bg + " 0%, " + theme.bg2 + " 85%)",
           }}
         >
-          {greeting ? (
-            <div className="cover-in cover-dear" style={{ position: "relative", fontFamily: "var(--f-cormorant)", fontStyle: "italic", fontSize: 22, color: theme.soft }}>
-              Dear {greeting},
-            </div>
-          ) : null}
           <div className="cover-in" style={{ position: "relative", fontFamily: "var(--f-cinzel)", fontSize: 12, letterSpacing: "0.38em", color: theme.accent }}>
             YOU&apos;RE INVITED
           </div>
@@ -855,26 +503,13 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
               {countdown}
             </div>
           ) : null}
-          {envelope ? (
-            <>
-              <Envelope theme={theme} title={title} opening={phase === "opening"} />
-              <div className="cover-in d3 env-cta" style={{ position: "relative", color: theme.accent }}>
-                {phase === "opening" ? "Opening…" : "Tap the seal to open"}
-              </div>
-            </>
-          ) : (
-            // Opens by itself after AUTO_OPEN_MS (the fill across the button shows the time left); a tap opens it now,
-            // with sound. Re-keyed when the couple's sheet closes, so the countdown starts over.
-            <button
-              key={sheet ? "wait" : "auto"}
-              className={"btn primary open-btn cover-in d3" + (phase === "cover" && !sheet ? " counting" : "")}
-              style={{ position: "relative", marginTop: 16, padding: "14px 34px", fontSize: 15, borderRadius: 99, background: theme.accent, color: theme.bg2, overflow: "hidden", ["--open-ms" as any]: AUTO_OPEN_MS + "ms" }}
-              disabled={phase === "opening"}
-            >
-              <span className="open-fill" aria-hidden />
-              <span style={{ position: "relative" }}>{phase === "opening" ? "Opening…" : "Open invitation"}</span>
-            </button>
-          )}
+          <button
+            className="btn primary open-btn"
+            style={{ position: "relative", marginTop: 16, padding: "14px 34px", fontSize: 15, borderRadius: 99, background: theme.accent, color: theme.bg2 }}
+            disabled={phase === "opening"}
+          >
+            {phase === "opening" ? "Opening..." : "✉  Open invitation"}
+          </button>
           {music ? (
             <div className="cover-in d3" style={{ position: "relative", fontSize: 12, opacity: 0.7 }}>
               Turn your sound on 🔊
@@ -886,11 +521,7 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
       {/* The couple's own visit: a note on the cover, their bar, their sheet. Guests get the guest bar. */}
       {ownerKey && (phase === "cover" || phase === "opening") ? (
         <div className={"owner-note" + (welcome ? " welcome" : "")}>
-          {previewing ? (
-            <>
-              <b>{welcome ? "🎉 Your wedding link is ready!" : "Your invite"}</b> Watch it without the watermark for {previewLeft} seconds.
-            </>
-          ) : welcome ? (
+          {welcome ? (
             <>
               <b>🎉 Your invite is live!</b> This is exactly what your guests will see. Tap to watch it.
             </>
@@ -903,25 +534,13 @@ export function LiveInvite({ project, title, name, watermark = false, price = 0,
       ) : null}
       {ownerKey && name ? (
         <>
-          {/* Hidden during the preview: nothing to pay for yet, nothing in the way of watching. */}
-          {previewing ? null : (
-            <OwnerBar
-              title={title}
-              name={name}
-              watermark={marked}
-              price={price}
-              onOpen={() => {
-                track("owner_sheet_opened", { trigger: "bar" });
-                setSheet(true);
-              }}
-            />
-          )}
+          <OwnerBar title={title} name={name} watermark={marked} onOpen={() => setSheet(true)} />
           {sheet ? (
-            <OwnerSheet title={title} name={name} project={project} ownerKey={ownerKey} watermark={marked} price={price} onPaid={() => setPaidHere(true)} onClose={() => setSheet(false)} />
+            <OwnerSheet title={title} name={name} ownerKey={ownerKey} watermark={marked} onPaid={() => setPaidHere(true)} onClose={() => setSheet(false)} />
           ) : null}
         </>
       ) : (
-        <GuestBar title={title} name={name} watermark={marked} price={price} onPaid={() => setPaidHere(true)} />
+        <GuestBar title={title} name={name} watermark={marked} onPaid={() => setPaidHere(true)} />
       )}
     </main>
   );
@@ -937,7 +556,7 @@ function shareOnWhatsApp(title: string, name: string) {
 }
 
 /** The couple's bar at the bottom: the one next step (remove the watermark, or share) and WhatsApp. Opens the sheet. */
-function OwnerBar({ title, name, watermark, price, onOpen }: { title: string; name: string; watermark: boolean; price: number; onOpen: () => void }) {
+function OwnerBar({ title, name, watermark, onOpen }: { title: string; name: string; watermark: boolean; onOpen: () => void }) {
   return (
     <div className="guest-bar owner-bar">
       <button className="gb-pay ob-main" onClick={onOpen}>
@@ -948,7 +567,7 @@ function OwnerBar({ title, name, watermark, price, onOpen }: { title: string; na
           <b>{watermark ? "Remove the watermark" : "Your invite is live"}</b>
           <span>{watermark ? "Before you send it · one-time" : "Send it to your guests"}</span>
         </span>
-        <span className="btn primary sm">{watermark ? "₹" + price : "Share"}</span>
+        <span className="btn primary sm">{watermark ? "₹" + LINK_PRICE_INR : "Share"}</span>
       </button>
       <button className="gb-wa" onClick={() => shareOnWhatsApp(title, name)} aria-label="Send on WhatsApp" title="Send on WhatsApp">
         <WhatsAppIcon size={26} />
@@ -957,7 +576,7 @@ function OwnerBar({ title, name, watermark, price, onOpen }: { title: string; na
   );
 }
 
-type PayState = "idle" | "paying" | "paying-pack" | "paid" | { error: string };
+type PayState = "idle" | "paying" | "paid" | { error: string };
 
 /**
  * The couple's sheet: remove the watermark (free links), share the link, and optionally leave a WhatsApp number or
@@ -966,38 +585,29 @@ type PayState = "idle" | "paying" | "paying-pack" | "paid" | { error: string };
 function OwnerSheet({
   title,
   name,
-  project,
   ownerKey,
   watermark,
-  price,
   onPaid,
   onClose,
 }: {
   title: string;
   name: string;
-  project: Project;
   ownerKey: string;
   watermark: boolean;
-  price: number;
   onPaid: () => void;
   onClose: () => void;
 }) {
   const [pay, setPay] = useState<PayState>("idle");
   const [copied, setCopied] = useState(false);
-  const [more, setMore] = useState(false); // "Not now": the rest of the sheet while the invite still has the watermark
   const [canShare, setCanShare] = useState(false);
   useEffect(() => setCanShare(!!navigator.share), []);
   const link = inviteUrl(name);
-  const close = (how: "x" | "backdrop") => {
-    track("owner_sheet_closed", { how, is_watermarked: watermark, paid_now: pay === "paid" });
-    onClose();
-  };
 
   const removeWatermark = async () => {
     setPay("paying");
     try {
       // Paid: the server has refreshed this link for everyone; here the watermark goes at once (no reload).
-      if ((await payToRemoveWatermark(name, title, price, false, ownerKey)) === "paid") {
+      if ((await payToRemoveWatermark(name, title)) === "paid") {
         onPaid();
         setPay("paid");
       } else setPay("idle");
@@ -1005,12 +615,6 @@ function OwnerSheet({
       setPay({ error: e?.message || String(e) });
     }
   };
-
-  // A wedding pack bought before 2026-11-23 (lib/pack.ts) still covers this couple's invites; it is no longer sold
-  // (one price per invite, nothing else on the pay sheet).
-  const [packed, setPacked] = useState(false);
-  const cleared = 0;
-  useEffect(() => setPacked(!!packFor(name)), [name]);
 
   const copy = async () => {
     track("invite_shared", { channel: "copy", invite_id: inviteId(name) });
@@ -1024,72 +628,53 @@ function OwnerSheet({
   };
 
   return (
-    <div className="owner-back" onClick={(e) => e.target === e.currentTarget && close("backdrop")}>
+    <div className="owner-back" onClick={(e) => e.target === e.currentTarget && onClose()}>
       {pay === "paid" ? <Confetti y={30} /> : null}
       <div className="owner-sheet" role="dialog" aria-label="Your invite">
-        <button className="os-x" onClick={() => close("x")} aria-label="Close">
+        <button className="os-x" onClick={onClose} aria-label="Close">
           ✕
         </button>
 
         {watermark ? (
-          // Paying, with nothing else in the way (owner, 2026-11-23: "simpler so they easily pay, without distraction"):
-          // one message, one button, the payment logos. The pack is one line; sharing, RSVP counts, personal links, the
-          // rating and the contact box wait behind "Not now" (`more`) and come back once the invite is paid.
-          <section className="os-pay simple">
-            <span className="os-kicker">Your free preview is over</span>
-            <h3>Send it without the watermark</h3>
-            <p className="os-sub">
-              Until then guests see &ldquo;{BRAND.toUpperCase()} · PREVIEW&rdquo; across it. Pay once and this same link turns clean for everyone in
-              seconds.
+          <section className="os-pay">
+            <h3>Remove the watermark before you send it</h3>
+            <p>
+              Guests will see &ldquo;{BRAND.toUpperCase()} · PREVIEW&rdquo; across your invite. Remove it once and this same link turns clean for
+              everyone.
             </p>
-            <button className="btn primary os-cta big" onClick={removeWatermark} disabled={pay === "paying" || pay === "paying-pack"}>
+            <div className="os-price">
+              <b>₹{LINK_PRICE_INR}</b>
+              <span>one-time · no subscription</span>
+            </div>
+            <ul className="os-ticks">
+              <li>Same link, nothing to resend</li>
+              <li>Clean for every guest</li>
+              <li>Done in seconds</li>
+            </ul>
+            <button className="btn primary os-cta" onClick={removeWatermark} disabled={pay === "paying"}>
               {pay === "paying" ? (
                 <>
                   <span className="spin" aria-hidden /> Waiting for payment…
                 </>
               ) : (
                 <>
-                  <LockIcon /> Pay ₹{price} · Remove watermark
+                  <LockIcon /> Remove watermark · ₹{LINK_PRICE_INR}
                 </>
               )}
             </button>
-            <TrustRow />
             {typeof pay === "object" ? <p className="os-err">{pay.error}</p> : null}
+            <TrustRow />
             <AgreeNote paying />
-            {!more ? (
-              <button
-                className="os-later"
-                onClick={() => {
-                  setMore(true);
-                  track("pay_later_clicked", { amount_inr: price });
-                  ownerEvent(name, ownerKey, "pay_later");
-                }}
-              >
-                Not now, share it with the watermark
-              </button>
-            ) : null}
           </section>
         ) : (
           <section className="os-done">
-            <h3>{pay === "paid" ? (packed ? "Wedding pack active 🎉" : "Watermark removed 🎉") : "Your invite is ready to send"}</h3>
-            <p>
-              {pay === "paid"
-                ? packed
-                  ? "This invite is clean" +
-                    (cleared ? ", and " + cleared + " more of your invites too" : "") +
-                    ". Every invite you make for " +
-                    title +
-                    " on this phone will have no watermark."
-                  : "Every guest now sees the clean invite, on this same link."
-                : "Share this link with your family and guests."}
-            </p>
+            <h3>{pay === "paid" ? "Watermark removed 🎉" : "Your invite is ready to send"}</h3>
+            <p>{pay === "paid" ? "Every guest now sees the clean invite, on this same link." : "Share this link with your family and guests."}</p>
           </section>
         )}
 
-        {!watermark || more ? (
-        <>
         <section className="os-share">
-          <span className="os-label">{watermark ? "Share it as it is" : "Your link"}</span>
+          <span className="os-label">{watermark ? "Or share it as it is" : "Your link"}</span>
           <div className={"os-link" + (copied ? " copied" : "")}>
             <span className="url" title={link}>
               {link.replace(/^https?:\/\/(www\.)?/, "")}
@@ -1113,134 +698,9 @@ function OwnerSheet({
           </div>
         </section>
 
-        {rsvpSetup(project)?.mode === "form" ? <RsvpSummary name={name} ownerKey={ownerKey} /> : null}
-        <PersonalLink name={name} title={title} link={link} />
-
-        {!watermark ? <OwnerNext project={project} packed={packed} /> : null}
-        {/* Every couple, paid or not (since 2026-11-17: only clean invites could, and those were 4 of 65 links). The review
-            records whether the link had paid, and the hero shows "Paid customer" or "Made their invite here" accordingly. */}
-        {LEADS ? <OwnerReview name={name} ownerKey={ownerKey} title={title} /> : null}
         {LEADS ? <OwnerContact name={name} ownerKey={ownerKey} watermark={watermark} /> : null}
-        </>
-        ) : null}
       </div>
     </div>
-  );
-}
-
-/**
- * Their other functions (lib/nextInvites.ts), once this invite is done: each is a purchase of its own, in their
- * language and named for their state's ritual. Opens the studio on that design with their names already in (the
- * draft on this device); Get link then gives it its own link, never replacing this one.
- */
-function OwnerNext({ project, packed }: { project: Project; packed: boolean }) {
-  const list = useMemo(() => nextInvites(project.templateId, project.data), [project.templateId, project.data]);
-  if (!list.length) return null;
-  return (
-    <section className="os-next">
-      <span className="os-label">Inviting for your other functions too?</span>
-      <p className="os-next-sub">Same names, a link of its own for each. Ready in a minute.</p>
-      <div className="os-next-row">
-        {list.map((x) => (
-          <a
-            key={x.id}
-            className="os-next-card"
-            href={"/create?template=" + x.id}
-            onClick={() => track("next_invite_clicked", { template_id: x.id, from_template_id: project.templateId })}
-          >
-            <span className="os-next-thumb">{x.template.thumb(x.template.palettes[0])}</span>
-            <b>{x.label}</b>
-            <small>{packed ? "In your pack" : "Make it"}</small>
-          </a>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-const REVIEWED = "fp.reviewed"; // links this device has reviewed: ask once
-const reviewedHere = (name: string) => {
-  try {
-    return (JSON.parse(localStorage.getItem(REVIEWED) || "[]") as string[]).includes(name);
-  } catch {
-    return false;
-  }
-};
-
-/**
- * The couple (paid or not) can rate their invite for other couples. Saved with the
- * owner key (app/api/review), so only the people who made it can; it reaches the home page only if they tick the
- * box AND the owner approves it on /admin/reviews. Never pre-ticked.
- */
-function OwnerReview({ name, ownerKey, title }: { name: string; ownerKey: string; title: string }) {
-  const [hidden, setHidden] = useState(true);
-  const [rating, setRating] = useState(0);
-  const [text, setText] = useState("");
-  const [who, setWho] = useState(title.slice(0, 40));
-  const [city, setCity] = useState("");
-  const [consent, setConsent] = useState(false);
-  const [state, setState] = useState<"idle" | "saving" | "saved" | { error: string }>("idle");
-  useEffect(() => setHidden(reviewedHere(name)), [name]);
-  if (hidden && state !== "saved") return null;
-
-  const send = async () => {
-    setState("saving");
-    try {
-      const res = await fetch("/api/review", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, key: ownerKey, rating, text, displayName: who, city, consent }),
-      });
-      const r = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(r.error || "Could not send it");
-      try {
-        localStorage.setItem(REVIEWED, JSON.stringify([...(JSON.parse(localStorage.getItem(REVIEWED) || "[]") as string[]), name].slice(-50)));
-      } catch {}
-      track("review_submitted", { rating, has_text: !!text.trim(), is_public: consent });
-      setState("saved");
-    } catch (e: any) {
-      setState({ error: e?.message || String(e) });
-    }
-  };
-
-  if (state === "saved")
-    return (
-      <section className="os-review saved">
-        <b>Thank you 🙏</b> {consent ? "We'll read it and put it up for other couples soon." : "It helps us make the next invite better."}
-      </section>
-    );
-  return (
-    <section className="os-review">
-      <span className="os-label">
-        How did your invite turn out? <em>(optional)</em>
-      </span>
-      <div className="os-stars" role="radiogroup" aria-label="Your rating">
-        {[1, 2, 3, 4, 5].map((n) => (
-          <button key={n} role="radio" aria-checked={rating === n} aria-label={n + " star" + (n > 1 ? "s" : "")} className={n <= rating ? "on" : ""} onClick={() => setRating(n)}>
-            ★
-          </button>
-        ))}
-      </div>
-      {rating ? (
-        <>
-          <textarea className="os-input os-area" rows={3} maxLength={300} placeholder="What did your family and guests say? (optional)" value={text} onChange={(e) => setText(e.target.value)} />
-          <div className="os-review-row">
-            <input className="os-input" maxLength={40} placeholder="Name to show" value={who} onChange={(e) => setWho(e.target.value)} aria-label="Name to show" />
-            <input className="os-input" maxLength={40} placeholder="City (optional)" value={city} onChange={(e) => setCity(e.target.value)} aria-label="City" />
-          </div>
-          <label className="os-check">
-            <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
-            <span>Show my review on {BRAND}&apos;s website, with the name and city above</span>
-          </label>
-          <button className="btn os-save" onClick={send} disabled={state === "saving"}>
-            {state === "saving" ? <span className="spin" aria-hidden /> : "Send review"}
-          </button>
-          <p className={"os-note" + (typeof state === "object" ? " bad" : "")}>
-            {typeof state === "object" ? state.error : "We read every review before it goes up, and take it down whenever you ask."}
-          </p>
-        </>
-      ) : null}
-    </section>
   );
 }
 
@@ -1345,7 +805,7 @@ function OwnerContact({ name, ownerKey, watermark }: { name: string; ownerKey: s
  * Always-on actions at the bottom of the invite: share on WhatsApp, and on a free
  * (watermarked) link, remove the watermark. Paying refreshes this same link for everyone.
  */
-function GuestBar({ title, name, watermark, price, onPaid }: { title: string; name?: string; watermark: boolean; price: number; onPaid: () => void }) {
+function GuestBar({ title, name, watermark, onPaid }: { title: string; name?: string; watermark: boolean; onPaid: () => void }) {
   const [msg, setMsg] = useState<string | null>(null);
   const busy = msg === "Opening payment...";
   const whatsapp = () => {
@@ -1359,7 +819,7 @@ function GuestBar({ title, name, watermark, price, onPaid }: { title: string; na
     try {
       // Paid: the server has refreshed this link for every guest. Here the watermark goes at once, without a
       // reload that could still be answered by the old copy while the refresh spreads.
-      if ((await payToRemoveWatermark(name, title, price)) === "paid") onPaid();
+      if ((await payToRemoveWatermark(name, title)) === "paid") onPaid();
       setMsg(null);
     } catch (e: any) {
       setMsg(e?.message || String(e));
@@ -1378,7 +838,7 @@ function GuestBar({ title, name, watermark, price, onPaid }: { title: string; na
           </div>
           <button className="btn primary sm" onClick={pay} disabled={busy}>
             {busy ? <span className="spin" aria-hidden /> : null}
-            Remove
+            Pay ₹{LINK_PRICE_INR}
           </button>
         </div>
       ) : (
@@ -1389,25 +849,4 @@ function GuestBar({ title, name, watermark, price, onPaid }: { title: string; na
       </button>
     </div>
   );
-}
-
-/**
- * The canvas height that fills this phone's screen (owner, 2026-11-18: a 9:16 invite on a taller phone left dark bands
- * above and below and looked small). A portrait screen gets a canvas of its own shape, 1920 to 2400 tall; scenes are
- * centred in it and backdrops draw to it (components/Frame.tsx, `height`). Null = the standard 1920 (landscape, or a
- * screen no taller than 9:16). The studio and the MP4 always use 1920.
- */
-function useFullHeight(W: number): number | null {
-  const [h, setH] = useState<number | null>(null);
-  useEffect(() => {
-    if (!W) return setH(null);
-    const fit = () => {
-      const want = Math.round((W * window.innerHeight) / Math.max(1, window.innerWidth));
-      setH(want > 1940 ? Math.min(2400, want) : null);
-    };
-    fit();
-    window.addEventListener("resize", fit);
-    return () => window.removeEventListener("resize", fit);
-  }, [W]);
-  return h;
 }
