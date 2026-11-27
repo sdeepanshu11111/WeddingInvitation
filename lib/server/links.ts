@@ -90,7 +90,7 @@ export function linkFacts(project: Project, title: string, url: string) {
     has_music: !!project?.music,
     photo_count: media.filter((m) => m.kind === "image").length,
     has_video: media.some((m) => m.kind === "video"),
-    sample_fields: Array.isArray(project?.sample) ? project.sample.length : 0,
+    sample_fields: 0, // this version has no Project.sample (the untouched-sample check came later)
   };
 }
 export type LinkFacts = ReturnType<typeof linkFacts>;
